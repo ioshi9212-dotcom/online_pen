@@ -1,19 +1,11 @@
 import { isAdmin } from "@/lib/admin";
 import { formatDateTime, rub } from "@/lib/format";
+import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import {
-  cancelManualBooking,
-  createManualBooking,
-  createManualClient,
-  updateManualBooking,
-  updateManualClient
-} from "./actions";
+import { cancelManualBooking, createManualBooking, createManualClient, updateManualBooking, updateManualClient } from "./actions";
 
 export const dynamic = "force-dynamic";
-
-const clientStatuses = ["PENDING", "APPROVED", "REJECTED", "BANNED"];
-const bookingStatuses = ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"];
 
 function toDateInput(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -40,11 +32,7 @@ export default async function ManualAdminPage() {
             <h1>Ручное управление</h1>
             <p>Добавление и редактирование клиентов, ручная запись, изменение записи и отмена.</p>
           </div>
-          <div className="actions">
-            <a className="button secondary" href="/admin/my-clients">Мои клиенты</a>
-            <a className="button secondary" href="/admin/archive">Архив</a>
-            <a className="button secondary" href="/admin">Админка</a>
-          </div>
+          <a className="button secondary" href="/admin">Назад</a>
         </div>
       </section>
 
@@ -58,8 +46,12 @@ export default async function ManualAdminPage() {
           </div>
           <div className="grid-3">
             <label>Дата рождения<input name="birthDate" type="date" required /></label>
-            <label>Статус<select name="status" defaultValue="APPROVED">{clientStatuses.map((x) => <option key={x}>{x}</option>)}</select></label>
-            <label>Заметка<input name="notes" /></label>
+            <label>Статус
+              <select name="status" defaultValue="APPROVED">
+                {CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+              </select>
+            </label>
+            <label>Заметка<input name="notes" placeholder="например: френч, аллергия, предоплата" /></label>
           </div>
           <button>Добавить клиента</button>
         </form>
@@ -75,7 +67,11 @@ export default async function ManualAdminPage() {
               <label>Дата и время<input name="startAt" type="datetime-local" required /></label>
             </div>
             <div className="grid-3">
-              <label>Статус<select name="status" defaultValue="CONFIRMED">{bookingStatuses.map((x) => <option key={x}>{x}</option>)}</select></label>
+              <label>Статус
+                <select name="status" defaultValue="CONFIRMED">
+                  {BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                </select>
+              </label>
               <label>Итоговая цена<input name="finalPrice" type="number" min="0" /></label>
               <label>Комментарий клиента<input name="clientComment" /></label>
             </div>
@@ -87,8 +83,9 @@ export default async function ManualAdminPage() {
 
       <section className="card">
         <h2>Клиенты</h2>
+        <div className="notice">Удаление не используется: для нежелательных клиентов ставь «Заблокирован», а для старых — отправляй в архив через «Мои клиенты».</div>
         <table className="table">
-          <thead><tr><th>Данные</th><th>Статус</th><th>Заметки</th><th>Действия</th></tr></thead>
+          <thead><tr><th>Данные</th><th>Статус</th><th>Заметки</th><th></th></tr></thead>
           <tbody>
             {clients.map((client) => (
               <tr key={client.id}>
@@ -101,7 +98,14 @@ export default async function ManualAdminPage() {
                     <input name="birthDate" type="date" defaultValue={toDateInput(client.birthDate)} required />
                   </form>
                 </td>
-                <td><select name="status" form={`client-${client.id}`} defaultValue={client.status}>{clientStatuses.map((x) => <option key={x}>{x}</option>)}</select></td>
+                <td>
+                  <div className="grid">
+                    <select name="status" form={`client-${client.id}`} defaultValue={client.status}>
+                      {CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                    </select>
+                    <span className={`status ${statusClass(client.status)}`}>{clientStatusLabel(client.status)}</span>
+                  </div>
+                </td>
                 <td><textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} /></td>
                 <td><button form={`client-${client.id}`} className="ok">Сохранить</button></td>
               </tr>
@@ -113,7 +117,7 @@ export default async function ManualAdminPage() {
       <section className="card">
         <h2>Записи</h2>
         <table className="table">
-          <thead><tr><th>Дата / клиент</th><th>Услуга / статус</th><th>Цена / комментарии</th><th>Действия</th></tr></thead>
+          <thead><tr><th>Дата/клиент</th><th>Услуга/статус</th><th>Цена/комментарии</th><th></th></tr></thead>
           <tbody>
             {bookings.map((booking) => (
               <tr key={booking.id}>
@@ -128,23 +132,12 @@ export default async function ManualAdminPage() {
                 <td>
                   <div className="grid">
                     <select name="serviceId" form={`booking-${booking.id}`} defaultValue={booking.serviceId}>{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {s.durationMinutes} мин</option>)}</select>
-                    <select name="status" form={`booking-${booking.id}`} defaultValue={booking.status}>{bookingStatuses.map((x) => <option key={x}>{x}</option>)}</select>
+                    <select name="status" form={`booking-${booking.id}`} defaultValue={booking.status}>{BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
+                    <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span>
                   </div>
                 </td>
-                <td>
-                  <div className="grid">
-                    <input name="finalPrice" form={`booking-${booking.id}`} type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} />
-                    <input name="clientComment" form={`booking-${booking.id}`} defaultValue={booking.clientComment} />
-                    <textarea name="adminComment" form={`booking-${booking.id}`} defaultValue={booking.adminComment} />
-                  </div>
-                </td>
-                <td className="actions">
-                  <button form={`booking-${booking.id}`} className="ok">Сохранить</button>
-                  <form action={cancelManualBooking}>
-                    <input type="hidden" name="id" value={booking.id} />
-                    <button className="danger">Отменить</button>
-                  </form>
-                </td>
+                <td><div className="grid"><input name="finalPrice" form={`booking-${booking.id}`} type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} /><input name="clientComment" form={`booking-${booking.id}`} defaultValue={booking.clientComment} /><textarea name="adminComment" form={`booking-${booking.id}`} defaultValue={booking.adminComment} /></div></td>
+                <td className="actions"><button form={`booking-${booking.id}`} className="ok">Сохранить</button><form action={cancelManualBooking}><input type="hidden" name="id" value={booking.id} /><button className="danger">Отменить</button></form></td>
               </tr>
             ))}
           </tbody>

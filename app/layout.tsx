@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const appName = "Онлайн-запись";
+
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_APP_NAME || "Online Pen",
-  description: "Закрытая онлайн-запись мастера"
+  title: appName,
+  description: "Закрытая онлайн-запись к мастеру"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || "Online Pen";
-
   return (
     <html lang="ru">
       <body>

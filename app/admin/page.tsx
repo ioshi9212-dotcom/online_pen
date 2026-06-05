@@ -2,6 +2,8 @@ import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   if (!isAdmin()) redirect("/admin/login");
 
@@ -16,18 +18,18 @@ export default async function AdminPage() {
     <section className="grid">
       <div className="card">
         <h1>Админка</h1>
-        <p>Здесь управление клиентами, заявками, прайсом и расписанием.</p>
-   <div className="actions">
-  <a className="button" href="/admin/my-clients">Мои клиенты</a>
-  <a className="button secondary" href="/admin/manage">Ручная запись</a>
-  <a className="button secondary" href="/admin/archive">Архив</a>
-  <a className="button secondary" href="/admin/requests">Заявки клиентов</a>
-  <a className="button secondary" href="/admin/bookings">Записи</a>
-  <a className="button secondary" href="/admin/clients">Клиенты</a>
-  <a className="button secondary" href="/admin/services">Прайс</a>
-  <a className="button secondary" href="/admin/schedule">Расписание</a>
-  <a className="button secondary" href="/admin/blacklist">Чёрный список</a>
-</div>
+        <p>Здесь управление клиентами, заявками, прайсом, расписанием и архивом.</p>
+        <div className="actions">
+          <a className="button" href="/admin/my-clients">Мои клиенты</a>
+          <a className="button secondary" href="/admin/manage">Ручная запись</a>
+          <a className="button secondary" href="/admin/archive">Архив</a>
+          <a className="button secondary" href="/admin/requests">Заявки клиентов</a>
+          <a className="button secondary" href="/admin/bookings">Записи</a>
+          <a className="button secondary" href="/admin/clients">Клиенты</a>
+          <a className="button secondary" href="/admin/services">Прайс</a>
+          <a className="button secondary" href="/admin/schedule">Расписание</a>
+          <a className="button secondary" href="/admin/blacklist">Чёрный список</a>
+        </div>
       </div>
       <div className="grid-2">
         <div className="card"><h2>{pendingClients}</h2><p>новых клиентов ждут подтверждения</p></div>

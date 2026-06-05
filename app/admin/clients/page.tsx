@@ -1,7 +1,10 @@
 import { banClient, saveClientNote } from "@/app/admin/actions";
 import { isAdmin } from "@/lib/admin";
+import { clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
   if (!isAdmin()) redirect("/admin/login");
@@ -17,7 +20,7 @@ export default async function ClientsPage() {
             <tr key={client.id}>
               <td>{client.lastName} {client.firstName}<br /><span className="small">ДР: {client.birthDate.toISOString().slice(0, 10)}</span></td>
               <td>{client.phone}</td>
-              <td><span className="status">{client.status}</span></td>
+              <td><span className={`status ${statusClass(client.status)}`}>{clientStatusLabel(client.status)}</span></td>
               <td>
                 <form action={saveClientNote} className="grid">
                   <input type="hidden" name="id" value={client.id} />
@@ -27,7 +30,7 @@ export default async function ClientsPage() {
               </td>
               <td>
                 {client.status !== "BANNED" ? (
-                  <form action={banClient}><input type="hidden" name="id" value={client.id} /><button className="danger">В бан</button></form>
+                  <form action={banClient}><input type="hidden" name="id" value={client.id} /><button className="danger">Заблокировать</button></form>
                 ) : null}
               </td>
             </tr>

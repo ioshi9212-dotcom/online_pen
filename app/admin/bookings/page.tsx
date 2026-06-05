@@ -1,8 +1,11 @@
 import { setBookingStatus } from "@/app/admin/actions";
 import { isAdmin } from "@/lib/admin";
 import { formatDateTime, rub } from "@/lib/format";
+import { bookingStatusLabel, statusClass } from "@/lib/statusLabels";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminBookingsPage() {
   if (!isAdmin()) redirect("/admin/login");
@@ -23,8 +26,8 @@ export default async function AdminBookingsPage() {
               <td>{formatDateTime(booking.startAt)}</td>
               <td>{booking.client.lastName} {booking.client.firstName}<br /><span className="small">{booking.client.phone}</span></td>
               <td>{booking.service.title}<br /><span className="small">{rub(booking.finalPrice ?? booking.service.price)}</span></td>
-              <td><span className="status">{booking.status}</span></td>
-              <td>{booking.clientComment}</td>
+              <td><span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span></td>
+              <td>{booking.clientComment || "—"}</td>
               <td className="actions">
                 <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><button className="ok">Подтвердить</button></form>
                 <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><button className="danger">Отклонить</button></form>

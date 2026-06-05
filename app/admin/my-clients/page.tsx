@@ -1,12 +1,12 @@
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { CLIENT_STATUS_OPTIONS, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { redirect } from "next/navigation";
 import { archiveClient, saveMyClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const activeStatuses = ["PENDING", "APPROVED", "BANNED"];
-const statuses = ["PENDING", "APPROVED", "BANNED", "REJECTED"];
 
 function toDateInput(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -34,25 +34,16 @@ export default async function MyClientsPage() {
         </div>
       </div>
 
-      {clients.length === 0 ? <div className="notice">Активных клиентов пока нет.</div> : null}
-
       <table className="table">
-        <thead>
-          <tr>
-            <th>Клиент</th>
-            <th>Контакты / статус</th>
-            <th>Заметки</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Клиент</th><th>Контакты/статус</th><th>Заметки</th><th>Архив</th></tr></thead>
         <tbody>
           {clients.map((client) => (
             <tr key={client.id}>
               <td>
                 <form id={`client-${client.id}`} action={saveMyClient} className="grid">
                   <input type="hidden" name="id" value={client.id} />
-                  <input name="lastName" defaultValue={client.lastName} required placeholder="Фамилия" />
-                  <input name="firstName" defaultValue={client.firstName} required placeholder="Имя" />
+                  <input name="lastName" defaultValue={client.lastName} required />
+                  <input name="firstName" defaultValue={client.firstName} required />
                   <input name="birthDate" type="date" defaultValue={toDateInput(client.birthDate)} required />
                 </form>
               </td>
@@ -60,14 +51,13 @@ export default async function MyClientsPage() {
                 <div className="grid">
                   <input name="phone" form={`client-${client.id}`} defaultValue={client.phone} required />
                   <select name="status" form={`client-${client.id}`} defaultValue={client.status}>
-                    {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                    {CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
                   </select>
+                  <span className={`status ${statusClass(client.status)}`}>{clientStatusLabel(client.status)}</span>
                   <span className="small">Создан: {client.createdAt.toLocaleDateString("ru-RU")}</span>
                 </div>
               </td>
-              <td>
-                <textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} />
-              </td>
+              <td><textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} /></td>
               <td className="actions">
                 <button form={`client-${client.id}`} className="ok">Сохранить</button>
                 <form action={archiveClient} className="grid">
