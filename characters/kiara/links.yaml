@@ -1,0 +1,66 @@
+character_id: "char_kiara"
+schema: "character_links_v1"
+
+relationships:
+  - target_id: "char_livia"
+    status: "future_social_rival"
+    visibility: "first_trace_later_1198_08_15"
+    start_use: "Начать с внимания, сравнения, раздражения или мягкой социальной провокации."
+    current_dynamic: "not fully active yet"
+    constraints:
+      - "Rivalry develops gradually."
+      - "Kiara and Livia should not become completed enemies at first sight."
+
+  - target_id: "char_raiden"
+    status: "social_orbit_interest"
+    visibility: "public_social_field"
+    start_use: "Киара может держаться рядом с Райденом, потому что его отсутствие реакции ломает её привычный контроль."
+    current_dynamic: "interest through loss of control"
+    constraints:
+      - "Raiden is not first scene center by default."
+      - "Kiara does not know the reason for his boundaries."
+
+  - target_id: "char_haru"
+    status: "social_orbit_flirt_game"
+    visibility: "public_social_field"
+    start_use: "Киара может держаться рядом с Хару, потому что он живой, сильный и умеет ответить."
+    current_dynamic: "playful social tension pending"
+    constraints:
+      - "Do not make Haru fully controlled by Kiara."
+
+  - target_id: "char_akira"
+    status: "future_attention_anomaly"
+    visibility: "mostly_inactive_on_first_trace"
+    start_use: "Сначала Киара почти не обращает на Акиру внимания; позже замечает, что вокруг неё собирается внимание."
+    current_dynamic: "not active yet"
+    constraints:
+      - "Do not make Akira jealous without player action."
+      - "Do not make Kiara know Akira's hidden lore."
+
+  - target_id: "char_kir"
+    status: "future_mutual_irritation"
+    visibility: "inactive_at_start"
+    start_use: "Кир может позже увидеть в Киаре красивую социальную маску, которую хочется испортить."
+    current_dynamic: "not active yet"
+
+shared_incidents:
+  participated: []
+  witnessed: []
+  heard_about: []
+
+canon_files:
+  public:
+    - "prequel_repo: characters/main/kiara_volt.md"
+    - "prequel_repo: characters/character_id_index.md"
+    - "prequel_repo: gpt/locks/character_presence_rotation_lock.md"
+
+runtime_refs:
+  character_memory: "state/character_memory/char_kiara.json"
+  focused_relationships: "state/relationships.json"
+  open_threads: "state/open_threads.json"
+  shared_incidents: "state/shared_incidents.json"
+
+loading_hints:
+  load_energy_if: ["training", "combat", "energy check", "metal objects move"]
+  load_habits_if: ["social tension", "status game", "body language matters"]
+  load_past_if: ["Central sector elite background matters"]

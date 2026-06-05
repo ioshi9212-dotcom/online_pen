@@ -1,0 +1,19 @@
+{
+  "patch_name": "academy-1198-v3_patch_kiara",
+  "created_at": "2026-06-05T06:51:06.209802Z",
+  "target_repo": "ioshi9212-dotcom/academy-1198-v3",
+  "files": [
+    "PATCH_README.md",
+    "characters/kiara/appearance.md",
+    "characters/kiara/behavior.md",
+    "characters/kiara/character_card.yaml",
+    "characters/kiara/energy.yaml",
+    "characters/kiara/goals.yaml",
+    "characters/kiara/habits.md",
+    "characters/kiara/knowledge.yaml",
+    "characters/kiara/links.yaml",
+    "characters/kiara/past.md",
+    "characters/kiara/voice.md"
+  ],
+  "recommended_commit": "Add Kiara academy start card"
+}
