@@ -1,110 +1,59 @@
 import { isAdmin } from "@/lib/admin";
 import { formatDateOnly, formatTimeOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { generateSlots, getSettingInt } from "@/lib/schedule";
 import { redirect } from "next/navigation";
+import { deleteOnlineWindow } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-function one(value: string | string[] | undefined, fallback = "") {
-  return Array.isArray(value) ? value[0] || fallback : value || fallback;
-}
-
-function intParam(value: string, fallback: number) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-export default async function FreeWindowsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+export default async function FreeWindowsPage() {
   if (!isAdmin()) redirect("/admin/login");
 
-  const durationMinutes = intParam(one(searchParams.duration, "150"), 150);
-  const daysAhead = intParam(one(searchParams.days, "30"), 30);
+  const now = new Date();
+  const horizon = new Date();
+  horizon.setDate(horizon.getDate() + 90);
 
-  const [rules, settings, bookings, blockedSlots, dayOverrides] = await Promise.all([
-    prisma.scheduleRule.findMany(),
-    prisma.setting.findMany(),
-    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] as any } } }),
-    prisma.blockedSlot.findMany(),
-    prisma.dayOverride.findMany()
-  ]);
-
-  const stepMinutes = getSettingInt(settings, "SLOT_STEP_MINUTES", 30);
-  const slots = generateSlots({
-    service: { durationMinutes },
-    rules,
-    bookings,
-    blockedSlots,
-    daysAhead,
-    stepMinutes,
-    dayOverrides
+  const windows = await prisma.onlineWindow.findMany({
+    where: { startAt: { gte: now, lt: horizon } },
+    orderBy: { startAt: "asc" }
   });
 
-  const grouped = slots.reduce<Record<string, typeof slots>>((acc, slot) => {
-    const key = slot.startAt.toISOString().slice(0, 10);
-    acc[key] ||= [];
-    acc[key].push(slot);
-    return acc;
-  }, {});
-
-  const copyText = Object.values(grouped).map((items) => {
-    const day = formatDateOnly(items[0].startAt);
-    const times = items.map((slot) => formatTimeOnly(slot.startAt)).join(", ");
-    return `${day}: ${times}`;
-  }).join("\n");
+  const text = windows.map((item) => `${formatDateOnly(item.startAt)} ${formatTimeOnly(item.startAt)}`).join("\n");
 
   return (
-    <div className="grid">
-      <section className="card">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
-          <div>
-            <h1>Свободные окна</h1>
-            <p>Список можно выделить, скопировать или просто сделать скрин.</p>
-          </div>
-          <a className="button secondary" href="/admin/schedule">Назад к расписанию</a>
+    <section className="grid">
+      <div className="card">
+        <h1>Список онлайн-окон</h1>
+        <p>Это окна, которые ты вручную открыла для записи клиентов онлайн. Можно скопировать текст или сделать скрин.</p>
+        <div className="actions">
+          <a className="button secondary" href="/admin/schedule">Назад к календарю</a>
+          <a className="button secondary" href="/admin">Админка</a>
         </div>
-        <form className="grid-3" action="/admin/schedule/free">
-          <label>Длительность услуги
-            <select name="duration" defaultValue={String(durationMinutes)}>
-              <option value="60">1 час</option>
-              <option value="90">1,5 часа</option>
-              <option value="120">2 часа</option>
-              <option value="150">2,5 часа</option>
-              <option value="180">3 часа</option>
-              <option value="210">3,5 часа</option>
-              <option value="240">4 часа</option>
-            </select>
-          </label>
-          <label>Период
-            <select name="days" defaultValue={String(daysAhead)}>
-              <option value="14">14 дней</option>
-              <option value="30">30 дней</option>
-              <option value="60">60 дней</option>
-              <option value="90">90 дней</option>
-            </select>
-          </label>
-          <label>&nbsp;<button>Показать окна</button></label>
-        </form>
-      </section>
+      </div>
 
-      <section className="card">
-        <h2>Текст для копирования</h2>
-        {copyText ? <textarea className="copy-area" readOnly value={copyText} /> : <div className="notice">Свободных окон по выбранным условиям пока нет.</div>}
-      </section>
+      <div className="card">
+        <h2>Скопировать список</h2>
+        <textarea className="copy-area" readOnly value={text || "Онлайн-окон пока нет."} />
+      </div>
 
-      <section className="card">
-        <h2>Список для скрина</h2>
-        <div className="free-window-list">
-          {Object.entries(grouped).map(([key, items]) => (
-            <div className="mini-card" key={key}>
-              <h3>{formatDateOnly(items[0].startAt)}</h3>
-              <div className="time-list">
-                {items.map((slot) => <span className="time-pill free" key={slot.startAt.toISOString()}>{formatTimeOnly(slot.startAt)}</span>)}
-              </div>
+      <div className="card">
+        <h2>Окна</h2>
+        {windows.length === 0 ? <div className="notice">Открытых онлайн-окон пока нет.</div> : null}
+        <div className="grid">
+          {windows.map((item) => (
+            <div className="slot" key={item.id}>
+              <strong>{formatDateOnly(item.startAt)}</strong>
+              <span>{formatTimeOnly(item.startAt)}</span>
+              <form action={deleteOnlineWindow}>
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="month" value={`${item.startAt.getFullYear()}-${String(item.startAt.getMonth() + 1).padStart(2, "0")}`} />
+                <input type="hidden" name="date" value={item.startAt.toISOString().slice(0, 10)} />
+                <button className="danger">Убрать окно</button>
+              </form>
             </div>
           ))}
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

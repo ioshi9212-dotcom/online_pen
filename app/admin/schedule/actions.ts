@@ -18,8 +18,13 @@ function n(formData: FormData, key: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function dayDate(formData: FormData) {
-  return dateFromKey(s(formData, "date"));
+function safeJsonList(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function saveScheduleMode(formData: FormData) {
@@ -34,8 +39,12 @@ export async function saveScheduleMode(formData: FormData) {
     update: { value: String(stepMinutes) }
   });
 
-  // Один общий режим для каждого дня недели.
-  // Выходные и особенные дни задаются не здесь, а через календарь конкретных дат.
+  await prisma.setting.upsert({
+    where: { key: "slot_step_minutes" },
+    create: { key: "slot_step_minutes", value: String(stepMinutes) },
+    update: { value: String(stepMinutes) }
+  });
+
   for (let weekday = 0; weekday < 7; weekday += 1) {
     await prisma.scheduleRule.upsert({
       where: { weekday },
@@ -47,9 +56,78 @@ export async function saveScheduleMode(formData: FormData) {
   redirect("/admin/schedule#mode");
 }
 
+export async function saveBulkDayOverrides(formData: FormData) {
+  guard();
+
+  const dates = safeJsonList(s(formData, "datesJson"));
+  const kind = s(formData, "kind") || "DAY_OFF";
+  const month = s(formData, "month");
+  const startTime = s(formData, "startTime") || null;
+  const endTime = s(formData, "endTime") || null;
+
+  for (const key of dates) {
+    const date = dateFromKey(key);
+    await prisma.dayOverride.upsert({
+      where: { date },
+      create: {
+        date,
+        kind: kind as any,
+        startTime,
+        endTime,
+        note: kind === "DAY_OFF" ? "Отмечено как выходной" : kind === "SPECIAL" ? "Особенный день" : ""
+      },
+      update: {
+        kind: kind as any,
+        startTime,
+        endTime,
+        note: kind === "DAY_OFF" ? "Отмечено как выходной" : kind === "SPECIAL" ? "Особенный день" : ""
+      }
+    });
+  }
+
+  redirect(`/admin/schedule?month=${month}#calendar`);
+}
+
+export async function saveOnlineWindows(formData: FormData) {
+  guard();
+
+  const dateKey = s(formData, "date");
+  const month = s(formData, "month");
+  const times = safeJsonList(s(formData, "timesJson"));
+  const day = dateFromKey(dateKey);
+
+  const dayStart = combineDateAndTime(day, "00:00");
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
+  await prisma.onlineWindow.deleteMany({
+    where: { startAt: { gte: dayStart, lt: dayEnd } }
+  });
+
+  for (const time of times) {
+    await prisma.onlineWindow.upsert({
+      where: { startAt: combineDateAndTime(day, time) },
+      create: { startAt: combineDateAndTime(day, time), note: "Открыто для онлайн-записи" },
+      update: { note: "Открыто для онлайн-записи" }
+    });
+  }
+
+  redirect(`/admin/schedule?month=${month}&date=${dateKey}&success=Окна для онлайн-записи сохранены#selected-day`);
+}
+
+export async function deleteOnlineWindow(formData: FormData) {
+  guard();
+  const id = s(formData, "id");
+  const month = s(formData, "month");
+  const date = s(formData, "date");
+  await prisma.onlineWindow.delete({ where: { id } });
+  redirect(`/admin/schedule?month=${month}&date=${date}#selected-day`);
+}
+
 export async function saveDayOverride(formData: FormData) {
   guard();
-  const date = dayDate(formData);
+  const dateKey = s(formData, "date");
+  const date = dateFromKey(dateKey);
   const kind = s(formData, "kind") || "WORKING";
   const startTime = s(formData, "startTime") || null;
   const endTime = s(formData, "endTime") || null;
@@ -61,7 +139,7 @@ export async function saveDayOverride(formData: FormData) {
     update: { kind: kind as any, startTime, endTime, note }
   });
 
-  redirect(`/admin/schedule?date=${s(formData, "date")}&month=${s(formData, "month")}#calendar`);
+  redirect(`/admin/schedule?date=${dateKey}&month=${s(formData, "month")}#selected-day`);
 }
 
 export async function deleteDayOverride(formData: FormData) {
@@ -86,7 +164,7 @@ export async function createScheduleBooking(formData: FormData) {
   const [rules, overrides, bookings, blockedSlots] = await Promise.all([
     prisma.scheduleRule.findMany(),
     prisma.dayOverride.findMany({ where: { date: day } }),
-    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] as any } } }),
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] as any } }, include: { client: true } }),
     prisma.blockedSlot.findMany()
   ]);
 
@@ -102,13 +180,13 @@ export async function createScheduleBooking(formData: FormData) {
   if (selectedStart < workStart || selectedEnd > workEnd) reasons.push("запись выходит за рабочие часы выбранного дня");
 
   const overlapBooking = bookings.find((booking) => overlaps(startAt, endAt, booking.startAt, booking.endAt));
-  if (overlapBooking) reasons.push("запись пересекается с другой активной записью");
+  if (overlapBooking) reasons.push(`наложение с записью клиента ${overlapBooking.client.lastName} ${overlapBooking.client.firstName}`);
 
   const overlapBlock = blockedSlots.find((slot) => overlaps(startAt, endAt, slot.startAt, slot.endAt));
   if (overlapBlock) reasons.push("запись попадает на закрытое окно");
 
   if (reasons.length > 0 && !force) {
-    redirect(`/admin/schedule?month=${month}&date=${dateKey}&warning=${encodeURIComponent(reasons.join("; "))}#book`);
+    redirect(`/admin/schedule?month=${month}&date=${dateKey}&warning=${encodeURIComponent(reasons.join("; "))}#manual-booking`);
   }
 
   const serviceId = s(formData, "serviceId");
@@ -125,5 +203,5 @@ export async function createScheduleBooking(formData: FormData) {
     }
   });
 
-  redirect(`/admin/schedule?month=${month}&date=${dateKey}&success=Запись создана#book`);
+  redirect(`/admin/schedule?month=${month}&date=${dateKey}&success=Запись создана#selected-day`);
 }

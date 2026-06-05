@@ -1,8 +1,10 @@
 import { createBooking } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
 import { formatDateOnly, formatTimeOnly, rub } from "@/lib/format";
-import { generateSlots, getSettingInt } from "@/lib/schedule";
+import { overlaps, getSettingInt } from "@/lib/schedule";
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function BookingPage({ searchParams }: { searchParams: { client?: string; service?: string; busy?: string } }) {
   const token = searchParams.client;
@@ -14,25 +16,40 @@ export default async function BookingPage({ searchParams }: { searchParams: { cl
   const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   const selectedService = searchParams.service ? services.find((service) => service.id === searchParams.service) : services[0];
 
-  const rules = await prisma.scheduleRule.findMany();
   const settings = await prisma.setting.findMany();
   const daysAhead = getSettingInt(settings, "booking_days_ahead", 30);
-  const stepMinutes = getSettingInt(settings, "slot_step_minutes", 30);
 
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + daysAhead + 1);
 
-  const bookings = await prisma.booking.findMany({
-    where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { lt: horizon } },
-    select: { startAt: true, endAt: true }
-  });
+  const [bookings, blockedSlots, onlineWindows] = await Promise.all([
+    prisma.booking.findMany({
+      where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { lt: horizon } },
+      select: { startAt: true, endAt: true }
+    }),
+    prisma.blockedSlot.findMany({
+      where: { startAt: { lt: horizon } },
+      select: { startAt: true, endAt: true }
+    }),
+    prisma.onlineWindow.findMany({
+      where: { startAt: { gt: new Date(), lt: horizon } },
+      orderBy: { startAt: "asc" }
+    })
+  ]);
 
-  const blockedSlots = await prisma.blockedSlot.findMany({
-    where: { startAt: { lt: horizon } },
-    select: { startAt: true, endAt: true }
-  });
-
-  const slots = selectedService ? generateSlots({ service: selectedService, rules, bookings, blockedSlots, daysAhead, stepMinutes }) : [];
+  const slots = selectedService
+    ? onlineWindows
+        .map((window) => {
+          const startAt = window.startAt;
+          const endAt = new Date(startAt.getTime() + selectedService.durationMinutes * 60_000);
+          return { startAt, endAt };
+        })
+        .filter((slot) => {
+          const booked = bookings.some((booking) => overlaps(slot.startAt, slot.endAt, booking.startAt, booking.endAt));
+          const blocked = blockedSlots.some((block) => overlaps(slot.startAt, slot.endAt, block.startAt, block.endAt));
+          return !booked && !blocked;
+        })
+    : [];
 
   return (
     <section className="grid">

@@ -134,6 +134,15 @@ model DayOverride {
   @@index([kind])
 }
 
+model OnlineWindow {
+  id        String   @id @default(uuid())
+  startAt   DateTime @unique
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([startAt])
+}
+
 model Setting {
   key       String   @id
   value     String

@@ -58,6 +58,9 @@ export async function createBooking(formData: FormData) {
   const service = await prisma.service.findUnique({ where: { id: serviceId } });
   if (!service || !service.isActive) redirect(`/booking?client=${token}`);
 
+  const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
+  if (!onlineWindow) redirect(`/booking?client=${token}&service=${serviceId}&busy=1`);
+
   const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
 
   const conflict = await prisma.booking.findFirst({
