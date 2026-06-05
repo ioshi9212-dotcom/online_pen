@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export default async function PricePage() {
   const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   return (
