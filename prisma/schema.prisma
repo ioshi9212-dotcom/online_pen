@@ -24,6 +24,12 @@ enum BookingStatus {
   NO_SHOW
 }
 
+enum DayOverrideKind {
+  WORKING
+  DAY_OFF
+  SPECIAL
+}
+
 model Client {
   id          String       @id @default(uuid())
   publicToken String       @unique @default(uuid())
@@ -95,6 +101,19 @@ model BlockedSlot {
   createdAt DateTime @default(now())
 
   @@index([startAt])
+}
+
+model DayOverride {
+  id        String          @id @default(uuid())
+  date      DateTime        @unique
+  kind      DayOverrideKind
+  startTime String?
+  endTime   String?
+  note      String          @default("")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([kind])
 }
 
 model Setting {
