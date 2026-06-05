@@ -53,7 +53,7 @@ export async function saveScheduleMode(formData: FormData) {
     });
   }
 
-  redirect("/admin/schedule#mode");
+  redirect("/admin/schedule?view=mode&done=Режим сохранён");
 }
 
 export async function saveBulkDayOverrides(formData: FormData) {
@@ -85,7 +85,7 @@ export async function saveBulkDayOverrides(formData: FormData) {
     });
   }
 
-  redirect(`/admin/schedule?month=${month}#calendar`);
+  redirect(`/admin/schedule?view=calendar&month=${month}&done=Даты сохранены#calendar`);
 }
 
 export async function saveOnlineWindows(formData: FormData) {
@@ -112,16 +112,14 @@ export async function saveOnlineWindows(formData: FormData) {
     });
   }
 
-  redirect(`/admin/schedule?month=${month}&date=${dateKey}&success=Окна для онлайн-записи сохранены#selected-day`);
+  redirect(`/admin/schedule?view=calendar&month=${month}&date=${dateKey}&success=Онлайн-окна сохранены#selected-day`);
 }
 
 export async function deleteOnlineWindow(formData: FormData) {
   guard();
   const id = s(formData, "id");
-  const month = s(formData, "month");
-  const date = s(formData, "date");
   await prisma.onlineWindow.delete({ where: { id } });
-  redirect(`/admin/schedule?month=${month}&date=${date}#selected-day`);
+  redirect("/admin/schedule/free?done=Окно удалено");
 }
 
 export async function saveDayOverride(formData: FormData) {
@@ -139,7 +137,7 @@ export async function saveDayOverride(formData: FormData) {
     update: { kind: kind as any, startTime, endTime, note }
   });
 
-  redirect(`/admin/schedule?date=${dateKey}&month=${s(formData, "month")}#selected-day`);
+  redirect(`/admin/schedule?view=calendar&date=${dateKey}&month=${s(formData, "month")}&success=День сохранён#selected-day`);
 }
 
 export async function deleteDayOverride(formData: FormData) {
@@ -147,7 +145,7 @@ export async function deleteDayOverride(formData: FormData) {
   const id = s(formData, "id");
   const month = s(formData, "month");
   await prisma.dayOverride.delete({ where: { id } });
-  redirect(`/admin/schedule?month=${month}#calendar`);
+  redirect(`/admin/schedule?view=calendar&month=${month}&done=Пометка дня сброшена#calendar`);
 }
 
 export async function createScheduleBooking(formData: FormData) {
@@ -186,7 +184,7 @@ export async function createScheduleBooking(formData: FormData) {
   if (overlapBlock) reasons.push("запись попадает на закрытое окно");
 
   if (reasons.length > 0 && !force) {
-    redirect(`/admin/schedule?month=${month}&date=${dateKey}&warning=${encodeURIComponent(reasons.join("; "))}#manual-booking`);
+    redirect(`/admin/schedule?view=calendar&month=${month}&date=${dateKey}&warning=${encodeURIComponent(reasons.join("; "))}#manual-booking`);
   }
 
   const serviceId = s(formData, "serviceId");
@@ -203,5 +201,5 @@ export async function createScheduleBooking(formData: FormData) {
     }
   });
 
-  redirect(`/admin/schedule?month=${month}&date=${dateKey}&success=Запись создана#selected-day`);
+  redirect(`/admin/schedule?view=calendar&month=${month}&date=${dateKey}&success=Запись создана#selected-day`);
 }

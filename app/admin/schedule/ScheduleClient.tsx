@@ -57,7 +57,7 @@ export default function ScheduleClient(props: Props) {
 
   function toggleDate(key: string) {
     if (!paintMode) {
-      window.location.href = `/admin/schedule?month=${props.monthKey}&date=${key}#selected-day`;
+      window.location.href = `/admin/schedule?view=calendar&month=${props.monthKey}&date=${key}#selected-day`;
       return;
     }
 
@@ -75,7 +75,7 @@ export default function ScheduleClient(props: Props) {
   }
 
   const visibleTopTimes = useMemo(
-    () => props.selectedTimes.filter((item) => !onlineTimes.includes(item.time)),
+    () => props.selectedTimes.filter((item) => !item.isBusy && !onlineTimes.includes(item.time)),
     [props.selectedTimes, onlineTimes]
   );
 
@@ -95,9 +95,9 @@ export default function ScheduleClient(props: Props) {
             <p>Зажми режим сверху, нажимай даты — они отметятся цветом. Потом нажми “Готово”, чтобы сохранить.</p>
           </div>
           <div className="actions">
-            <a className="button secondary" href={`/admin/schedule?month=${props.prevKey}#calendar`}>← Пред. месяц</a>
+            <a className="button secondary" href={`/admin/schedule?view=calendar&month=${props.prevKey}#calendar`}>← Пред. месяц</a>
             <span className="pill">{props.monthTitle}</span>
-            <a className="button secondary" href={`/admin/schedule?month=${props.nextKey}#calendar`}>След. месяц →</a>
+            <a className="button secondary" href={`/admin/schedule?view=calendar&month=${props.nextKey}#calendar`}>След. месяц →</a>
           </div>
         </div>
 
@@ -178,23 +178,22 @@ export default function ScheduleClient(props: Props) {
           <div className="grid-2">
             <div className="mini-card">
               <h3>Открыть окна для онлайн-записи</h3>
-              <p className="small">Нажимай время сверху — оно исчезнет из списка и уйдёт вниз. Нижний список — то, что увидят клиенты для записи онлайн.</p>
+              <p className="small">Нажимай свободное время сверху — оно исчезнет из списка и уйдёт вниз. Нижний список — то, что увидят клиенты онлайн.</p>
 
               <div className="grid">
-                <b>Доступное время дня</b>
+                <b>Свободное время дня</b>
                 <div className="time-list" style={{ maxHeight: 360 }}>
                   {visibleTopTimes.map((item) => (
                     <button
                       type="button"
-                      className={item.isBusy ? "secondary" : ""}
                       key={item.time}
                       onClick={() => addOnlineTime(item.time)}
-                      title={item.busyLabel || "Свободно"}
+                      title="Свободно"
                     >
-                      {item.time}{item.isBusy ? " · занято" : ""}
+                      {item.time}
                     </button>
                   ))}
-                  {visibleTopTimes.length === 0 ? <div className="notice">Все времена уже перенесены вниз.</div> : null}
+                  {visibleTopTimes.length === 0 ? <div className="notice">Свободных времён для переноса вниз нет.</div> : null}
                 </div>
               </div>
 

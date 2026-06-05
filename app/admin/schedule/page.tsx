@@ -1,7 +1,7 @@
 import { isAdmin } from "@/lib/admin";
 import { formatDateOnly, formatTimeOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { dateFromKey, dateKey, generateTimeList, getEffectiveDay, getSettingInt, overlaps, parseMinutes, combineDateAndTime } from "@/lib/schedule";
+import { combineDateAndTime, dateFromKey, dateKey, generateTimeList, getEffectiveDay, getSettingInt, overlaps } from "@/lib/schedule";
 import { redirect } from "next/navigation";
 import { saveScheduleMode } from "./actions";
 import ScheduleClient from "./ScheduleClient";
@@ -43,14 +43,48 @@ function dayLabel(kind: string, isWorkingDay: boolean) {
   return isWorkingDay ? "рабочий" : "выходной";
 }
 
+function Toast({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <div className="notice ok-notice" style={{ position: "sticky", top: 12, zIndex: 20, boxShadow: "0 14px 32px rgba(126, 84, 100, .18)" }}>
+      Готово: {text}
+    </div>
+  );
+}
+
+function ScheduleMenu() {
+  return (
+    <section className="card">
+      <h2>Что открыть?</h2>
+      <div className="admin-menu-grid">
+        <a className="menu-card primary" href="/admin/schedule/free">
+          <span className="menu-title">Список онлайн-окон</span>
+          <span className="menu-text">Только открытые окна для клиентов. Удобно скопировать или сделать скрин.</span>
+        </a>
+        <a className="menu-card" href="/admin/schedule?view=mode">
+          <span className="menu-title">Редактор режима</span>
+          <span className="menu-text">Шаг времени и общий рабочий день с/до на каждый день.</span>
+        </a>
+        <a className="menu-card" href="/admin/schedule?view=calendar">
+          <span className="menu-title">Календарь окон</span>
+          <span className="menu-text">Пометить выходные, открыть онлайн-окна и записать клиента вручную.</span>
+        </a>
+      </div>
+    </section>
+  );
+}
+
 export default async function SchedulePage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   if (!isAdmin()) redirect("/admin/login");
 
   const month = monthInfo(one(searchParams.month));
   const selectedDateKey = one(searchParams.date);
+  const requestedView = one(searchParams.view);
+  const view = requestedView === "mode" || requestedView === "calendar" ? requestedView : selectedDateKey ? "calendar" : "menu";
   const selectedDay = selectedDateKey ? dateFromKey(selectedDateKey) : null;
   const warning = one(searchParams.warning);
   const success = one(searchParams.success);
+  const done = one(searchParams.done);
 
   const monthStart = new Date(month.year, month.monthIndex, 1);
   const monthEnd = new Date(month.year, month.monthIndex + 1, 1);
@@ -119,58 +153,67 @@ export default async function SchedulePage({ searchParams }: { searchParams: Rec
     <div className="grid">
       <section className="card">
         <h1>Расписание</h1>
-        <p>Базовый режим задаёт шаг и рабочий день. В календаре можно отметить выходные/особенные дни, а в выбранном дне — открыть конкретные окна для онлайн-записи.</p>
+        <p>Открывай только нужный раздел: список онлайн-окон, редактор режима или календарь окон.</p>
         <div className="actions">
-          <a className="button" href="/admin/schedule/free">Список онлайн-окон</a>
-          <a className="button secondary" href="#mode">Редактор режима</a>
-          <a className="button secondary" href="#calendar">Календарь окон</a>
+          <a className={view === "menu" ? "button" : "button secondary"} href="/admin/schedule">Разделы расписания</a>
+          <a className="button secondary" href="/admin/schedule/free">Список онлайн-окон</a>
+          <a className={view === "mode" ? "button" : "button secondary"} href="/admin/schedule?view=mode">Редактор режима</a>
+          <a className={view === "calendar" ? "button" : "button secondary"} href={`/admin/schedule?view=calendar&month=${month.key}`}>Календарь окон</a>
           <a className="button secondary" href="/admin">Админка</a>
         </div>
       </section>
 
-      <section className="card" id="mode">
-        <h2>Редактор режима</h2>
-        <p>Один общий режим на каждый день. Конкретные выходные и особенные дни отмечаются ниже в календаре.</p>
-        <form action={saveScheduleMode} className="grid">
-          <div className="grid-3">
-            <label>Шаг времени
-              <select name="stepMinutes" defaultValue={String(stepMinutes)}>
-                <option value="15">15 минут</option>
-                <option value="30">30 минут</option>
-                <option value="45">45 минут</option>
-                <option value="60">1 час</option>
-                <option value="90">1,5 часа</option>
-                <option value="150">2,5 часа</option>
-              </select>
-            </label>
-            <label>Рабочий день с
-              <input name="defaultStartTime" type="time" defaultValue={defaultStartTime} />
-            </label>
-            <label>Рабочий день до
-              <input name="defaultEndTime" type="time" defaultValue={defaultEndTime} />
-            </label>
-          </div>
-          <button>Сохранить режим на каждый день</button>
-        </form>
-      </section>
+      <Toast text={done} />
 
-      <ScheduleClient
-        monthKey={month.key}
-        monthTitle={month.title}
-        prevKey={month.prevKey}
-        nextKey={month.nextKey}
-        firstOffset={month.firstOffset}
-        days={days}
-        selectedDateKey={selectedDateKey}
-        selectedDateTitle={selectedDay ? formatDateOnly(selectedDay) : ""}
-        selectedIsWorkingDay={selectedEffective?.isWorkingDay ?? false}
-        selectedTimes={selectedTimes}
-        currentOnlineTimes={selectedOnlineWindows.map((item) => formatTimeOnly(item.startAt))}
-        clients={clients.map((client) => ({ id: client.id, name: `${client.firstName} ${client.lastName}`, phone: client.phone }))}
-        services={services.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes }))}
-        warning={warning}
-        success={success}
-      />
+      {view === "menu" ? <ScheduleMenu /> : null}
+
+      {view === "mode" ? (
+        <section className="card" id="mode">
+          <h2>Редактор режима</h2>
+          <p>Один общий режим на каждый день. Конкретные выходные и особенные дни отмечаются в календаре.</p>
+          <form action={saveScheduleMode} className="grid">
+            <div className="grid-3">
+              <label>Шаг времени
+                <select name="stepMinutes" defaultValue={String(stepMinutes)}>
+                  <option value="15">15 минут</option>
+                  <option value="30">30 минут</option>
+                  <option value="45">45 минут</option>
+                  <option value="60">1 час</option>
+                  <option value="90">1,5 часа</option>
+                  <option value="150">2,5 часа</option>
+                </select>
+              </label>
+              <label>Рабочий день с
+                <input name="defaultStartTime" type="time" defaultValue={defaultStartTime} />
+              </label>
+              <label>Рабочий день до
+                <input name="defaultEndTime" type="time" defaultValue={defaultEndTime} />
+              </label>
+            </div>
+            <button>Сохранить режим на каждый день</button>
+          </form>
+        </section>
+      ) : null}
+
+      {view === "calendar" ? (
+        <ScheduleClient
+          monthKey={month.key}
+          monthTitle={month.title}
+          prevKey={month.prevKey}
+          nextKey={month.nextKey}
+          firstOffset={month.firstOffset}
+          days={days}
+          selectedDateKey={selectedDateKey}
+          selectedDateTitle={selectedDay ? formatDateOnly(selectedDay) : ""}
+          selectedIsWorkingDay={selectedEffective?.isWorkingDay ?? false}
+          selectedTimes={selectedTimes}
+          currentOnlineTimes={selectedOnlineWindows.map((item) => formatTimeOnly(item.startAt))}
+          clients={clients.map((client) => ({ id: client.id, name: `${client.firstName} ${client.lastName}`, phone: client.phone }))}
+          services={services.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes }))}
+          warning={warning}
+          success={success}
+        />
+      ) : null}
     </div>
   );
 }
