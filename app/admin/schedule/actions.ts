@@ -25,6 +25,8 @@ function dayDate(formData: FormData) {
 export async function saveScheduleMode(formData: FormData) {
   guard();
   const stepMinutes = n(formData, "stepMinutes", 30);
+  const startTime = s(formData, "defaultStartTime") || "09:00";
+  const endTime = s(formData, "defaultEndTime") || "20:00";
 
   await prisma.setting.upsert({
     where: { key: "SLOT_STEP_MINUTES" },
@@ -32,15 +34,13 @@ export async function saveScheduleMode(formData: FormData) {
     update: { value: String(stepMinutes) }
   });
 
+  // Один общий режим для каждого дня недели.
+  // Выходные и особенные дни задаются не здесь, а через календарь конкретных дат.
   for (let weekday = 0; weekday < 7; weekday += 1) {
-    const isWorkingDay = formData.get(`working-${weekday}`) === "on";
-    const startTime = s(formData, `start-${weekday}`) || "09:00";
-    const endTime = s(formData, `end-${weekday}`) || "20:00";
-
     await prisma.scheduleRule.upsert({
       where: { weekday },
-      create: { weekday, isWorkingDay, startTime, endTime },
-      update: { isWorkingDay, startTime, endTime }
+      create: { weekday, isWorkingDay: true, startTime, endTime },
+      update: { isWorkingDay: true, startTime, endTime }
     });
   }
 

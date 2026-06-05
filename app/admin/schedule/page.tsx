@@ -8,16 +8,6 @@ import { createScheduleBooking, deleteDayOverride, saveDayOverride, saveSchedule
 export const dynamic = "force-dynamic";
 
 const daysShort = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const weekDays = [
-  { id: 1, title: "Понедельник" },
-  { id: 2, title: "Вторник" },
-  { id: 3, title: "Среда" },
-  { id: 4, title: "Четверг" },
-  { id: 5, title: "Пятница" },
-  { id: 6, title: "Суббота" },
-  { id: 0, title: "Воскресенье" }
-];
-
 function one(value: string | string[] | undefined, fallback = "") {
   return Array.isArray(value) ? value[0] || fallback : value || fallback;
 }
@@ -79,6 +69,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: Rec
   ]);
 
   const stepMinutes = getSettingInt(settings, "SLOT_STEP_MINUTES", 30);
+  const defaultRule = rules.find((item) => item.isWorkingDay) || rules[0];
+  const defaultStartTime = defaultRule?.startTime || "09:00";
+  const defaultEndTime = defaultRule?.endTime || "20:00";
   const selectedEffective = selectedDay ? getEffectiveDay(selectedDay, rules, overrides) : null;
   const selectedOverride = selectedDay ? overrides.find((item) => dateKey(item.date) === dateKey(selectedDay)) : null;
   const selectedTimes = selectedEffective ? generateTimeList(selectedEffective.startTime, selectedEffective.endTime, stepMinutes) : [];
@@ -100,33 +93,28 @@ export default async function SchedulePage({ searchParams }: { searchParams: Rec
 
       <section className="card" id="mode">
         <h2>Редактор режима</h2>
-        <p>Здесь задаётся шаг времени и обычные рабочие дни недели.</p>
+        <p>Здесь задаётся общий шаг времени и обычный рабочий день. Этот режим применяется ко всем дням, а отдельные выходные или особенные дни отмечаются ниже в календаре.</p>
         <form action={saveScheduleMode} className="grid">
-          <label>Шаг времени
-            <select name="stepMinutes" defaultValue={String(stepMinutes)}>
-              <option value="15">15 минут</option>
-              <option value="30">30 минут</option>
-              <option value="45">45 минут</option>
-              <option value="60">1 час</option>
-              <option value="90">1,5 часа</option>
-              <option value="150">2,5 часа</option>
-            </select>
-          </label>
-          <div className="schedule-rule-grid">
-            {weekDays.map((day) => {
-              const rule = rules.find((item) => item.weekday === day.id);
-              return (
-                <div className="mini-card" key={day.id}>
-                  <label className="inline-check"><input type="checkbox" name={`working-${day.id}`} defaultChecked={rule?.isWorkingDay ?? false} /> {day.title}</label>
-                  <div className="grid-2">
-                    <label>Начало<input name={`start-${day.id}`} type="time" defaultValue={rule?.startTime || "09:00"} /></label>
-                    <label>Конец<input name={`end-${day.id}`} type="time" defaultValue={rule?.endTime || "20:00"} /></label>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid-3">
+            <label>Шаг времени
+              <select name="stepMinutes" defaultValue={String(stepMinutes)}>
+                <option value="15">15 минут</option>
+                <option value="30">30 минут</option>
+                <option value="45">45 минут</option>
+                <option value="60">1 час</option>
+                <option value="90">1,5 часа</option>
+                <option value="150">2,5 часа</option>
+              </select>
+            </label>
+            <label>Рабочий день с
+              <input name="defaultStartTime" type="time" defaultValue={defaultStartTime} />
+            </label>
+            <label>Рабочий день до
+              <input name="defaultEndTime" type="time" defaultValue={defaultEndTime} />
+            </label>
           </div>
-          <button>Сохранить режим</button>
+          <div className="notice">Например: шаг 30 минут, рабочий день с 09:00 до 20:00. Все дни будут считаться рабочими по этому режиму, пока ты не отметишь конкретный день как выходной или особенный.</div>
+          <button>Сохранить режим на каждый день</button>
         </form>
       </section>
 
