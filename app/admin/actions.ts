@@ -15,13 +15,13 @@ function getId(formData: FormData) {
 export async function approveClient(formData: FormData) {
   guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
-  redirect("/admin/requests");
+  redirect("/admin");
 }
 
 export async function rejectClient(formData: FormData) {
   guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "REJECTED" } });
-  redirect("/admin/requests");
+  redirect("/admin");
 }
 
 export async function banClient(formData: FormData) {
@@ -40,6 +40,8 @@ export async function setBookingStatus(formData: FormData) {
   guard();
   const id = getId(formData);
   const status = String(formData.get("status"));
+  const redirectTo = String(formData.get("redirectTo") || "/admin/bookings");
+
   await prisma.booking.update({
     where: { id },
     data: {
@@ -48,7 +50,7 @@ export async function setBookingStatus(formData: FormData) {
       cancelledAt: status === "CANCELLED_BY_ADMIN" || status === "REJECTED" ? new Date() : undefined
     }
   });
-  redirect("/admin/bookings");
+  redirect(redirectTo);
 }
 
 export async function saveClientNote(formData: FormData) {
@@ -57,6 +59,15 @@ export async function saveClientNote(formData: FormData) {
   const notes = String(formData.get("notes") || "");
   await prisma.client.update({ where: { id }, data: { notes } });
   redirect("/admin/clients");
+}
+
+export async function closeWaitlistEntry(formData: FormData) {
+  guard();
+  await prisma.waitlistEntry.update({
+    where: { id: getId(formData) },
+    data: { status: "CLOSED", closedAt: new Date() }
+  });
+  redirect("/admin");
 }
 
 export async function createService(formData: FormData) {

@@ -43,6 +43,7 @@ model Client {
   approvedAt  DateTime?
   bannedAt    DateTime?
   bookings    Booking[]
+  waitlist    WaitlistEntry[]
 
   @@index([status])
   @@index([phone])
@@ -81,6 +82,23 @@ model Booking {
   @@index([startAt])
   @@index([status])
   @@index([clientId])
+}
+
+model WaitlistEntry {
+  id           String   @id @default(uuid())
+  clientId     String
+  mode         String   @default("NEAREST")
+  desiredDates String   @default("[]")
+  note         String   @default("")
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  closedAt     DateTime?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([clientId])
+  @@index([createdAt])
 }
 
 model ScheduleRule {

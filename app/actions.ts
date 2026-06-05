@@ -94,6 +94,28 @@ export async function createBooking(formData: FormData) {
   redirect(`/my?client=${token}&created=${booking.id}`);
 }
 
+export async function joinWaitlist(formData: FormData) {
+  const token = required(formData.get("clientToken"), "Клиент");
+  const mode = String(formData.get("waitMode") || "NEAREST");
+  const note = String(formData.get("note") || "").trim();
+  const desiredDates = formData.getAll("desiredDates").map((value) => String(value)).filter(Boolean);
+
+  const client = await prisma.client.findUnique({ where: { publicToken: token } });
+  if (!client || client.status !== "APPROVED") redirect("/unavailable");
+
+  await prisma.waitlistEntry.create({
+    data: {
+      clientId: client.id,
+      mode: mode === "DATES" ? "DATES" : "NEAREST",
+      desiredDates: mode === "DATES" ? JSON.stringify(desiredDates) : "[]",
+      note,
+      status: "ACTIVE"
+    }
+  });
+
+  redirect(`/my?client=${token}&waitlist=1`);
+}
+
 export async function cancelClientBooking(formData: FormData) {
   const token = required(formData.get("clientToken"), "Клиент");
   const bookingId = required(formData.get("bookingId"), "Запись");
