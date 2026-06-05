@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ClientStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  BANNED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_ADMIN
+  REJECTED
+  COMPLETED
+  NO_SHOW
+}
+
+model Client {
+  id          String       @id @default(uuid())
+  publicToken String       @unique @default(uuid())
+  firstName   String
+  lastName    String
+  phone       String       @unique
+  birthDate   DateTime
+  status      ClientStatus @default(PENDING)
+  notes       String       @default("")
+  createdAt   DateTime     @default(now())
+  approvedAt  DateTime?
+  bannedAt    DateTime?
+  bookings    Booking[]
+
+  @@index([status])
+  @@index([phone])
+}
+
+model Service {
+  id              String    @id @default(uuid())
+  title           String
+  description     String    @default("")
+  durationMinutes Int
+  price           Int
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(100)
+  bookings        Booking[]
+
+  @@index([isActive, sortOrder])
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  clientId      String
+  serviceId     String
+  startAt       DateTime
+  endAt         DateTime
+  status        BookingStatus @default(PENDING)
+  clientComment String        @default("")
+  adminComment  String        @default("")
+  finalPrice    Int?
+  createdAt     DateTime      @default(now())
+  confirmedAt   DateTime?
+  cancelledAt   DateTime?
+
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([startAt])
+  @@index([status])
+  @@index([clientId])
+}
+
+model ScheduleRule {
+  id           String  @id @default(uuid())
+  weekday      Int
+  startTime    String
+  endTime      String
+  isWorkingDay Boolean @default(true)
+
+  @@unique([weekday])
+}
+
+model BlockedSlot {
+  id        String   @id @default(uuid())
+  startAt   DateTime
+  endAt     DateTime
+  reason    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([startAt])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
