@@ -14,6 +14,8 @@ type SearchParams = {
   month?: string;
 };
 
+type Slot = { startAt: Date; endAt: Date };
+
 function dateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -56,8 +58,8 @@ function shortDay(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", { weekday: "short" }).format(date).replace(".", "");
 }
 
-function groupSlotsByDate(slots: { startAt: Date; endAt: Date }[]) {
-  const map = new Map<string, { startAt: Date; endAt: Date }[]>();
+function groupSlotsByDate(slots: Slot[]) {
+  const map = new Map<string, Slot[]>();
   for (const slot of slots) {
     const key = dateKey(slot.startAt);
     const list = map.get(key) || [];
@@ -66,24 +68,6 @@ function groupSlotsByDate(slots: { startAt: Date; endAt: Date }[]) {
   }
   return map;
 }
-
-const calendarGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: "10px"
-};
-
-const dayButtonBaseStyle = {
-  minHeight: "118px",
-  borderRadius: "24px",
-  border: "1px solid var(--line)",
-  padding: "12px",
-  display: "grid",
-  gap: "7px",
-  alignContent: "start",
-  background: "rgba(255,255,255,.82)",
-  color: "inherit"
-};
 
 export default async function BookingPage({ searchParams }: { searchParams: SearchParams }) {
   const token = searchParams.client;
@@ -135,123 +119,138 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
   const selectedSlots = selectedDateKey ? slotsByDate.get(selectedDateKey) || [] : [];
 
   return (
-    <section className="grid">
-      <div className="card">
-        <h1>Онлайн-запись</h1>
-        <p>Привет, {client.firstName}. Выберите услугу, дату и свободное время. Заявка уйдёт мастеру на подтверждение.</p>
-        {searchParams.busy ? <div className="notice">Это время уже заняли. Выберите другое окно.</div> : null}
-      </div>
-
-      <div className="card">
-        <h2>1. Выберите услугу</h2>
-        {services.length ? (
-          <div className="actions">
-            {services.map((service) => {
-              const active = selectedService?.id === service.id;
-              return (
-                <a
-                  className={active ? "button" : "button secondary"}
-                  href={`/booking?client=${token}&service=${service.id}&month=${month.key}`}
-                  key={service.id}
-                >
-                  {service.title} · {rub(service.price)}
-                </a>
-              );
-            })}
-            <a className="button secondary" href={`/my?client=${token}`}>Мои записи</a>
+    <main className="booking-page">
+      <section className="booking-panel">
+        <div className="booking-title-row">
+          <div>
+            <p className="eyebrow">Запись онлайн</p>
+            <h1>Выберите удобное время</h1>
+            <p className="lead">Привет, {client.firstName}. Сначала услуга, потом дата, потом свободное время.</p>
           </div>
-        ) : (
-          <div className="notice">Пока нет активных услуг для записи.</div>
-        )}
-      </div>
-
-      {selectedService ? (
-        <div className="card">
-          <div className="actions" style={{ justifyContent: "space-between" }}>
-            <div>
-              <h2>2. Выберите дату</h2>
-              <p>{selectedService.title} · {selectedService.durationMinutes} мин · {rub(selectedService.price)}</p>
-            </div>
-            <div className="actions">
-              <a className="button secondary" href={`/booking?client=${token}&service=${selectedService.id}&month=${month.prevKey}`}>←</a>
-              <span className="pill">{month.title}</span>
-              <a className="button secondary" href={`/booking?client=${token}&service=${selectedService.id}&month=${month.nextKey}`}>→</a>
-            </div>
-          </div>
-
-          <div style={{ ...calendarGridStyle, marginTop: 18, textAlign: "center", color: "var(--muted)", fontWeight: 800 }}>
-            {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => <div key={day}>{day}</div>)}
-          </div>
-
-          <div style={{ ...calendarGridStyle, marginTop: 10 }}>
-            {Array.from({ length: month.firstOffset }).map((_, index) => <div key={`empty-${index}`} />)}
-            {Array.from({ length: month.lastDay }).map((_, index) => {
-              const dayNumber = index + 1;
-              const day = new Date(month.year, month.monthIndex, dayNumber);
-              const key = dateKey(day);
-              const daySlots = slotsByDate.get(key) || [];
-              const hasSlots = daySlots.length > 0;
-              const selected = selectedDateKey === key;
-
-              const href = hasSlots
-                ? `/booking?client=${token}&service=${selectedService.id}&month=${month.key}&date=${key}#time`
-                : `/booking?client=${token}&service=${selectedService.id}&month=${month.key}`;
-
-              return (
-                <a
-                  key={key}
-                  href={href}
-                  style={{
-                    ...dayButtonBaseStyle,
-                    opacity: hasSlots ? 1 : .62,
-                    outline: selected ? "4px solid rgba(216, 137, 166, .24)" : "none",
-                    borderColor: selected ? "#d889a6" : "var(--line)",
-                    background: hasSlots ? "linear-gradient(135deg, rgba(255,255,255,.92), rgba(252,232,240,.92))" : "rgba(255,255,255,.56)"
-                  }}
-                >
-                  <strong style={{ fontSize: 20 }}>{dayNumber} {shortDay(day)}</strong>
-                  {hasSlots ? (
-                    <>
-                      <span className="small">Есть окна</span>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                        {daySlots.slice(0, 4).map((slot) => (
-                          <span className="status" key={slot.startAt.toISOString()}>{formatTimeOnly(slot.startAt)}</span>
-                        ))}
-                        {daySlots.length > 4 ? <span className="small">+{daySlots.length - 4}</span> : null}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="small">Мест нет</span>
-                  )}
-                </a>
-              );
-            })}
-          </div>
+          <a className="quiet-link" href={`/my?client=${token}`}>Мои записи</a>
         </div>
-      ) : null}
 
-      {selectedService && selectedDateKey ? (
-        <div className="card" id="time">
-          <h2>3. Выберите время</h2>
-          <p>{formatDateOnly(new Date(`${selectedDateKey}T00:00:00.000Z`))} · {selectedService.title}</p>
-          {selectedSlots.length ? (
-            <div className="actions">
-              {selectedSlots.map((slot) => (
-                <form action={createBooking} key={slot.startAt.toISOString()}>
-                  <input type="hidden" name="clientToken" value={token} />
-                  <input type="hidden" name="serviceId" value={selectedService.id} />
-                  <input type="hidden" name="startAt" value={slot.startAt.toISOString()} />
-                  <button type="submit">
-                    {formatTimeOnly(slot.startAt)}–{formatTimeOnly(slot.endAt)}
-                  </button>
-                </form>
-              ))}
+        {searchParams.busy ? <div className="notice">Это время уже заняли. Выберите другое окно.</div> : null}
+
+        <div className="step-block">
+          <div className="step-head">
+            <span className="step-number">1</span>
+            <h2>Услуга</h2>
+          </div>
+
+          {services.length ? (
+            <div className="service-list">
+              {services.map((service) => {
+                const active = selectedService?.id === service.id;
+                return (
+                  <a
+                    className={active ? "service-chip active" : "service-chip"}
+                    href={`/booking?client=${token}&service=${service.id}&month=${month.key}`}
+                    key={service.id}
+                  >
+                    <strong>{service.title}</strong>
+                    <span>{service.durationMinutes} мин · {rub(service.price)}</span>
+                  </a>
+                );
+              })}
             </div>
           ) : (
-            <div className="notice">На эту дату свободных мест уже нет. Выберите другую дату.</div>
+            <div className="notice">Пока нет активных услуг для записи.</div>
           )}
         </div>
-      ) : null}
-    </section>
+
+        {selectedService ? (
+          <div className="step-block">
+            <div className="booking-calendar-head">
+              <div className="step-head compact">
+                <span className="step-number">2</span>
+                <div>
+                  <h2>Дата</h2>
+                  <p>{selectedService.title} · {selectedService.durationMinutes} мин</p>
+                </div>
+              </div>
+              <div className="month-switcher">
+                <a href={`/booking?client=${token}&service=${selectedService.id}&month=${month.prevKey}`}>←</a>
+                <span>{month.title}</span>
+                <a href={`/booking?client=${token}&service=${selectedService.id}&month=${month.nextKey}`}>→</a>
+              </div>
+            </div>
+
+            <div className="calendar-weekdays">
+              {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <div key={day}>{day}</div>)}
+            </div>
+
+            <div className="booking-calendar">
+              {Array.from({ length: month.firstOffset }).map((_, index) => <div key={`empty-${index}`} />)}
+              {Array.from({ length: month.lastDay }).map((_, index) => {
+                const dayNumber = index + 1;
+                const day = new Date(month.year, month.monthIndex, dayNumber);
+                const key = dateKey(day);
+                const daySlots = slotsByDate.get(key) || [];
+                const hasSlots = daySlots.length > 0;
+                const selected = selectedDateKey === key;
+
+                const href = hasSlots
+                  ? `/booking?client=${token}&service=${selectedService.id}&month=${month.key}&date=${key}#time`
+                  : `/booking?client=${token}&service=${selectedService.id}&month=${month.key}`;
+
+                return (
+                  <a
+                    key={key}
+                    href={href}
+                    className={[
+                      "calendar-day",
+                      hasSlots ? "has-slots" : "no-slots",
+                      selected ? "selected" : ""
+                    ].join(" ")}
+                  >
+                    <strong>{dayNumber} {shortDay(day)}</strong>
+                    {hasSlots ? (
+                      <span className="day-times">
+                        {daySlots.slice(0, 3).map((slot) => (
+                          <b key={slot.startAt.toISOString()}>{formatTimeOnly(slot.startAt)}</b>
+                        ))}
+                        {daySlots.length > 3 ? <em>+{daySlots.length - 3}</em> : null}
+                      </span>
+                    ) : (
+                      <span className="no-place">мест нет</span>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {selectedService && selectedDateKey ? (
+          <div className="step-block" id="time">
+            <div className="step-head">
+              <span className="step-number">3</span>
+              <div>
+                <h2>Время</h2>
+                <p>{formatDateOnly(new Date(`${selectedDateKey}T00:00:00.000Z`))}</p>
+              </div>
+            </div>
+
+            {selectedSlots.length ? (
+              <div className="time-grid">
+                {selectedSlots.map((slot) => (
+                  <form action={createBooking} key={slot.startAt.toISOString()}>
+                    <input type="hidden" name="clientToken" value={token} />
+                    <input type="hidden" name="serviceId" value={selectedService.id} />
+                    <input type="hidden" name="startAt" value={slot.startAt.toISOString()} />
+                    <button type="submit" className="time-button">
+                      {formatTimeOnly(slot.startAt)}–{formatTimeOnly(slot.endAt)}
+                    </button>
+                  </form>
+                ))}
+              </div>
+            ) : (
+              <div className="notice">На эту дату свободных мест уже нет. Выберите другую дату.</div>
+            )}
+          </div>
+        ) : null}
+      </section>
+    </main>
   );
 }
