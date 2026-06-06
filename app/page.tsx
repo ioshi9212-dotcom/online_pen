@@ -1,30 +1,54 @@
 export default function HomePage() {
-  const whatsapp = process.env.NEXT_PUBLIC_MASTER_WHATSAPP;
-
   return (
-    <section className="hero">
-      <div className="card">
-        <span className="pill">Закрытая онлайн-запись</span>
-        <h1>Запись только после подтверждения мастером</h1>
-        <p>
-          Сначала клиент оставляет анкету. После подтверждения открывается расписание, прайс и личный кабинет с записями.
-        </p>
-        <div className="actions">
-          <a className="button" href="/register">Подать заявку</a>
-          <a className="button secondary" href="/login">Я уже клиент</a>
+    <main className="grid">
+      <section className="hero">
+        <div className="card">
+          <h1>Ногти без салонной стерильности.</h1>
+          <p className="lead">
+            Тут можно прийти за нюдом, бабочками, корейским сиянием, хромом,
+            странной идеей из Pinterest или дизайном “не спрашивай, просто делай”.
+          </p>
+          <div className="actions">
+            <a className="button" href="/register">Записаться</a>
+            <a className="button secondary" href="/login">Я уже клиент</a>
+            <a className="button secondary" href="/price">Посмотреть прайс</a>
+          </div>
+          <div className="hero-tags">
+            <span className="tag">блёстки на столе</span>
+            <span className="tag">дизайны без осуждения</span>
+            <span className="tag">можно молчать</span>
+            <span className="tag">можно говорить без остановки</span>
+            <span className="tag">можно с кофе и сериалом</span>
+          </div>
         </div>
-      </div>
 
-      <aside className="card grid">
-        <h2>Как это работает</h2>
-        <p>1. Регистрация по телефону и дате рождения.</p>
-        <p>2. Мастер подтверждает клиента в админке.</p>
-        <p>3. Клиент выбирает окно, заявка ждёт подтверждения.</p>
-        <p>4. Пока заявка ждёт, время уже скрыто от остальных.</p>
-        {whatsapp ? (
-          <a className="button secondary" href={`https://wa.me/${whatsapp}`}>Написать в WhatsApp</a>
-        ) : null}
-      </aside>
-    </section>
+        <div className="card">
+          <h2>Как это работает</h2>
+          <p>
+            Регистрируешься, я подтверждаю доступ, потом открывается расписание
+            и свободные окна. Запись уходит мне на подтверждение.
+          </p>
+          <p>
+            Если мест нет — можно зайти в лист ожидания. Если планы развалились —
+            бывает, жизнь такая. Просто не пропадай молча.
+          </p>
+        </div>
+      </section>
+
+      <section className="grid-3">
+        <div className="card">
+          <h3>Для своих</h3>
+          <p>Расписание не для случайных прохожих. Сначала заявка, потом доступ.</p>
+        </div>
+        <div className="card">
+          <h3>Любые идеи</h3>
+          <p>От спокойного нюда до максимально дерзких дизайнов. Без “а можно так?”. Можно.</p>
+        </div>
+        <div className="card">
+          <h3>Живой формат</h3>
+          <p>Сериал, разговоры, тишина, переносы и нормальная человеческая атмосфера.</p>
+        </div>
+      </section>
+    </main>
   );
 }

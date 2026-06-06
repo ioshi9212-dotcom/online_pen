@@ -1,29 +1,27 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
 
-const appName = "Онлайн-запись";
-
 export const metadata: Metadata = {
-  title: appName,
-  description: "Закрытая онлайн-запись к мастеру"
+  title: "Онлайн-запись",
+  description: "Онлайн-запись к мастеру"
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body>
-        <main className="container">
+        <div className="container">
           <header className="header">
-            <a className="logo" href="/">{appName}</a>
+            <a className="logo" href="/">онлайн-запись</a>
             <nav className="nav">
               <a href="/price">Прайс</a>
-              <a href="/login">Вход клиента</a>
-              <a href="/register">Регистрация</a>
-              <a href="/admin">Админка</a>
+              <a href="/register">Записаться</a>
+              <a href="/login">Войти</a>
             </nav>
           </header>
           {children}
-        </main>
+        </div>
       </body>
     </html>
   );
