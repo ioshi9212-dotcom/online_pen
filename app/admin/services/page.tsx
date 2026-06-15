@@ -174,14 +174,20 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
           <h2>Прайс</h2>
           <p>Основной порядок услуг меняется стрелками. Редактирование — в отдельном окне, без километров форм на странице.</p>
         </div>
-        <a className="button" href="/admin/services?add=1">+ Добавить услугу</a>
+        <div className="actions">
+          <a className="button secondary" href="/admin">Админка</a>
+          <a className="button" href="/admin/services?add=1">+ Добавить услугу</a>
+        </div>
       </div>
 
       {services.length === 0 ? (
         <div className="empty-state">
           <h3>Прайс пустой</h3>
           <p>Добавь первую услугу. Сайт обещает не делать вид, что это сложнее запуска ракеты.</p>
-          <a className="button" href="/admin/services?add=1">Добавить услугу</a>
+          <div className="actions">
+            <a className="button secondary" href="/admin">Админка</a>
+            <a className="button" href="/admin/services?add=1">Добавить услугу</a>
+          </div>
         </div>
       ) : null}
 

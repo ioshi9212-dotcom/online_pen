@@ -13,10 +13,14 @@ export default function AdminLoginPage({ searchParams }: { searchParams: { error
   return (
     <section className="card">
       <h1>Вход мастера</h1>
+      <p>Служебный вход. Клиентам сюда не надо, им и так хватает испытаний.</p>
       {searchParams.error ? <div className="notice">Пароль не подошёл.</div> : null}
       <form action={loginAdmin} className="grid">
         <label>Пароль админки<input name="password" type="password" required /></label>
-        <button type="submit">Войти</button>
+        <div className="actions">
+          <button type="submit">Войти</button>
+          <a className="button secondary" href="/">На главную</a>
+        </div>
       </form>
     </section>
   );

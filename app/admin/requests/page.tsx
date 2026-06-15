@@ -9,7 +9,19 @@ export default async function RequestsPage() {
 
   return (
     <section className="card">
-      <h1>Заявки клиентов</h1>
+      <div className="actions" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h1>Заявки клиентов</h1>
+          <p>Новые заявки на доступ. Подтверждай своих, остальных — аккуратно мимо.</p>
+        </div>
+        <div className="actions">
+          <a className="button secondary" href="/admin">Админка</a>
+          <a className="button secondary" href="/admin/my-clients">Мои клиенты</a>
+        </div>
+      </div>
+
+      {clients.length === 0 ? <div className="notice">Новых заявок нет. Тишина, порядок, подозрительно приятно.</div> : null}
+
       <table className="table">
         <thead><tr><th>Клиент</th><th>Телефон</th><th>ДР</th><th>Комментарий</th><th></th></tr></thead>
         <tbody>

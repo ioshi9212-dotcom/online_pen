@@ -17,7 +17,20 @@ export default async function AdminBookingsPage() {
 
   return (
     <section className="card">
-      <h1>Записи</h1>
+      <div className="actions" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h1>Записи</h1>
+          <p>Все ближайшие заявки и записи. Для точечного редактирования удобнее ручное управление.</p>
+        </div>
+        <div className="actions">
+          <a className="button secondary" href="/admin">Админка</a>
+          <a className="button secondary" href="/admin/manage">Ручная запись</a>
+          <a className="button secondary" href="/admin/schedule">Расписание</a>
+        </div>
+      </div>
+
+      {bookings.length === 0 ? <div className="notice">Записей пока нет. Календарь делает вид, что он на отдыхе.</div> : null}
+
       <table className="table">
         <thead><tr><th>Дата</th><th>Клиент</th><th>Услуга</th><th>Статус</th><th>Комментарий</th><th></th></tr></thead>
         <tbody>
