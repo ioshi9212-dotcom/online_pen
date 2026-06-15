@@ -2,7 +2,7 @@ import { isAdmin } from "@/lib/admin";
 import { formatTimeOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { deleteOnlineWindow } from "../actions";
+import FreeWindowsClient from "./FreeWindowsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -53,12 +53,9 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
 
   const groups = Object.entries(grouped).map(([key, items]) => ({
     key,
-    date: items[0].startAt,
-    items,
-    text: `${dayTitle(items[0].startAt)} - ${items.map((item) => formatTimeOnly(item.startAt)).join(", ")}`
+    title: dayTitle(items[0].startAt),
+    items: items.map((item) => ({ id: item.id, time: formatTimeOnly(item.startAt) }))
   }));
-
-  const text = groups.map((group) => group.text).join("\n\n");
 
   return (
     <section className="grid">
@@ -75,31 +72,7 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
       {done ? <div className="notice ok-notice" style={{ position: "sticky", top: 12, zIndex: 20 }}>Готово: {done}</div> : null}
       {hiddenCount ? <div className="notice">Скрыто занятых или закрытых окон: {hiddenCount}. Они не попали в список для копирования.</div> : null}
 
-      <div className="card">
-        <h2>Скопировать список</h2>
-        <textarea className="copy-area" readOnly value={text || "Онлайн-окон пока нет."} />
-      </div>
-
-      <div className="card">
-        <h2>Окна</h2>
-        {windows.length === 0 ? <div className="notice">Открытых свободных онлайн-окон пока нет.</div> : null}
-        <div className="grid">
-          {groups.map((group) => (
-            <div key={group.key} style={{ borderTop: "1px solid var(--line)", paddingTop: 16, marginTop: 4 }}>
-              <h3 style={{ marginBottom: 10 }}>{group.text}</h3>
-              <div className="actions">
-                {group.items.map((item) => (
-                  <form action={deleteOnlineWindow} key={item.id} className="slot" style={{ minWidth: 120 }}>
-                    <b>{formatTimeOnly(item.startAt)}</b>
-                    <input type="hidden" name="id" value={item.id} />
-                    <button className="danger">Убрать</button>
-                  </form>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <FreeWindowsClient initialGroups={groups} />
     </section>
   );
 }

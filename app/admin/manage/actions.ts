@@ -1,10 +1,11 @@
 "use server";
 
 import { isAdmin } from "@/lib/admin";
-import { prisma } from "@/lib/prisma";
 import { getBookingConflictReasons, isActiveBookingStatus } from "@/lib/bookingConflicts";
 import { saveAdminClient, upsertManualClient } from "@/lib/clientSync";
+import { safeDuration } from "@/lib/durations";
 import { normalizePhone } from "@/lib/phone";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -83,7 +84,8 @@ export async function createManualBooking(formData: FormData) {
   const serviceId = s(formData, "serviceId");
   const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
   const startAt = dateTime(formData, "startAt");
-  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  const durationMinutes = safeDuration(formData.get("durationMinutes"), service.durationMinutes || 150);
+  const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
   const status = s(formData, "status") || "CONFIRMED";
 
   if (isActiveBookingStatus(status)) {
@@ -115,7 +117,8 @@ export async function updateManualBooking(formData: FormData) {
   const serviceId = s(formData, "serviceId");
   const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
   const startAt = dateTime(formData, "startAt");
-  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  const durationMinutes = safeDuration(formData.get("durationMinutes"), service.durationMinutes || 150);
+  const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
   const status = s(formData, "status") || "CONFIRMED";
 
   if (isActiveBookingStatus(status)) {

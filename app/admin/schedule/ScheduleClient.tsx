@@ -1,7 +1,8 @@
 "use client";
 
+import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { useMemo, useState } from "react";
-import { createScheduleBooking, saveBulkDayOverrides, saveOnlineWindows } from "./actions";
+import { createScheduleBooking, saveBulkDayOverrides } from "./actions";
 
 type DayItem = {
   key: string;
@@ -18,6 +19,8 @@ type TimeItem = {
   busyLabel: string;
   isBusy: boolean;
   isOnline: boolean;
+  kind: "free" | "booking" | "block";
+  endTime?: string;
 };
 
 type ClientItem = { id: string; name: string; phone: string };
@@ -51,9 +54,14 @@ export default function ScheduleClient(props: Props) {
   const [paintMode, setPaintMode] = useState<"DAY_OFF" | "WORKING" | "SPECIAL" | "">("");
   const [paintDates, setPaintDates] = useState<string[]>([]);
   const [onlineTimes, setOnlineTimes] = useState<string[]>(props.currentOnlineTimes);
+  const [onlineSaveState, setOnlineSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [onlineSaveText, setOnlineSaveText] = useState("");
+  const firstService = props.services[0];
+  const [selectedServiceId, setSelectedServiceId] = useState(firstService?.id ?? "");
+  const selectedService = props.services.find((service) => service.id === selectedServiceId) || firstService;
+  const [manualDuration, setManualDuration] = useState(selectedService?.durationMinutes ?? 150);
 
   const datesJson = JSON.stringify(paintDates);
-  const timesJson = JSON.stringify(onlineTimes);
 
   function toggleDate(key: string) {
     if (!paintMode) {
@@ -74,10 +82,40 @@ export default function ScheduleClient(props: Props) {
     setOnlineTimes((current) => current.filter((item) => item !== time));
   }
 
-  const visibleTopTimes = useMemo(
-    () => props.selectedTimes.filter((item) => !item.isBusy && !onlineTimes.includes(item.time)),
-    [props.selectedTimes, onlineTimes]
+  async function saveOnlineTimes() {
+    setOnlineSaveState("saving");
+    setOnlineSaveText("");
+    try {
+      const response = await fetch("/admin/schedule/save-online", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: props.selectedDateKey, times: onlineTimes })
+      });
+      const data = await response.json().catch(() => null) as { saved?: number; skipped?: number } | null;
+      if (!response.ok) throw new Error("save-failed");
+      setOnlineSaveState("saved");
+      setOnlineSaveText(`Сохранила онлайн-окна: ${data?.saved ?? onlineTimes.length}${data?.skipped ? `. Пропущено занятых: ${data.skipped}` : ""}.`);
+    } catch {
+      setOnlineSaveState("error");
+      setOnlineSaveText("Не сохранилось. Обнови страницу и попробуй ещё раз.");
+    }
+  }
+
+  const freeTimes = useMemo(
+    () => props.selectedTimes.filter((item) => !item.isBusy),
+    [props.selectedTimes]
   );
+
+  const visibleTopTimes = useMemo(
+    () => freeTimes.filter((item) => !onlineTimes.includes(item.time)),
+    [freeTimes, onlineTimes]
+  );
+
+  function handleServiceChange(value: string) {
+    setSelectedServiceId(value);
+    const service = props.services.find((item) => item.id === value);
+    if (service) setManualDuration(service.durationMinutes);
+  }
 
   return (
     <div className="grid">
@@ -88,6 +126,7 @@ export default function ScheduleClient(props: Props) {
         .paint-working { background: linear-gradient(135deg, #e5f3df, #ffffff) !important; border-color: #94bd8c !important; }
         .paint-special { background: linear-gradient(135deg, #f6bdd5, #f6e3ff) !important; border-color: #cf78a4 !important; }
       `}</style>
+
       <section className="card" id="calendar">
         <div className="actions" style={{ justifyContent: "space-between" }}>
           <div>
@@ -197,11 +236,7 @@ export default function ScheduleClient(props: Props) {
                 </div>
               </div>
 
-              <form action={saveOnlineWindows} className="grid" style={{ marginTop: 16 }}>
-                <input type="hidden" name="date" value={props.selectedDateKey} />
-                <input type="hidden" name="month" value={props.monthKey} />
-                <input type="hidden" name="timesJson" value={timesJson} />
-
+              <div className="grid" style={{ marginTop: 16 }}>
                 <b>Окна для клиентов онлайн</b>
                 <div className="time-list" style={{ maxHeight: 280 }}>
                   {onlineTimes.map((time) => (
@@ -212,20 +247,23 @@ export default function ScheduleClient(props: Props) {
                   {onlineTimes.length === 0 ? <div className="notice">Пока не выбрано ни одного онлайн-окна.</div> : null}
                 </div>
 
-                <button>Готово — сохранить онлайн-окна</button>
-              </form>
+                {onlineSaveText ? <div className={`notice ${onlineSaveState === "error" ? "danger-notice" : "ok-notice"}`}>{onlineSaveText}</div> : null}
+                <button type="button" onClick={saveOnlineTimes} disabled={onlineSaveState === "saving"}>
+                  {onlineSaveState === "saving" ? "Сохраняю…" : "Готово — сохранить онлайн-окна"}
+                </button>
+              </div>
             </div>
 
             <div className="mini-card" id="manual-booking">
               <h3>Записать самой</h3>
-              <p className="small">Для ручной записи показывается весь список времени, а занятые места подписаны клиентом. Наложение можно подтвердить отдельно.</p>
+              <p className="small">Занятая запись показывается одной строкой. Внутренние 30-минутки больше не забивают список.</p>
 
               <div className="grid">
                 <b>Список времени</b>
                 <div className="grid" style={{ maxHeight: 310, overflow: "auto", paddingRight: 6 }}>
                   {props.selectedTimes.map((item) => (
                     <div
-                      key={item.time}
+                      key={`${item.kind}-${item.time}`}
                       className={item.isBusy ? "notice danger-notice" : "slot"}
                       style={{ padding: "10px 12px", display: "block" }}
                     >
@@ -249,27 +287,20 @@ export default function ScheduleClient(props: Props) {
                   </label>
 
                   <label>Услуга
-                    <select name="serviceId" required>
-                      {props.services.map((service) => <option key={service.id} value={service.id}>{service.title} — {service.price} ₽</option>)}
+                    <select name="serviceId" required value={selectedServiceId} onChange={(event) => handleServiceChange(event.target.value)}>
+                      {props.services.map((service) => <option key={service.id} value={service.id}>{service.title} — {service.price} ₽ · {durationLabel(service.durationMinutes)}</option>)}
                     </select>
                   </label>
 
                   <div className="grid-2">
                     <label>Время начала
                       <select name="startTime" required>
-                        {props.selectedTimes.map((item) => <option key={item.time} value={item.time}>{item.time}{item.busyLabel ? ` — ${item.busyLabel}` : ""}</option>)}
+                        {freeTimes.map((item) => <option key={item.time} value={item.time}>{item.time}</option>)}
                       </select>
                     </label>
                     <label>Сколько времени займёт услуга
-                      <select name="durationMinutes" defaultValue="150">
-                        <option value="30">30 минут</option>
-                        <option value="60">1 час</option>
-                        <option value="90">1,5 часа</option>
-                        <option value="120">2 часа</option>
-                        <option value="150">2,5 часа</option>
-                        <option value="180">3 часа</option>
-                        <option value="210">3,5 часа</option>
-                        <option value="240">4 часа</option>
+                      <select name="durationMinutes" value={manualDuration} onChange={(event) => setManualDuration(Number(event.target.value))}>
+                        {DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </select>
                     </label>
                   </div>
@@ -280,13 +311,14 @@ export default function ScheduleClient(props: Props) {
                   </div>
 
                   {!props.selectedIsWorkingDay ? <div className="notice">Этот день отмечен как выходной. Система попросит подтверждение, если нажать запись без галочки.</div> : null}
+                  {freeTimes.length === 0 ? <div className="notice danger-notice">Свободного старта для записи в этот день нет.</div> : null}
 
                   <label className="inline-check">
                     <input type="checkbox" name="force" />
                     Подтверждаю запись даже если это выходной, закрытое окно или есть наложение
                   </label>
 
-                  <button>Записать клиента</button>
+                  <button disabled={freeTimes.length === 0}>Записать клиента</button>
                 </form>
               )}
             </div>

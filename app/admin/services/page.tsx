@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/admin";
+import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -7,6 +8,15 @@ import { createService, deleteService, moveService, toggleService, updateService
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+type ServiceLite = {
+  id: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
+  price: number;
+  isActive: boolean;
+};
 
 function param(searchParams: SearchParams, key: string) {
   const value = searchParams[key];
@@ -26,19 +36,19 @@ function AdminToast({ searchParams, serviceTitle }: { searchParams: SearchParams
   let tone = "ok-notice";
   let text = "";
 
-  if (created) text = `Добавила: ${serviceTitle(created)}. Без дублей и лишней трагедии.`;
+  if (created) text = `Добавила: ${serviceTitle(created)}.`;
   if (updated) text = `Сохранила: ${serviceTitle(updated)}.`;
-  if (deleted) text = "Удалила услугу. Она больше не будет путаться под ногами.";
+  if (deleted) text = "Удалила услугу.";
   if (archived) text = `У услуги ${serviceTitle(archived)} уже есть записи, поэтому я не удалила её, а скрыла.`;
   if (toggled) text = param(searchParams, "visible") === "true" ? `Вернула в прайс: ${serviceTitle(toggled)}.` : `Скрыла из прайса: ${serviceTitle(toggled)}.`;
   if (moved) text = `Передвинула: ${serviceTitle(moved)}.`;
   if (duplicate) {
     tone = "notice";
-    text = `Такая услуга уже есть: ${serviceTitle(duplicate)}. Второй раз не добавляю — сайт теперь не размножает маникюр почкованием.`;
+    text = `Такая услуга уже есть: ${serviceTitle(duplicate)}. Второй раз не добавляю.`;
   }
   if (error === "empty-title") {
     tone = "danger-notice";
-    text = "Название пустое. Услуга без имени — это уже почти философия, но в прайс её не ставим.";
+    text = "Название пустое. В прайс услугу без имени не ставим.";
   }
   if (error && !text) {
     tone = "danger-notice";
@@ -55,7 +65,17 @@ function AdminToast({ searchParams, serviceTitle }: { searchParams: SearchParams
   );
 }
 
-function ServiceForm({ mode, service }: { mode: "create" | "edit"; service?: { id: string; title: string; description: string; durationMinutes: number; price: number; isActive: boolean } }) {
+function DurationSelect({ defaultValue }: { defaultValue: number }) {
+  return (
+    <select name="durationMinutes" defaultValue={String(defaultValue)} required>
+      {DURATION_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>{option.label}</option>
+      ))}
+    </select>
+  );
+}
+
+function ServiceForm({ mode, service }: { mode: "create" | "edit"; service?: ServiceLite }) {
   const isEdit = mode === "edit";
 
   return (
@@ -67,8 +87,8 @@ function ServiceForm({ mode, service }: { mode: "create" | "edit"; service?: { i
           <input name="title" required placeholder="Маникюр + покрытие" defaultValue={service?.title ?? ""} autoFocus />
         </label>
         <label>
-          Длительность, мин
-          <input name="durationMinutes" type="number" defaultValue={service?.durationMinutes ?? 120} min="1" required />
+          Длительность
+          <DurationSelect defaultValue={service?.durationMinutes ?? 150} />
         </label>
         <label>
           Цена
@@ -93,7 +113,7 @@ function ServiceForm({ mode, service }: { mode: "create" | "edit"; service?: { i
   );
 }
 
-function ServiceRow({ service }: { service: { id: string; title: string; description: string; durationMinutes: number; price: number; isActive: boolean } }) {
+function ServiceRow({ service }: { service: ServiceLite }) {
   return (
     <article className={`service-row ${service.isActive ? "" : "is-muted"}`}>
       <div className="service-main-info">
@@ -103,7 +123,7 @@ function ServiceRow({ service }: { service: { id: string; title: string; descrip
         </div>
         {service.description ? <p>{service.description}</p> : <p className="small">Описание не заполнено. Клиент увидит только название, цену и длительность.</p>}
         <div className="service-meta-row">
-          <span className="pill">{service.durationMinutes} мин</span>
+          <span className="pill">{durationLabel(service.durationMinutes)}</span>
           <span className="pill strong-pill">{rub(service.price)}</span>
         </div>
       </div>
@@ -160,7 +180,7 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
         <div>
           <p className="eyebrow">Админка · прайс</p>
           <h1>Услуги без каши</h1>
-          <p className="lead">Добавление теперь через отдельное окно, список компактный, а одинаковые названия больше не плодятся. Наконец-то сайт делает вид, что он взрослый.</p>
+          <p className="lead">Длительность выбирается из готового списка, чтобы потом запись не жила своей странной жизнью.</p>
         </div>
         <div className="service-stats">
           <div><strong>{active.length}</strong><span>видно клиентам</span></div>
@@ -172,7 +192,7 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
       <div className="services-toolbar card compact-card">
         <div>
           <h2>Прайс</h2>
-          <p>Основной порядок услуг меняется стрелками. Редактирование — в отдельном окне, без километров форм на странице.</p>
+          <p>Основной порядок услуг меняется стрелками. Редактирование — в отдельном окне.</p>
         </div>
         <div className="actions">
           <a className="button secondary" href="/admin">Админка</a>
@@ -183,7 +203,7 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
       {services.length === 0 ? (
         <div className="empty-state">
           <h3>Прайс пустой</h3>
-          <p>Добавь первую услугу. Сайт обещает не делать вид, что это сложнее запуска ракеты.</p>
+          <p>Добавь первую услугу.</p>
           <div className="actions">
             <a className="button secondary" href="/admin">Админка</a>
             <a className="button" href="/admin/services?add=1">Добавить услугу</a>
