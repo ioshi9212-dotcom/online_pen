@@ -1,0 +1,67 @@
+character_id: "char_kiara"
+schema: "character_knowledge_v1"
+
+start_frame:
+  date: "1198-08-15"
+  day_id: "academy_day_001"
+  location_id: "loc_academy_main"
+  arc_id: "arc_001_academy_start"
+
+knows:
+  - id: "knows_academy_status"
+    text: "Киара знает Академию как социальную среду с рейтингами, статусом, вниманием к сильным курсантам и конкуренцией."
+    source: "prequel canon / Academy social ecosystem"
+    usable_in_scene: true
+
+  - id: "knows_raiden_and_haru_publicly"
+    text: "Киара знает Райдена и Хару как заметных курсантов своей социальной орбиты."
+    source: "prequel canon"
+    usable_in_scene: true
+
+  - id: "knows_livia_as_social_presence"
+    text: "Киара может заметить Ливию как яркую эмоциональную девушку, которая быстро ищет внимание и место в группе."
+    source: "scene observation"
+    usable_in_scene: true
+
+  - id: "knows_own_magnetic_displacement"
+    text: "Киара знает свою способность как магнитное смещение: направление металлических объектов, срыв траектории, мелкие рывки и контроль металлических деталей."
+    source: "prequel canon"
+    usable_in_scene: true
+
+suspects:
+  - id: "suspects_livia_reacts_to_attention"
+    text: "Киара может быстро понять, что Ливия болезненно реагирует на внимание, сравнение и социальное место."
+    source: "social observation"
+    usable_in_scene: true
+
+  - id: "suspects_raiden_not_controllable"
+    text: "Киара может заметить, что Райден не отдаёт привычного контроля и не играет в её флирт."
+    source: "scene observation"
+    usable_in_scene: true
+
+  - id: "suspects_akira_social_anomaly_later"
+    text: "Позже Киара может заметить, что внимание вокруг Акиры собирается без явного усилия."
+    source: "later scene observation"
+    usable_in_scene: false
+
+wrong_beliefs:
+  - id: "believes_control_attention_equals_safety"
+    text: "Киара может ошибочно считать, что контроль внимания почти всегда даёт ей контроль ситуации."
+
+does_not_know:
+  - id: "no_raiden_trigger_reason"
+    text: "Киара не знает причину личных границ Райдена и его резкой реакции на навязчивые прикосновения."
+
+  - id: "no_akira_hidden_lore"
+    text: "Киара не знает hidden lore Акиры, истинную природу её силы и скрытые связи."
+
+  - id: "no_livia_inner_wound"
+    text: "Киара не знает внутреннюю причину уязвимости Ливии, только видит социальные реакции."
+
+  - id: "no_future_rivalry_as_fact"
+    text: "Киара не знает будущую линию соперничества как готовый сюжет; она действует из текущей сцены."
+
+scene_limits:
+  - "Kiara can read social behavior, not hidden lore."
+  - "First day use should start as social trace, not full confrontation."
+  - "Do not make Kiara an exposition device."

@@ -1,0 +1,91 @@
+id: "char_kiara"
+display_name: "Киара"
+true_name: "Киара Вольт"
+address_name: "Киара"
+
+labels:
+  unknown_to_akira: "высокая светловолосая курсантка"
+  known_to_akira: "Киара"
+  narrator_default: "Киара"
+  speaker_label_before_reveal: "Курсантка"
+  speaker_label_after_reveal: "Киара"
+
+aliases:
+  - "Киара Вольт"
+reserved_aliases: []
+
+gender: "female"
+age: 18
+height: "около 175 см"
+
+role:
+  public_role: "курсантка Академии 1198; однокурсница Райдена и Хару; социальная соперница Ливии"
+  hidden_role: null
+  current_status: "появляется 1198-08-15 позже стартовой сверки как заметная курсантка социальной орбиты Академии"
+  faction_id: "academy_students"
+  location_anchor: "loc_academy_main"
+
+start_frame:
+  calendar_id: "academy_start"
+  date: "1198-08-15"
+  day_id: "academy_day_001"
+  arc_id: "arc_001_academy_start"
+  required_location_id: "loc_academy_main"
+  active_at_start: false
+  delayed_entry: true
+  entry_beat: "beat_004_kiara_first_trace"
+
+files:
+  appearance: "appearance.md"
+  behavior: "behavior.md"
+  voice: "voice.md"
+  knowledge: "knowledge.yaml"
+  energy: "energy.yaml"
+  past: "past.md"
+  habits: "habits.md"
+  goals: "goals.yaml"
+  links: "links.yaml"
+
+scene_usage:
+  can_appear_without_calendar_reason: false
+  requires_location_match: true
+  requires_story_reason: true
+  can_be_background: true
+  can_speak_without_card_loaded: false
+  first_day_delayed: true
+
+pov_access:
+  akira_can_notice:
+    - "appearance"
+    - "voice"
+    - "movement"
+    - "social attention"
+    - "visible reaction"
+  akira_cannot_know:
+    - "inner_thoughts"
+    - "hidden_motives"
+    - "private family status"
+    - "future rivalry details"
+
+loading_rules:
+  always_load_with_character:
+    - "appearance"
+    - "behavior"
+    - "voice"
+    - "knowledge"
+    - "links"
+    - "goals"
+  load_only_if_scene_requires:
+    - "energy"
+    - "past"
+    - "habits"
+
+naming_rules:
+  full_name_for_identification: "Киара Вольт"
+  scene_name: "Киара"
+  dialogue_name: "Киара"
+
+canon_priority:
+  - "prequel canon: Kiara Volt as social rival, magnetic displacement user, orbit near Raiden and Haru"
+  - "first day use: delayed social trace, not first frame center"
+  - "scene knowledge only from loaded sources"
