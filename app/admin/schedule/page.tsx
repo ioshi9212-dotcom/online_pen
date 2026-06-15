@@ -8,6 +8,17 @@ import ScheduleClient from "./ScheduleClient";
 
 export const dynamic = "force-dynamic";
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
+type SelectedTime = {
+  time: string;
+  busyLabel: string;
+  isBusy: boolean;
+  isOnline: boolean;
+  kind: "free" | "booking" | "block";
+  endTime?: string;
+};
+
 function one(value: string | string[] | undefined, fallback = "") {
   return Array.isArray(value) ? value[0] || fallback : value || fallback;
 }
@@ -74,7 +85,76 @@ function ScheduleMenu() {
   );
 }
 
-export default async function SchedulePage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+function buildSelectedTimes(params: {
+  selectedDay: Date | null;
+  rawTimes: string[];
+  selectedBookings: Array<{ startAt: Date; endAt: Date; client: { firstName: string; lastName: string } }>;
+  selectedBlocks: Array<{ startAt: Date; endAt: Date }>;
+  selectedOnlineWindows: Array<{ startAt: Date }>;
+  stepMinutes: number;
+}): SelectedTime[] {
+  const { selectedDay, rawTimes, selectedBookings, selectedBlocks, selectedOnlineWindows, stepMinutes } = params;
+  if (!selectedDay) return [];
+
+  const result: SelectedTime[] = [];
+
+  for (const time of rawTimes) {
+    const slotStart = combineDateAndTime(selectedDay, time);
+    const slotEnd = new Date(slotStart.getTime() + stepMinutes * 60_000);
+    const startsOnline = selectedOnlineWindows.some((item) => formatTimeOnly(item.startAt) === time);
+
+    const bookingStart = selectedBookings.find((item) => item.startAt.getTime() === slotStart.getTime());
+    if (bookingStart) {
+      result.push({
+        time,
+        busyLabel: `${bookingStart.client.firstName} ${bookingStart.client.lastName} до ${formatTimeOnly(bookingStart.endAt)}`,
+        isBusy: true,
+        isOnline: startsOnline,
+        kind: "booking",
+        endTime: formatTimeOnly(bookingStart.endAt)
+      });
+      continue;
+    }
+
+    const insideBooking = selectedBookings.some((item) => item.startAt < slotStart && item.endAt > slotStart);
+    if (insideBooking) continue;
+
+    const blockStart = selectedBlocks.find((item) => item.startAt.getTime() === slotStart.getTime());
+    if (blockStart) {
+      result.push({
+        time,
+        busyLabel: `закрытое окно до ${formatTimeOnly(blockStart.endAt)}`,
+        isBusy: true,
+        isOnline: startsOnline,
+        kind: "block",
+        endTime: formatTimeOnly(blockStart.endAt)
+      });
+      continue;
+    }
+
+    const insideBlock = selectedBlocks.some((item) => item.startAt < slotStart && item.endAt > slotStart);
+    if (insideBlock) continue;
+
+    const overlapsBlock = selectedBlocks.find((item) => overlaps(slotStart, slotEnd, item.startAt, item.endAt));
+    if (overlapsBlock) {
+      result.push({
+        time,
+        busyLabel: `закрытое окно до ${formatTimeOnly(overlapsBlock.endAt)}`,
+        isBusy: true,
+        isOnline: startsOnline,
+        kind: "block",
+        endTime: formatTimeOnly(overlapsBlock.endAt)
+      });
+      continue;
+    }
+
+    result.push({ time, busyLabel: "", isBusy: false, isOnline: startsOnline, kind: "free" });
+  }
+
+  return result;
+}
+
+export default async function SchedulePage({ searchParams }: { searchParams: SearchParams }) {
   if (!isAdmin()) redirect("/admin/login");
 
   const month = monthInfo(one(searchParams.month));
@@ -130,24 +210,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Rec
   const selectedBookings = selectedDay ? monthBookings.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
   const selectedBlocks = selectedDay ? monthBlocks.filter((item) => dateKey(item.startAt) === dateKey(selectedDay) || dateKey(item.endAt) === dateKey(selectedDay)) : [];
   const selectedOnlineWindows = selectedDay ? onlineWindows.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
-
-  const selectedTimes = selectedDay ? selectedTimesRaw.map((time) => {
-    const slotStart = combineDateAndTime(selectedDay, time);
-    const slotEnd = new Date(slotStart.getTime() + stepMinutes * 60_000);
-    const booking = selectedBookings.find((item) => overlaps(slotStart, slotEnd, item.startAt, item.endAt));
-    const block = selectedBlocks.find((item) => overlaps(slotStart, slotEnd, item.startAt, item.endAt));
-    const busyLabel = booking
-      ? `${booking.client.firstName} ${booking.client.lastName}`
-      : block
-        ? "закрытое окно"
-        : "";
-    return {
-      time,
-      busyLabel,
-      isBusy: Boolean(booking || block),
-      isOnline: selectedOnlineWindows.some((item) => formatTimeOnly(item.startAt) === time)
-    };
-  }) : [];
+  const selectedTimes = buildSelectedTimes({ selectedDay, rawTimes: selectedTimesRaw, selectedBookings, selectedBlocks, selectedOnlineWindows, stepMinutes });
 
   return (
     <div className="grid">

@@ -9,7 +9,11 @@ export const DURATION_OPTIONS = [
   { value: 240, label: "4 часа" }
 ];
 
-export function durationLabel(minutes: number | null | undefined) {
-  const match = DURATION_OPTIONS.find((option) => option.value === minutes);
-  return match?.label ?? `${minutes ?? 0} мин`;
+export function durationLabel(minutes: number) {
+  return DURATION_OPTIONS.find((item) => item.value === minutes)?.label || `${minutes} мин`;
+}
+
+export function safeDuration(value: FormDataEntryValue | null, fallback = 150) {
+  const parsed = Number(value);
+  return DURATION_OPTIONS.some((item) => item.value === parsed) ? parsed : fallback;
 }

@@ -1,7 +1,8 @@
 import { isAdmin } from "@/lib/admin";
+import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { formatDateTime, rub } from "@/lib/format";
-import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { prisma } from "@/lib/prisma";
+import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { redirect } from "next/navigation";
 import { cancelManualBooking, createManualBooking, createManualClient, updateManualBooking, updateManualClient } from "./actions";
 
@@ -20,6 +21,19 @@ function toDateInput(date: Date) {
 
 function toDateTimeInput(date: Date) {
   return date.toISOString().slice(0, 16);
+}
+
+function durationFromBooking(booking: { startAt: Date; endAt: Date; service: { durationMinutes: number } }) {
+  const minutes = Math.round((booking.endAt.getTime() - booking.startAt.getTime()) / 60_000);
+  return DURATION_OPTIONS.some((item) => item.value === minutes) ? minutes : booking.service.durationMinutes;
+}
+
+function DurationSelect({ defaultValue, formId }: { defaultValue: number; formId?: string }) {
+  return (
+    <select name="durationMinutes" defaultValue={String(defaultValue)} form={formId}>
+      {DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  );
 }
 
 function Notice({ searchParams }: { searchParams: SearchParams }) {
@@ -47,6 +61,8 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
     prisma.service.findMany({ orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { title: "asc" }] }),
     prisma.booking.findMany({ include: { client: true, service: true }, orderBy: { startAt: "desc" }, take: 80 })
   ]);
+
+  const defaultServiceDuration = services.find((service) => service.isActive)?.durationMinutes || 150;
 
   return (
     <div className="grid">
@@ -93,18 +109,19 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
           <form action={createManualBooking} className="grid">
             <div className="grid-3">
               <label>Клиент<select name="clientId">{bookableClients.map((c) => <option key={c.id} value={c.id}>{c.lastName} {c.firstName} — {c.phone}</option>)}</select></label>
-              <label>Услуга<select name="serviceId">{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {s.durationMinutes} мин — {rub(s.price)}</option>)}</select></label>
+              <label>Услуга<select name="serviceId">{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {durationLabel(s.durationMinutes)} — {rub(s.price)}</option>)}</select></label>
               <label>Дата и время<input name="startAt" type="datetime-local" required /></label>
             </div>
             <div className="grid-3">
+              <label>Длительность<DurationSelect defaultValue={defaultServiceDuration} /></label>
               <label>Статус
                 <select name="status" defaultValue="CONFIRMED">
                   {BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
                 </select>
               </label>
               <label>Итоговая цена<input name="finalPrice" type="number" min="0" /></label>
-              <label>Комментарий клиента<input name="clientComment" /></label>
             </div>
+            <label>Комментарий клиента<input name="clientComment" /></label>
             <label>Твоя заметка<textarea name="adminComment" /></label>
             <button>Создать запись</button>
           </form>
@@ -147,7 +164,7 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
       <section className="card">
         <h2>Записи</h2>
         <table className="table">
-          <thead><tr><th>Дата/клиент</th><th>Услуга/статус</th><th>Цена/комментарии</th><th></th></tr></thead>
+          <thead><tr><th>Дата/клиент</th><th>Услуга/статус</th><th>Длительность/цена/комментарии</th><th></th></tr></thead>
           <tbody>
             {bookings.map((booking) => (
               <tr key={booking.id}>
@@ -161,12 +178,19 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
                 </td>
                 <td>
                   <div className="grid">
-                    <select name="serviceId" form={`booking-${booking.id}`} defaultValue={booking.serviceId}>{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {s.durationMinutes} мин</option>)}</select>
+                    <select name="serviceId" form={`booking-${booking.id}`} defaultValue={booking.serviceId}>{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {durationLabel(s.durationMinutes)}</option>)}</select>
                     <select name="status" form={`booking-${booking.id}`} defaultValue={booking.status}>{BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
                     <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span>
                   </div>
                 </td>
-                <td><div className="grid"><input name="finalPrice" form={`booking-${booking.id}`} type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} /><input name="clientComment" form={`booking-${booking.id}`} defaultValue={booking.clientComment} /><textarea name="adminComment" form={`booking-${booking.id}`} defaultValue={booking.adminComment} /></div></td>
+                <td>
+                  <div className="grid">
+                    <DurationSelect defaultValue={durationFromBooking(booking)} formId={`booking-${booking.id}`} />
+                    <input name="finalPrice" form={`booking-${booking.id}`} type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} />
+                    <input name="clientComment" form={`booking-${booking.id}`} defaultValue={booking.clientComment} />
+                    <textarea name="adminComment" form={`booking-${booking.id}`} defaultValue={booking.adminComment} />
+                  </div>
+                </td>
                 <td className="actions"><button form={`booking-${booking.id}`} className="ok">Сохранить</button><form action={cancelManualBooking}><input type="hidden" name="id" value={booking.id} /><button className="danger">Отменить</button></form></td>
               </tr>
             ))}
