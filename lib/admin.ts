@@ -4,7 +4,13 @@ import { createHmac } from "crypto";
 const COOKIE_NAME = "online_pen_admin";
 
 function secret() {
-  return process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || "dev-secret";
+  const value = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD;
+
+  if (!value && process.env.NODE_ENV === "production") {
+    throw new Error("ADMIN_SECRET or ADMIN_PASSWORD is required in production");
+  }
+
+  return value || "dev-secret";
 }
 
 export function adminToken() {

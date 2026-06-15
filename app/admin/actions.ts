@@ -27,12 +27,12 @@ export async function rejectClient(formData: FormData) {
 export async function banClient(formData: FormData) {
   guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "BANNED", bannedAt: new Date() } });
-  redirect("/admin/clients");
+  redirect("/admin/my-clients");
 }
 
 export async function unbanClient(formData: FormData) {
   guard();
-  await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", bannedAt: null } });
+  await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
   redirect("/admin/blacklist");
 }
 
@@ -58,7 +58,7 @@ export async function saveClientNote(formData: FormData) {
   const id = getId(formData);
   const notes = String(formData.get("notes") || "");
   await prisma.client.update({ where: { id }, data: { notes } });
-  redirect("/admin/clients");
+  redirect("/admin/my-clients");
 }
 
 export async function closeWaitlistEntry(formData: FormData) {

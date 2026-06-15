@@ -20,6 +20,10 @@ function fullDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function pointBusy(point: Date, busyItems: { startAt: Date; endAt: Date }[]) {
+  return busyItems.some((item) => item.startAt <= point && item.endAt > point);
+}
+
 export default async function FreeWindowsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   if (!isAdmin()) redirect("/admin/login");
 
@@ -28,10 +32,17 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + 90);
 
-  const windows = await prisma.onlineWindow.findMany({
-    where: { startAt: { gte: now, lt: horizon } },
-    orderBy: { startAt: "asc" }
-  });
+  const [allWindows, activeBookings, blocks] = await Promise.all([
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: now, lt: horizon } }, orderBy: { startAt: "asc" } }),
+    prisma.booking.findMany({
+      where: { status: { in: ["PENDING", "CONFIRMED"] as any }, startAt: { lt: horizon }, endAt: { gt: now } },
+      select: { startAt: true, endAt: true }
+    }),
+    prisma.blockedSlot.findMany({ where: { startAt: { lt: horizon }, endAt: { gt: now } }, select: { startAt: true, endAt: true } })
+  ]);
+
+  const windows = allWindows.filter((window) => !pointBusy(window.startAt, activeBookings) && !pointBusy(window.startAt, blocks));
+  const hiddenCount = allWindows.length - windows.length;
 
   const grouped = windows.reduce<Record<string, typeof windows>>((acc, item) => {
     const key = fullDateKey(item.startAt);
@@ -53,7 +64,7 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
     <section className="grid">
       <div className="card">
         <h1>Список онлайн-окон</h1>
-        <p>Это только окна, которые ты вручную открыла для записи клиентов онлайн. Формат можно скопировать или заскринить.</p>
+        <p>Это только окна, которые вручную открыты и сейчас не заняты активными записями или закрытыми окнами.</p>
         <div className="actions">
           <a className="button secondary" href="/admin/schedule">Разделы расписания</a>
           <a className="button secondary" href="/admin/schedule?view=calendar">Календарь окон</a>
@@ -62,6 +73,7 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
       </div>
 
       {done ? <div className="notice ok-notice" style={{ position: "sticky", top: 12, zIndex: 20 }}>Готово: {done}</div> : null}
+      {hiddenCount ? <div className="notice">Скрыто занятых или закрытых окон: {hiddenCount}. Они не попали в список для копирования.</div> : null}
 
       <div className="card">
         <h2>Скопировать список</h2>
@@ -70,7 +82,7 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
 
       <div className="card">
         <h2>Окна</h2>
-        {windows.length === 0 ? <div className="notice">Открытых онлайн-окон пока нет.</div> : null}
+        {windows.length === 0 ? <div className="notice">Открытых свободных онлайн-окон пока нет.</div> : null}
         <div className="grid">
           {groups.map((group) => (
             <div key={group.key} style={{ borderTop: "1px solid var(--line)", paddingTop: 16, marginTop: 4 }}>
