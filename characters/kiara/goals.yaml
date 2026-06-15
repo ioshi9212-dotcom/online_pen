@@ -1,0 +1,54 @@
+character_id: "char_kiara"
+schema: "character_goals_v1"
+
+current_goals:
+  - id: "goal_hold_attention"
+    title: "Сохранять контроль внимания"
+    visibility: "visible_through_behavior"
+    priority: "high"
+    scene_use: "Киара выбирает место, паузу, улыбку и реплику так, чтобы внимание оставалось вокруг неё."
+
+  - id: "goal_test_livia"
+    title: "Проверить Ливию как новую яркую социальную фигуру"
+    visibility: "visible_through_behavior"
+    priority: "medium"
+    scene_use: "Начинать с мягкого сравнения, перебивания, взгляда или фразы, а не с готовой вражды."
+
+  - id: "goal_keep_near_raiden_haru_orbit"
+    title: "Держаться рядом с орбитой Хару и Райдена"
+    visibility: "visible_through_behavior"
+    priority: "medium"
+    scene_use: "Киара может появляться рядом с популярными курсантами, но не должна делать их центром первого кадра."
+
+  - id: "goal_not_lose_tempo"
+    title: "Не потерять темп, если её игры не сработали"
+    visibility: "subtext"
+    priority: "medium"
+    scene_use: "Если её игнорируют, Киара становится холоднее и точнее."
+
+hidden_goals:
+  - id: "hidden_goal_need_control"
+    title: "Удерживать ощущение контроля через внимание людей"
+    visibility: "do_not_state_directly_without_scene_reason"
+    priority: "high"
+    scene_use: "Проявлять через мягкое давление, флирт как игру власти и раздражение от игнора."
+
+short_term_scene_drivers:
+  - "появиться позже стартовой сверки"
+  - "показать социальную орбиту Академии"
+  - "создать первый контраст с Ливией"
+  - "быть замеченной рядом с популярными курсантами"
+  - "не становиться центром первого кадра"
+
+avoids:
+  - "публично потерять контроль"
+  - "выглядеть задетой"
+  - "быть проигнорированной"
+  - "уступить внимание без реакции"
+
+if_blocked:
+  - "становится холоднее"
+  - "говорит мягче и точнее"
+  - "улыбается спокойнее"
+  - "переводит внимание на другого человека"
+  - "использует комплимент как укол"

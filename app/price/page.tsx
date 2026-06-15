@@ -6,20 +6,35 @@ export const dynamic = "force-dynamic";
 export default async function PricePage() {
   const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   return (
-    <section className="card">
-      <h1>Прайс</h1>
-      <div className="grid">
-        {services.map((service) => (
-          <div className="card" key={service.id}>
-            <h3>{service.title}</h3>
-            <p>{service.description || "Описание можно добавить в админке."}</p>
+    <main className="grid page-stack">
+      <section className="card">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Прайс</p>
+            <h1>Цены без квеста</h1>
+            <p>Услуга, примерное время и цена. Сложные идеи лучше уточнить в комментарии при записи.</p>
+          </div>
+          <div className="actions">
+            <a className="button" href="/register">Записаться</a>
+            <a className="button secondary" href="/login">Я уже клиент</a>
+          </div>
+        </div>
+      </section>
+
+      <section className="service-list price-list">
+        {services.length ? services.map((service) => (
+          <article className="card service-price-card" key={service.id}>
+            <div>
+              <h3>{service.title}</h3>
+              <p>{service.description || "Описание можно добавить в админке."}</p>
+            </div>
             <div className="actions">
               <span className="pill">{service.durationMinutes} мин</span>
-              <span className="pill">{rub(service.price)}</span>
+              <span className="pill strong-pill">{rub(service.price)}</span>
             </div>
-          </div>
-        ))}
-      </div>
-    </section>
+          </article>
+        )) : <div className="card notice">Прайс пока пуст. Неловко, но поправимо в админке.</div>}
+      </section>
+    </main>
   );
 }

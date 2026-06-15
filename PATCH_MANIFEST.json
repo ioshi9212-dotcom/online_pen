@@ -1,19 +1,22 @@
 {
-  "patch_name": "academy-1198-v3_patch_kiara",
-  "created_at": "2026-06-05T06:51:06.209802Z",
-  "target_repo": "ioshi9212-dotcom/academy-1198-v3",
-  "files": [
+  "patch_name": "online-pen-booking-flow-v2",
+  "created_at": "2026-06-15T06:40:00Z",
+  "target_repo": "online_pen",
+  "summary": "Redesign client flow, remove salon/home cues, show only admin-opened OnlineWindow slots to clients, add confirmation step before booking creation.",
+  "changed_files": [
+    "app/page.tsx",
+    "app/layout.tsx",
+    "app/actions.ts",
+    "app/booking/page.tsx",
+    "app/my/page.tsx",
+    "app/price/page.tsx",
+    "app/login/page.tsx",
+    "app/register/page.tsx",
+    "app/pending/page.tsx",
+    "app/unavailable/page.tsx",
+    "app/globals.css",
     "PATCH_README.md",
-    "characters/kiara/appearance.md",
-    "characters/kiara/behavior.md",
-    "characters/kiara/character_card.yaml",
-    "characters/kiara/energy.yaml",
-    "characters/kiara/goals.yaml",
-    "characters/kiara/habits.md",
-    "characters/kiara/knowledge.yaml",
-    "characters/kiara/links.yaml",
-    "characters/kiara/past.md",
-    "characters/kiara/voice.md"
+    "STRUCTURE_NOTES.md"
   ],
-  "recommended_commit": "Add Kiara academy start card"
+  "recommended_commit": "Refine booking flow and dark client UI"
 }

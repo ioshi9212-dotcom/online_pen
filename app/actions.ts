@@ -20,7 +20,7 @@ export async function registerClient(formData: FormData) {
   const existing = await prisma.client.findUnique({ where: { phone } });
 
   if (existing) {
-    if (existing.status === "APPROVED") redirect(`/booking?client=${existing.publicToken}`);
+    if (existing.status === "APPROVED") redirect(`/my?client=${existing.publicToken}&known=1`);
     redirect(`/pending?phone=${encodeURIComponent(phone)}`);
   }
 
@@ -41,7 +41,7 @@ export async function loginClient(formData: FormData) {
   const sameDate = client.birthDate.toISOString().slice(0, 10) === birthDate.toISOString().slice(0, 10);
   if (!sameDate) redirect(`/login?error=wrong_birthdate`);
 
-  if (client.status === "APPROVED") redirect(`/booking?client=${client.publicToken}`);
+  if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
   if (client.status === "BANNED") redirect(`/unavailable`);
   redirect(`/pending?phone=${encodeURIComponent(phone)}`);
 }
@@ -131,5 +131,5 @@ export async function cancelClientBooking(formData: FormData) {
     data: { status: "CANCELLED_BY_CLIENT", cancelledAt: new Date() }
   });
 
-  redirect(`/my?client=${token}`);
+  redirect(`/my?client=${token}&cancelled=1`);
 }

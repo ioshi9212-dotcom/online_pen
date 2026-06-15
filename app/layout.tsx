@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
-  description: "Онлайн-запись к мастеру"
+  description: "Онлайн-запись к мастеру маникюра"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -17,9 +17,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <a className="logo" href="/">Онлайн-запись</a>
               <nav className="nav" aria-label="Основное меню">
                 <a href="/price">Прайс</a>
-                <a href="/register">Регистрация</a>
-                <a href="/login">Вход клиента</a>
-                <a href="/admin" className="admin-nav-link">Админка</a>
+                <a href="/#how-it-works">Как это работает</a>
+                <a href="/login">Вход</a>
+                <a href="/register" className="nav-cta">Записаться</a>
               </nav>
             </header>
             {children}

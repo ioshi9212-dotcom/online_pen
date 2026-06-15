@@ -11,51 +11,13 @@ type SearchParams = {
   service?: string;
   busy?: string;
   date?: string;
-  month?: string;
+  time?: string;
 };
 
 type Slot = { startAt: Date; endAt: Date };
 
 function dateKey(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function parseMonth(value: string | undefined) {
-  const now = new Date();
-  if (!value || !/^\d{4}-\d{2}$/.test(value)) {
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  }
-  const [year, month] = value.split("-").map(Number);
-  return new Date(year, month - 1, 1);
-}
-
-function monthInfo(value: string | undefined) {
-  const first = parseMonth(value);
-  const year = first.getFullYear();
-  const monthIndex = first.getMonth();
-  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-  const firstOffset = (first.getDay() + 6) % 7;
-  const prev = new Date(year, monthIndex - 1, 1);
-  const next = new Date(year, monthIndex + 1, 1);
-
-  return {
-    year,
-    monthIndex,
-    lastDay,
-    firstOffset,
-    key: monthKey(first),
-    title: new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(first),
-    prevKey: monthKey(prev),
-    nextKey: monthKey(next)
-  };
-}
-
-function shortDay(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", { weekday: "short" }).format(date).replace(".", "");
 }
 
 function groupSlotsByDate(slots: Slot[]) {
@@ -67,6 +29,25 @@ function groupSlotsByDate(slots: Slot[]) {
     map.set(key, list);
   }
   return map;
+}
+
+function shortDate(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+
+  if (diffDays === 0) return "Сегодня";
+  if (diffDays === 1) return "Завтра";
+
+  return new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "long" })
+    .format(date)
+    .replace(".", "");
+}
+
+function makeBookingHref(token: string, serviceId: string, date: string, startAt: Date) {
+  return `/booking?client=${token}&service=${serviceId}&date=${date}&time=${encodeURIComponent(startAt.toISOString())}#confirm`;
 }
 
 export default async function BookingPage({ searchParams }: { searchParams: SearchParams }) {
@@ -85,9 +66,6 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
     ? services.find((service) => service.id === searchParams.service) || services[0]
     : services[0];
 
-  const month = monthInfo(searchParams.month);
-  const selectedDateKey = searchParams.date || "";
-
   const [rules, settings] = await Promise.all([
     prisma.scheduleRule.findMany(),
     prisma.setting.findMany()
@@ -99,7 +77,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
   const horizon = new Date();
   horizon.setDate(horizon.getDate() + daysAhead + 1);
 
-  const [bookings, blockedSlots, dayOverrides] = await Promise.all([
+  const [bookings, blockedSlots, dayOverrides, onlineWindows] = await Promise.all([
     prisma.booking.findMany({
       where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { lt: horizon } },
       select: { startAt: true, endAt: true }
@@ -108,15 +86,30 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
       where: { startAt: { lt: horizon } },
       select: { startAt: true, endAt: true }
     }),
-    prisma.dayOverride.findMany()
+    prisma.dayOverride.findMany(),
+    prisma.onlineWindow.findMany({
+      where: { startAt: { gte: new Date(), lt: horizon } },
+      select: { startAt: true },
+      orderBy: { startAt: "asc" }
+    })
   ]);
 
-  const slots = selectedService
+  const onlineWindowSet = new Set(onlineWindows.map((window) => window.startAt.toISOString()));
+
+  const allSlots = selectedService
     ? generateSlots({ service: selectedService, rules, bookings, blockedSlots, daysAhead, stepMinutes, dayOverrides })
     : [];
 
+  const slots = allSlots.filter((slot) => onlineWindowSet.has(slot.startAt.toISOString()));
   const slotsByDate = groupSlotsByDate(slots);
+  const dateGroups = Array.from(slotsByDate.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const selectedDateKey = searchParams.date && slotsByDate.has(searchParams.date)
+    ? searchParams.date
+    : dateGroups[0]?.[0] || "";
   const selectedSlots = selectedDateKey ? slotsByDate.get(selectedDateKey) || [] : [];
+  const selectedSlot = searchParams.time
+    ? slots.find((slot) => slot.startAt.toISOString() === searchParams.time)
+    : null;
 
   return (
     <main className="booking-page">
@@ -124,13 +117,15 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
         <div className="booking-title-row">
           <div>
             <p className="eyebrow">Запись онлайн</p>
-            <h1>Выберите удобное время</h1>
-            <p className="lead">Привет, {client.firstName}. Сначала услуга, потом дата, потом свободное время.</p>
+            <h1>Выберите окно</h1>
+            <p className="lead">
+              Привет, {client.firstName}. Тут только открытые онлайн-окна. Если времени нет — сайт не вредничает, мест правда нет.
+            </p>
           </div>
           <a className="quiet-link" href={`/my?client=${token}`}>Мои записи</a>
         </div>
 
-        {searchParams.busy ? <div className="notice">Это время уже заняли. Выберите другое окно.</div> : null}
+        {searchParams.busy ? <div className="notice danger-notice">Это окно уже уехало. Выберите другое.</div> : null}
 
         <div className="step-block">
           <div className="step-head">
@@ -145,76 +140,79 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
                 return (
                   <a
                     className={active ? "service-chip active" : "service-chip"}
-                    href={`/booking?client=${token}&service=${service.id}&month=${month.key}`}
+                    href={`/booking?client=${token}&service=${service.id}`}
                     key={service.id}
                   >
                     <strong>{service.title}</strong>
                     <span>{service.durationMinutes} мин · {rub(service.price)}</span>
+                    {service.description ? <small>{service.description}</small> : null}
                   </a>
                 );
               })}
             </div>
           ) : (
-            <div className="notice">Пока нет активных услуг для записи.</div>
+            <div className="notice">Активных услуг пока нет. Прайс решил поспать.</div>
           )}
         </div>
 
         {selectedService ? (
           <div className="step-block">
-            <div className="booking-calendar-head">
-              <div className="step-head compact">
-                <span className="step-number">2</span>
-                <div>
-                  <h2>Дата</h2>
-                  <p>{selectedService.title} · {selectedService.durationMinutes} мин</p>
-                </div>
-              </div>
-              <div className="month-switcher">
-                <a href={`/booking?client=${token}&service=${selectedService.id}&month=${month.prevKey}`}>←</a>
-                <span>{month.title}</span>
-                <a href={`/booking?client=${token}&service=${selectedService.id}&month=${month.nextKey}`}>→</a>
+            <div className="step-head">
+              <span className="step-number">2</span>
+              <div>
+                <h2>Ближайшие окна</h2>
+                <p>{selectedService.title} · {selectedService.durationMinutes} мин</p>
               </div>
             </div>
 
-            <div className="calendar-weekdays">
-              {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day) => <div key={day}>{day}</div>)}
+            {dateGroups.length ? (
+              <div className="date-card-list">
+                {dateGroups.slice(0, 14).map(([key, daySlots]) => {
+                  const active = key === selectedDateKey;
+                  const day = daySlots[0].startAt;
+                  return (
+                    <a
+                      className={active ? "date-option active" : "date-option"}
+                      href={`/booking?client=${token}&service=${selectedService.id}&date=${key}#time`}
+                      key={key}
+                    >
+                      <span>{shortDate(day)}</span>
+                      <b>{formatDateOnly(day)}</b>
+                      <small>{daySlots.length} {daySlots.length === 1 ? "окно" : "окна"}</small>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <h3>Свободных окон сейчас нет</h3>
+                <p>Система не драматизирует. Она просто честная.</p>
+                <a className="button secondary" href={`/my?client=${token}#waitlist`}>Встать в лист ожидания</a>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {selectedService && selectedDateKey && selectedSlots.length ? (
+          <div className="step-block" id="time">
+            <div className="step-head">
+              <span className="step-number">3</span>
+              <div>
+                <h2>Время</h2>
+                <p>{formatDateOnly(selectedSlots[0].startAt)}</p>
+              </div>
             </div>
 
-            <div className="booking-calendar">
-              {Array.from({ length: month.firstOffset }).map((_, index) => <div key={`empty-${index}`} />)}
-              {Array.from({ length: month.lastDay }).map((_, index) => {
-                const dayNumber = index + 1;
-                const day = new Date(month.year, month.monthIndex, dayNumber);
-                const key = dateKey(day);
-                const daySlots = slotsByDate.get(key) || [];
-                const hasSlots = daySlots.length > 0;
-                const selected = selectedDateKey === key;
-
-                const href = hasSlots
-                  ? `/booking?client=${token}&service=${selectedService.id}&month=${month.key}&date=${key}#time`
-                  : `/booking?client=${token}&service=${selectedService.id}&month=${month.key}`;
-
+            <div className="time-grid">
+              {selectedSlots.map((slot) => {
+                const active = selectedSlot?.startAt.toISOString() === slot.startAt.toISOString();
                 return (
                   <a
-                    key={key}
-                    href={href}
-                    className={[
-                      "calendar-day",
-                      hasSlots ? "has-slots" : "no-slots",
-                      selected ? "selected" : ""
-                    ].join(" ")}
+                    className={active ? "time-button active" : "time-button"}
+                    href={makeBookingHref(token, selectedService.id, selectedDateKey, slot.startAt)}
+                    key={slot.startAt.toISOString()}
                   >
-                    <strong>{dayNumber} {shortDay(day)}</strong>
-                    {hasSlots ? (
-                      <span className="day-times">
-                        {daySlots.slice(0, 3).map((slot) => (
-                          <b key={slot.startAt.toISOString()}>{formatTimeOnly(slot.startAt)}</b>
-                        ))}
-                        {daySlots.length > 3 ? <em>+{daySlots.length - 3}</em> : null}
-                      </span>
-                    ) : (
-                      <span className="no-place">мест нет</span>
-                    )}
+                    {formatTimeOnly(slot.startAt)}–{formatTimeOnly(slot.endAt)}
                   </a>
                 );
               })}
@@ -222,32 +220,35 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
           </div>
         ) : null}
 
-        {selectedService && selectedDateKey ? (
-          <div className="step-block" id="time">
+        {selectedService && selectedSlot ? (
+          <div className="step-block confirm-panel" id="confirm">
             <div className="step-head">
-              <span className="step-number">3</span>
+              <span className="step-number">4</span>
               <div>
-                <h2>Время</h2>
-                <p>{formatDateOnly(new Date(`${selectedDateKey}T00:00:00.000Z`))}</p>
+                <h2>Проверить и отправить</h2>
+                <p>Последний шанс заметить, что пальцы записались не туда.</p>
               </div>
             </div>
 
-            {selectedSlots.length ? (
-              <div className="time-grid">
-                {selectedSlots.map((slot) => (
-                  <form action={createBooking} key={slot.startAt.toISOString()}>
-                    <input type="hidden" name="clientToken" value={token} />
-                    <input type="hidden" name="serviceId" value={selectedService.id} />
-                    <input type="hidden" name="startAt" value={slot.startAt.toISOString()} />
-                    <button type="submit" className="time-button">
-                      {formatTimeOnly(slot.startAt)}–{formatTimeOnly(slot.endAt)}
-                    </button>
-                  </form>
-                ))}
+            <div className="summary-card">
+              <div><span>Услуга</span><b>{selectedService.title}</b></div>
+              <div><span>Дата</span><b>{formatDateOnly(selectedSlot.startAt)}</b></div>
+              <div><span>Время</span><b>{formatTimeOnly(selectedSlot.startAt)}–{formatTimeOnly(selectedSlot.endAt)}</b></div>
+              <div><span>Цена</span><b>{rub(selectedService.price)}</b></div>
+            </div>
+
+            <form action={createBooking} className="grid">
+              <input type="hidden" name="clientToken" value={token} />
+              <input type="hidden" name="serviceId" value={selectedService.id} />
+              <input type="hidden" name="startAt" value={selectedSlot.startAt.toISOString()} />
+              <label>Комментарий, если надо
+                <textarea name="comment" placeholder="Например: нужен ремонт / хочу нюд / есть идея / идеи нет, держимся" />
+              </label>
+              <div className="actions">
+                <button type="submit">Отправить заявку</button>
+                <a className="button secondary" href={`/booking?client=${token}&service=${selectedService.id}&date=${selectedDateKey}#time`}>Выбрать другое время</a>
               </div>
-            ) : (
-              <div className="notice">На эту дату свободных мест уже нет. Выберите другую дату.</div>
-            )}
+            </form>
           </div>
         ) : null}
       </section>

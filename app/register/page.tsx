@@ -2,9 +2,10 @@ import { registerClient } from "@/app/actions";
 
 export default function RegisterPage({ searchParams }: { searchParams: { phone?: string } }) {
   return (
-    <section className="card">
-      <h1>Регистрация клиента</h1>
-      <p>После отправки анкеты мастер проверит заявку и откроет расписание.</p>
+    <section className="card auth-card">
+      <p className="eyebrow">Новая заявка</p>
+      <h1>Регистрация</h1>
+      <p>После отправки я подтверждаю доступ. Только после этого откроется расписание.</p>
 
       <form action={registerClient} className="grid">
         <div className="grid-2">

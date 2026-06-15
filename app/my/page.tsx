@@ -18,6 +18,13 @@ function statusText(status: string) {
   return map[status] || status;
 }
 
+function statusClass(status: string) {
+  if (status === "CONFIRMED") return "status ok-status";
+  if (status === "PENDING") return "status wait";
+  if (["CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "NO_SHOW"].includes(status)) return "status danger-status";
+  return "status";
+}
+
 function dateOptions(days = 60) {
   const result: { value: string; label: string }[] = [];
   const formatter = new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", weekday: "short" });
@@ -43,7 +50,16 @@ function waitlistText(entry: { mode: string; desiredDates: string; createdAt: Da
   return "Ищет ближайшее свободное окно";
 }
 
-export default async function MyPage({ searchParams }: { searchParams: { client?: string; created?: string; waitlist?: string } }) {
+function Notice({ type }: { type?: string }) {
+  if (type === "created") return <div className="notice ok-notice">Заявка отправлена. Я подтвержу — и место будет железно.</div>;
+  if (type === "waitlist") return <div className="notice ok-notice">Записала в ждуны. Если окно появится — увижу заявку.</div>;
+  if (type === "cancelled") return <div className="notice">Запись отменена. Спасибо, что не исчезла в туман.</div>;
+  if (type === "login") return <div className="notice ok-notice">Я тебя узнала. Вот твои записи.</div>;
+  if (type === "known") return <div className="notice ok-notice">Ты уже есть в базе. Расписание открыто.</div>;
+  return null;
+}
+
+export default async function MyPage({ searchParams }: { searchParams: { client?: string; created?: string; waitlist?: string; cancelled?: string; login?: string; known?: string } }) {
   const token = searchParams.client;
   if (!token) redirect("/login");
 
@@ -56,70 +72,96 @@ export default async function MyPage({ searchParams }: { searchParams: { client?
   });
 
   if (!client) redirect("/login");
+  if (client.status !== "APPROVED") redirect("/unavailable");
 
   const dates = dateOptions(60);
+  const noticeType = searchParams.created ? "created" : searchParams.waitlist ? "waitlist" : searchParams.cancelled ? "cancelled" : searchParams.login ? "login" : searchParams.known ? "known" : undefined;
+  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
+  const historyBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
 
   return (
-    <div className="grid">
+    <div className="grid page-stack">
       <section className="card">
-        <h1>Мои записи</h1>
-        <p>{client.firstName}, здесь видны ваши заявки и подтверждённые записи.</p>
-        {searchParams.created ? <div className="notice">Заявка отправлена. Мастер подтвердит или отклонит её в админке.</div> : null}
-        {searchParams.waitlist ? <div className="notice">Заявка в лист ожидания отправлена мастеру.</div> : null}
-        <div className="actions" style={{ marginBottom: 16 }}>
-          <a className="button" href={`/booking?client=${token}`}>Записаться ещё</a>
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Личный кабинет</p>
+            <h1>Привет, {client.firstName}</h1>
+            <p>Тут твои заявки, подтверждённые записи и лист ожидания. Если планы решили умереть — лучше нажать отмену, чем исчезнуть.</p>
+          </div>
+          <div className="actions">
+            <a className="button" href={`/booking?client=${token}`}>Новая запись</a>
+            <a className="button secondary" href="/price">Прайс</a>
+            <a className="quiet-link" href="#waitlist">Лист ожидания</a>
+          </div>
         </div>
-        <table className="table">
-          <thead><tr><th>Дата</th><th>Услуга</th><th>Статус</th><th>Цена</th><th></th></tr></thead>
-          <tbody>
-            {client.bookings.map((booking) => (
-              <tr key={booking.id}>
-                <td>{formatDateTime(booking.startAt)}</td>
-                <td>{booking.service.title}</td>
-                <td><span className="status">{statusText(booking.status)}</span></td>
-                <td>{rub(booking.finalPrice ?? booking.service.price)}</td>
-                <td>
-                  {booking.status === "PENDING" || booking.status === "CONFIRMED" ? (
-                    <form action={cancelClientBooking}>
-                      <input type="hidden" name="clientToken" value={token} />
-                      <input type="hidden" name="bookingId" value={booking.id} />
-                      <button className="danger" type="submit">Отменить</button>
-                    </form>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Notice type={noticeType} />
       </section>
 
       <section className="card">
-        <h2>Лист ожидания</h2>
-        <p>Не нашли подходящее время? Оставьте заявку, и мастер увидит ваши пожелания.</p>
+        <h2>Активные записи</h2>
+        {activeBookings.length === 0 ? (
+          <div className="empty-state">
+            <h3>Активных записей нет</h3>
+            <p>Свободная женщина. Подозрительно, но допустим.</p>
+            <a className="button" href={`/booking?client=${token}`}>Выбрать окно</a>
+          </div>
+        ) : (
+          <div className="booking-card-list">
+            {activeBookings.map((booking) => (
+              <article className="booking-card" key={booking.id}>
+                <div>
+                  <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
+                  <h3>{formatDateTime(booking.startAt)}</h3>
+                  <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
+                  {booking.clientComment ? <small>{booking.clientComment}</small> : null}
+                </div>
+                <details className="soft-details cancel-details">
+                  <summary className="button secondary">Отменить</summary>
+                  <form action={cancelClientBooking} className="grid">
+                    <input type="hidden" name="clientToken" value={token} />
+                    <input type="hidden" name="bookingId" value={booking.id} />
+                    <p className="small">Точно отменяем? Сайт не осуждает, просто уточняет.</p>
+                    <button className="danger" type="submit">Да, отменить</button>
+                  </form>
+                </details>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="card" id="waitlist">
+        <div className="section-head">
+          <div>
+            <h2>Лист ожидания</h2>
+            <p>Если подходящего времени нет — можно оставить заявку. Я увижу пожелания в админке.</p>
+          </div>
+          {client.waitlist.length ? <span className="status wait">уже в списке</span> : null}
+        </div>
 
         {client.waitlist.length ? (
           <div className="notice">
-            <b>Вы уже в листе ожидания.</b>
+            <b>Активные заявки:</b>
             <ul>
               {client.waitlist.map((entry) => <li key={entry.id}>{waitlistText(entry)}</li>)}
             </ul>
           </div>
         ) : null}
 
-        <details className="soft-details">
+        <details className="soft-details" open={client.waitlist.length === 0}>
           <summary className="button secondary">Добавить себя в лист ожидания</summary>
-          <form action={joinWaitlist} className="grid" style={{ marginTop: 16 }}>
+          <form action={joinWaitlist} className="grid waitlist-form">
             <input type="hidden" name="clientToken" value={token} />
             <label className="radio-card">
               <input type="radio" name="waitMode" value="NEAREST" defaultChecked />
-              <span><b>Ближайшее свободное окно</b><br /><small>Мастер увидит, что вы готовы прийти в ближайшее подходящее время.</small></span>
+              <span><b>Ближайшее свободное окно</b><br /><small>Подойдёт, если главное — попасть пораньше.</small></span>
             </label>
             <label className="radio-card">
               <input type="radio" name="waitMode" value="DATES" />
-              <span><b>Выбрать удобные даты</b><br /><small>Можно отметить несколько дат на ближайшие два месяца.</small></span>
+              <span><b>Конкретные даты</b><br /><small>Можно отметить несколько дней на ближайшие два месяца.</small></span>
             </label>
             <details className="soft-details nested">
-              <summary>Показать даты на ближайшие 2 месяца</summary>
+              <summary>Показать даты</summary>
               <div className="date-pick-grid">
                 {dates.map((date) => (
                   <label key={date.value} className="date-chip">
@@ -130,12 +172,29 @@ export default async function MyPage({ searchParams }: { searchParams: { client?
               </div>
             </details>
             <label>Комментарий
-              <textarea name="note" placeholder="Например: могу вечером, лучше после 15:00, нужен ремонт одного ногтя" />
+              <textarea name="note" placeholder="Например: могу вечером / лучше после 15:00 / нужен ремонт одного ногтя" />
             </label>
-            <button>Подтвердить</button>
+            <button>Отправить в лист ожидания</button>
           </form>
         </details>
       </section>
+
+      {historyBookings.length ? (
+        <section className="card">
+          <h2>История</h2>
+          <div className="booking-card-list history-list">
+            {historyBookings.slice(0, 12).map((booking) => (
+              <article className="booking-card muted-card" key={booking.id}>
+                <div>
+                  <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
+                  <h3>{formatDateTime(booking.startAt)}</h3>
+                  <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

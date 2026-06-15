@@ -1,10 +1,14 @@
 export default function UnavailablePage() {
-  const whatsapp = process.env.NEXT_PUBLIC_MASTER_WHATSAPP;
   return (
-    <section className="card">
-      <h1>Запись сейчас недоступна</h1>
-      <p>Пока свободных мест не отображается. Попробуйте позже или напишите мастеру для уточнения.</p>
-      {whatsapp ? <a className="button" href={`https://wa.me/${whatsapp}`}>Написать в WhatsApp</a> : null}
+    <section className="card auth-card">
+      <p className="eyebrow">Доступ закрыт</p>
+      <h1>Расписание не открылось</h1>
+      <p>Похоже, заявка ещё не подтверждена или доступ ограничен.</p>
+      <div className="notice danger-notice">Если это ошибка — напишите мастеру напрямую. Сайт сам себя не переубедит.</div>
+      <div className="actions" style={{ marginTop: 16 }}>
+        <a className="button secondary" href="/login">Попробовать вход</a>
+        <a className="quiet-link" href="/">На главную</a>
+      </div>
     </section>
   );
 }
