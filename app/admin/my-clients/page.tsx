@@ -12,9 +12,28 @@ function toDateInput(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-export default async function MyClientsPage() {
+function one(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function DoneNotice({ done }: { done?: string }) {
+  const map: Record<string, string> = {
+    saved: "Клиент сохранён.",
+    merged: "Карточки объединены по телефону. Записи и лист ожидания перенесены сюда.",
+    archived: "Клиент отправлен в архив.",
+    "not-found": "Клиент не найден. Возможно, карточка уже была объединена."
+  };
+
+  const text = done ? map[done] : "";
+  if (!text) return null;
+
+  return <div className="notice ok-notice">Готово: {text}</div>;
+}
+
+export default async function MyClientsPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
   if (!isAdmin()) redirect("/admin/login");
 
+  const done = one(searchParams.done);
   const clients = await prisma.client.findMany({
     where: { status: { in: activeStatuses as any } },
     orderBy: [{ status: "asc" }, { createdAt: "desc" }]
@@ -25,7 +44,7 @@ export default async function MyClientsPage() {
       <div className="actions" style={{ justifyContent: "space-between" }}>
         <div>
           <h1>Мои клиенты</h1>
-          <p>Активная клиентская база. Здесь можно редактировать данные клиента и отправлять клиента в архив.</p>
+          <p>Активная клиентская база. Телефон — главный ключ: если номер совпал, карточки объединяются.</p>
         </div>
         <div className="actions">
           <a className="button secondary" href="/admin/manage">Ручная запись</a>
@@ -33,6 +52,10 @@ export default async function MyClientsPage() {
           <a className="button secondary" href="/admin">Админка</a>
         </div>
       </div>
+
+      <DoneNotice done={done} />
+
+      {clients.length === 0 ? <div className="notice">Клиентов пока нет.</div> : null}
 
       <table className="table">
         <thead><tr><th>Клиент</th><th>Контакты/статус</th><th>Заметки</th><th>Архив</th></tr></thead>
@@ -59,11 +82,11 @@ export default async function MyClientsPage() {
               </td>
               <td><textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} /></td>
               <td className="actions">
-                <button form={`client-${client.id}`} className="ok">Сохранить</button>
+                <button type="submit" form={`client-${client.id}`} className="ok">Сохранить</button>
                 <form action={archiveClient} className="grid">
                   <input type="hidden" name="id" value={client.id} />
                   <input name="archiveReason" placeholder="причина архива" />
-                  <button className="danger">В архив</button>
+                  <button type="submit" className="danger">В архив</button>
                 </form>
               </td>
             </tr>
