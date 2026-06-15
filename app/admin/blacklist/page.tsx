@@ -9,7 +9,19 @@ export default async function BlacklistPage() {
 
   return (
     <section className="card">
-      <h1>Чёрный список</h1>
+      <div className="actions" style={{ justifyContent: "space-between" }}>
+        <div>
+          <h1>Чёрный список</h1>
+          <p>Клиенты без доступа к записи. Вернуть можно одним кликом, если мир внезапно стал добрее.</p>
+        </div>
+        <div className="actions">
+          <a className="button secondary" href="/admin">Админка</a>
+          <a className="button secondary" href="/admin/my-clients">Мои клиенты</a>
+        </div>
+      </div>
+
+      {clients.length === 0 ? <div className="notice">Чёрный список пуст. Редкий праздник нервной системы.</div> : null}
+
       <table className="table">
         <thead><tr><th>Клиент</th><th>Телефон</th><th>Заметки</th><th></th></tr></thead>
         <tbody>
