@@ -15,9 +15,31 @@ function toDateTimeInput(date: Date) {
   return date.toISOString().slice(0, 16);
 }
 
-export default async function ManualAdminPage() {
+function one(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function DoneNotice({ done }: { done?: string }) {
+  const map: Record<string, string> = {
+    "client-created": "Клиент добавлен в базу.",
+    "client-merged": "Клиент объединён по телефону. Записи и ждуны теперь в одной карточке.",
+    "client-saved": "Клиент сохранён.",
+    "client-not-found": "Клиент не найден. Возможно, карточка уже была объединена.",
+    "booking-created": "Запись создана.",
+    "booking-saved": "Запись сохранена.",
+    "booking-cancelled": "Запись отменена."
+  };
+
+  const text = done ? map[done] : "";
+  if (!text) return null;
+
+  return <div className="notice ok-notice">Готово: {text}</div>;
+}
+
+export default async function ManualAdminPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
   if (!isAdmin()) redirect("/admin/login");
 
+  const done = one(searchParams.done);
   const [clients, services, bookings] = await Promise.all([
     prisma.client.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }] }),
     prisma.service.findMany({ orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { title: "asc" }] }),
@@ -36,8 +58,11 @@ export default async function ManualAdminPage() {
         </div>
       </section>
 
+      <DoneNotice done={done} />
+
       <section className="card">
         <h2>Добавить клиента</h2>
+        <div className="notice">Если телефон уже есть в базе, новая карточка не создастся: данные обновятся в существующей карточке.</div>
         <form action={createManualClient} className="grid">
           <div className="grid-3">
             <label>Имя<input name="firstName" required /></label>
@@ -53,7 +78,7 @@ export default async function ManualAdminPage() {
             </label>
             <label>Заметка<input name="notes" placeholder="например: френч, аллергия, предоплата" /></label>
           </div>
-          <button>Добавить клиента</button>
+          <button type="submit">Добавить клиента</button>
         </form>
       </section>
 
@@ -76,14 +101,14 @@ export default async function ManualAdminPage() {
               <label>Комментарий клиента<input name="clientComment" /></label>
             </div>
             <label>Твоя заметка<textarea name="adminComment" /></label>
-            <button>Создать запись</button>
+            <button type="submit">Создать запись</button>
           </form>
         )}
       </section>
 
       <section className="card">
         <h2>Клиенты</h2>
-        <div className="notice">Удаление не используется: для нежелательных клиентов ставь «Заблокирован», а для старых — отправляй в архив через «Мои клиенты».</div>
+        <div className="notice">Телефон — главный ключ. Если при сохранении указать телефон другой карточки, данные, записи и лист ожидания объединятся.</div>
         <table className="table">
           <thead><tr><th>Данные</th><th>Статус</th><th>Заметки</th><th></th></tr></thead>
           <tbody>
@@ -107,7 +132,7 @@ export default async function ManualAdminPage() {
                   </div>
                 </td>
                 <td><textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} /></td>
-                <td><button form={`client-${client.id}`} className="ok">Сохранить</button></td>
+                <td><button type="submit" form={`client-${client.id}`} className="ok">Сохранить</button></td>
               </tr>
             ))}
           </tbody>
@@ -137,7 +162,7 @@ export default async function ManualAdminPage() {
                   </div>
                 </td>
                 <td><div className="grid"><input name="finalPrice" form={`booking-${booking.id}`} type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} /><input name="clientComment" form={`booking-${booking.id}`} defaultValue={booking.clientComment} /><textarea name="adminComment" form={`booking-${booking.id}`} defaultValue={booking.adminComment} /></div></td>
-                <td className="actions"><button form={`booking-${booking.id}`} className="ok">Сохранить</button><form action={cancelManualBooking}><input type="hidden" name="id" value={booking.id} /><button className="danger">Отменить</button></form></td>
+                <td className="actions"><button type="submit" form={`booking-${booking.id}`} className="ok">Сохранить</button><form action={cancelManualBooking}><input type="hidden" name="id" value={booking.id} /><button type="submit" className="danger">Отменить</button></form></td>
               </tr>
             ))}
           </tbody>

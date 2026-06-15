@@ -1,6 +1,7 @@
 "use server";
 
 import { isAdmin } from "@/lib/admin";
+import { cleanPhone, dateOnly, mergeClientIntoTarget, statusDates, upsertClientByPhone } from "@/lib/clientSync";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -17,11 +18,7 @@ function id(formData: FormData) {
 }
 
 function phone(formData: FormData) {
-  return s(formData, "phone").replace(/[^0-9+]/g, "");
-}
-
-function dateOnly(formData: FormData, key: string) {
-  return new Date(`${s(formData, key)}T00:00:00.000Z`);
+  return cleanPhone(s(formData, "phone"));
 }
 
 function dateTime(formData: FormData, key: string) {
@@ -33,45 +30,60 @@ function nullablePrice(formData: FormData) {
   return raw ? Number(raw) : null;
 }
 
+function manageUrl(done: string) {
+  return `/admin/manage?done=${encodeURIComponent(done)}`;
+}
+
 export async function createManualClient(formData: FormData) {
   guard();
-  const status = s(formData, "status") || "APPROVED";
 
-  await prisma.client.create({
-    data: {
-      firstName: s(formData, "firstName"),
-      lastName: s(formData, "lastName"),
-      phone: phone(formData),
-      birthDate: dateOnly(formData, "birthDate"),
-      status: status as any,
-      notes: s(formData, "notes"),
-      approvedAt: status === "APPROVED" ? new Date() : null,
-      bannedAt: status === "BANNED" ? new Date() : null
-    }
+  const status = s(formData, "status") || "APPROVED";
+  const clientPhone = phone(formData);
+  const dates = statusDates(status);
+
+  const result = await upsertClientByPhone({
+    firstName: s(formData, "firstName"),
+    lastName: s(formData, "lastName"),
+    phone: clientPhone,
+    birthDate: dateOnly(s(formData, "birthDate")),
+    status: status as any,
+    notes: s(formData, "notes"),
+    approvedAt: dates.approvedAt,
+    bannedAt: dates.bannedAt
   });
 
-  redirect("/admin/manage");
+  redirect(manageUrl(result.mode === "created" ? "client-created" : "client-merged"));
 }
 
 export async function updateManualClient(formData: FormData) {
   guard();
+
+  const clientId = id(formData);
   const status = s(formData, "status") || "APPROVED";
+  const clientPhone = phone(formData);
+  const current = await prisma.client.findUnique({ where: { id: clientId } });
+  if (!current) redirect(manageUrl("client-not-found"));
 
-  await prisma.client.update({
-    where: { id: id(formData) },
-    data: {
-      firstName: s(formData, "firstName"),
-      lastName: s(formData, "lastName"),
-      phone: phone(formData),
-      birthDate: dateOnly(formData, "birthDate"),
-      status: status as any,
-      notes: s(formData, "notes"),
-      approvedAt: status === "APPROVED" ? new Date() : undefined,
-      bannedAt: status === "BANNED" ? new Date() : null
-    }
-  });
+  const existingByPhone = await prisma.client.findUnique({ where: { phone: clientPhone } });
+  const dates = statusDates(status, current);
+  const data = {
+    firstName: s(formData, "firstName"),
+    lastName: s(formData, "lastName"),
+    phone: clientPhone,
+    birthDate: dateOnly(s(formData, "birthDate")),
+    status: status as any,
+    notes: s(formData, "notes"),
+    approvedAt: dates.approvedAt,
+    bannedAt: dates.bannedAt
+  };
 
-  redirect("/admin/manage");
+  if (existingByPhone && existingByPhone.id !== clientId) {
+    await mergeClientIntoTarget(existingByPhone.id, clientId, data);
+    redirect(manageUrl("client-merged"));
+  }
+
+  await prisma.client.update({ where: { id: clientId }, data });
+  redirect(manageUrl("client-saved"));
 }
 
 export async function createManualBooking(formData: FormData) {
@@ -97,7 +109,7 @@ export async function createManualBooking(formData: FormData) {
     }
   });
 
-  redirect("/admin/manage");
+  redirect(manageUrl("booking-created"));
 }
 
 export async function updateManualBooking(formData: FormData) {
@@ -124,7 +136,7 @@ export async function updateManualBooking(formData: FormData) {
     }
   });
 
-  redirect("/admin/manage");
+  redirect(manageUrl("booking-saved"));
 }
 
 export async function cancelManualBooking(formData: FormData) {
@@ -138,5 +150,5 @@ export async function cancelManualBooking(formData: FormData) {
     }
   });
 
-  redirect("/admin/manage");
+  redirect(manageUrl("booking-cancelled"));
 }
