@@ -1,8 +1,10 @@
 "use server";
 
 import { isAdmin } from "@/lib/admin";
-import { cleanPhone, dateOnly, mergeClientIntoTarget, statusDates, upsertClientByPhone } from "@/lib/clientSync";
 import { prisma } from "@/lib/prisma";
+import { getBookingConflictReasons, isActiveBookingStatus } from "@/lib/bookingConflicts";
+import { saveAdminClient, upsertManualClient } from "@/lib/clientSync";
+import { normalizePhone } from "@/lib/phone";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -18,7 +20,11 @@ function id(formData: FormData) {
 }
 
 function phone(formData: FormData) {
-  return cleanPhone(s(formData, "phone"));
+  return normalizePhone(s(formData, "phone"));
+}
+
+function dateOnly(formData: FormData, key: string) {
+  return new Date(`${s(formData, key)}T00:00:00.000Z`);
 }
 
 function dateTime(formData: FormData, key: string) {
@@ -30,60 +36,46 @@ function nullablePrice(formData: FormData) {
   return raw ? Number(raw) : null;
 }
 
-function manageUrl(done: string) {
-  return `/admin/manage?done=${encodeURIComponent(done)}`;
+function manageUrl(params: Record<string, string | undefined>) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) search.set(key, value);
+  });
+  const query = search.toString();
+  return query ? `/admin/manage?${query}` : "/admin/manage";
 }
 
 export async function createManualClient(formData: FormData) {
   guard();
-
   const status = s(formData, "status") || "APPROVED";
-  const clientPhone = phone(formData);
-  const dates = statusDates(status);
 
-  const result = await upsertClientByPhone({
+  const result = await upsertManualClient({
     firstName: s(formData, "firstName"),
     lastName: s(formData, "lastName"),
-    phone: clientPhone,
-    birthDate: dateOnly(s(formData, "birthDate")),
-    status: status as any,
-    notes: s(formData, "notes"),
-    approvedAt: dates.approvedAt,
-    bannedAt: dates.bannedAt
+    phone: phone(formData),
+    birthDate: dateOnly(formData, "birthDate"),
+    status,
+    notes: s(formData, "notes")
   });
 
-  redirect(manageUrl(result.mode === "created" ? "client-created" : "client-merged"));
+  redirect(manageUrl({ client: result.mode }));
 }
 
 export async function updateManualClient(formData: FormData) {
   guard();
-
-  const clientId = id(formData);
   const status = s(formData, "status") || "APPROVED";
-  const clientPhone = phone(formData);
-  const current = await prisma.client.findUnique({ where: { id: clientId } });
-  if (!current) redirect(manageUrl("client-not-found"));
 
-  const existingByPhone = await prisma.client.findUnique({ where: { phone: clientPhone } });
-  const dates = statusDates(status, current);
-  const data = {
+  const result = await saveAdminClient({
+    id: id(formData),
     firstName: s(formData, "firstName"),
     lastName: s(formData, "lastName"),
-    phone: clientPhone,
-    birthDate: dateOnly(s(formData, "birthDate")),
-    status: status as any,
-    notes: s(formData, "notes"),
-    approvedAt: dates.approvedAt,
-    bannedAt: dates.bannedAt
-  };
+    phone: phone(formData),
+    birthDate: dateOnly(formData, "birthDate"),
+    status,
+    notes: s(formData, "notes")
+  });
 
-  if (existingByPhone && existingByPhone.id !== clientId) {
-    await mergeClientIntoTarget(existingByPhone.id, clientId, data);
-    redirect(manageUrl("client-merged"));
-  }
-
-  await prisma.client.update({ where: { id: clientId }, data });
-  redirect(manageUrl("client-saved"));
+  redirect(manageUrl({ client: result.mode }));
 }
 
 export async function createManualBooking(formData: FormData) {
@@ -93,6 +85,11 @@ export async function createManualBooking(formData: FormData) {
   const startAt = dateTime(formData, "startAt");
   const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
   const status = s(formData, "status") || "CONFIRMED";
+
+  if (isActiveBookingStatus(status)) {
+    const reasons = await getBookingConflictReasons({ startAt, endAt });
+    if (reasons.length) redirect(manageUrl({ bookingError: reasons.join("; ") }));
+  }
 
   await prisma.booking.create({
     data: {
@@ -109,19 +106,25 @@ export async function createManualBooking(formData: FormData) {
     }
   });
 
-  redirect(manageUrl("booking-created"));
+  redirect(manageUrl({ booking: "created" }));
 }
 
 export async function updateManualBooking(formData: FormData) {
   guard();
+  const bookingId = id(formData);
   const serviceId = s(formData, "serviceId");
   const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
   const startAt = dateTime(formData, "startAt");
   const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
   const status = s(formData, "status") || "CONFIRMED";
 
+  if (isActiveBookingStatus(status)) {
+    const reasons = await getBookingConflictReasons({ startAt, endAt, ignoreBookingId: bookingId });
+    if (reasons.length) redirect(manageUrl({ bookingError: reasons.join("; ") }));
+  }
+
   await prisma.booking.update({
-    where: { id: id(formData) },
+    where: { id: bookingId },
     data: {
       clientId: s(formData, "clientId"),
       serviceId,
@@ -136,7 +139,7 @@ export async function updateManualBooking(formData: FormData) {
     }
   });
 
-  redirect(manageUrl("booking-saved"));
+  redirect(manageUrl({ booking: "saved" }));
 }
 
 export async function cancelManualBooking(formData: FormData) {
@@ -150,5 +153,5 @@ export async function cancelManualBooking(formData: FormData) {
     }
   });
 
-  redirect(manageUrl("booking-cancelled"));
+  redirect(manageUrl({ booking: "cancelled" }));
 }

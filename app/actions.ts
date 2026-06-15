@@ -1,7 +1,8 @@
 "use server";
 
-import { cleanPhone, dateOnly, mergeNotes, statusDates, upsertClientByPhone } from "@/lib/clientSync";
 import { prisma } from "@/lib/prisma";
+import { formatPhone } from "@/lib/format";
+import { syncPublicRegistration } from "@/lib/clientSync";
 import { redirect } from "next/navigation";
 
 function required(value: FormDataEntryValue | null, name: string) {
@@ -13,56 +14,31 @@ function required(value: FormDataEntryValue | null, name: string) {
 export async function registerClient(formData: FormData) {
   const firstName = required(formData.get("firstName"), "Имя");
   const lastName = required(formData.get("lastName"), "Фамилия");
-  const phone = cleanPhone(required(formData.get("phone"), "Телефон"));
-  const birthDate = dateOnly(required(formData.get("birthDate"), "Дата рождения"));
-  const comment = String(formData.get("comment") || "").trim();
+  const phone = formatPhone(required(formData.get("phone"), "Телефон"));
+  const birthDate = new Date(required(formData.get("birthDate"), "Дата рождения"));
+  const notes = String(formData.get("comment") || "").trim();
 
-  const existing = await prisma.client.findUnique({ where: { phone } });
+  const result = await syncPublicRegistration({ firstName, lastName, phone, birthDate, notes });
+  const client = result.client;
 
-  if (existing) {
-    const notes = comment ? mergeNotes(existing.notes, `[Заявка клиента] ${comment}`) : existing.notes;
+  if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&known=1`);
+  if (client.status === "BANNED") redirect("/unavailable");
 
-    await prisma.client.update({
-      where: { id: existing.id },
-      data: {
-        firstName,
-        lastName,
-        birthDate,
-        notes,
-        ...(existing.status === "REJECTED" ? { status: "PENDING" as any, bannedAt: null } : {})
-      }
-    });
-
-    if (existing.status === "APPROVED") redirect(`/my?client=${existing.publicToken}&known=1`);
-    if (existing.status === "BANNED") redirect("/unavailable");
-    redirect(`/pending?phone=${encodeURIComponent(phone)}`);
-  }
-
-  await upsertClientByPhone({
-    firstName,
-    lastName,
-    phone,
-    birthDate,
-    notes: comment,
-    status: "PENDING" as any,
-    ...statusDates("PENDING")
-  });
-
-  redirect(`/pending?phone=${encodeURIComponent(phone)}`);
+  redirect(`/pending?phone=${encodeURIComponent(client.phone)}`);
 }
 
 export async function loginClient(formData: FormData) {
-  const phone = cleanPhone(required(formData.get("phone"), "Телефон"));
-  const birthDate = dateOnly(required(formData.get("birthDate"), "Дата рождения"));
+  const phone = formatPhone(required(formData.get("phone"), "Телефон"));
+  const birthDate = new Date(required(formData.get("birthDate"), "Дата рождения"));
 
   const client = await prisma.client.findUnique({ where: { phone } });
   if (!client) redirect(`/register?phone=${encodeURIComponent(phone)}`);
 
   const sameDate = client.birthDate.toISOString().slice(0, 10) === birthDate.toISOString().slice(0, 10);
-  if (!sameDate) redirect("/login?error=wrong_birthdate");
+  if (!sameDate) redirect(`/login?error=wrong_birthdate`);
 
   if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
-  if (client.status === "BANNED") redirect("/unavailable");
+  if (client.status === "BANNED") redirect(`/unavailable`);
   redirect(`/pending?phone=${encodeURIComponent(phone)}`);
 }
 
@@ -126,15 +102,23 @@ export async function joinWaitlist(formData: FormData) {
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client || client.status !== "APPROVED") redirect("/unavailable");
 
-  await prisma.waitlistEntry.create({
-    data: {
-      clientId: client.id,
-      mode: mode === "DATES" ? "DATES" : "NEAREST",
-      desiredDates: mode === "DATES" ? JSON.stringify(desiredDates) : "[]",
-      note,
-      status: "ACTIVE"
-    }
+  const existing = await prisma.waitlistEntry.findFirst({
+    where: { clientId: client.id, status: "ACTIVE" },
+    orderBy: { createdAt: "desc" }
   });
+
+  const data = {
+    mode: mode === "DATES" ? "DATES" : "NEAREST",
+    desiredDates: mode === "DATES" ? JSON.stringify(desiredDates) : "[]",
+    note,
+    status: "ACTIVE"
+  };
+
+  if (existing) {
+    await prisma.waitlistEntry.update({ where: { id: existing.id }, data });
+  } else {
+    await prisma.waitlistEntry.create({ data: { clientId: client.id, ...data } });
+  }
 
   redirect(`/my?client=${token}&waitlist=1`);
 }

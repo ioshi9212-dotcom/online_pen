@@ -1,5 +1,7 @@
+import { normalizePhone } from "@/lib/phone";
+
 export function formatPhone(input: string) {
-  return input.replace(/[^0-9+]/g, "").trim();
+  return normalizePhone(input);
 }
 
 export function formatDateTime(date: Date) {

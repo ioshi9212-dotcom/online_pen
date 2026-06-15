@@ -1,8 +1,9 @@
 "use server";
 
 import { isAdmin } from "@/lib/admin";
-import { cleanPhone, dateOnly, mergeClientIntoTarget, statusDates } from "@/lib/clientSync";
 import { prisma } from "@/lib/prisma";
+import { saveAdminClient } from "@/lib/clientSync";
+import { normalizePhone } from "@/lib/phone";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -13,39 +14,34 @@ function s(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
 }
 
-function myClientsUrl(done: string) {
-  return `/admin/my-clients?done=${encodeURIComponent(done)}`;
+function birthDate(value: string) {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+function clientsUrl(params: Record<string, string | undefined>) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) search.set(key, value);
+  });
+  const query = search.toString();
+  return query ? `/admin/my-clients?${query}` : "/admin/my-clients";
 }
 
 export async function saveMyClient(formData: FormData) {
   guard();
-
-  const id = s(formData, "id");
   const status = s(formData, "status") || "APPROVED";
-  const phone = cleanPhone(s(formData, "phone"));
-  const current = await prisma.client.findUnique({ where: { id } });
-  if (!current) redirect(myClientsUrl("not-found"));
 
-  const existingByPhone = await prisma.client.findUnique({ where: { phone } });
-  const dates = statusDates(status, current);
-  const data = {
+  const result = await saveAdminClient({
+    id: s(formData, "id"),
     firstName: s(formData, "firstName"),
     lastName: s(formData, "lastName"),
-    phone,
-    birthDate: dateOnly(s(formData, "birthDate")),
-    status: status as any,
-    notes: s(formData, "notes"),
-    approvedAt: dates.approvedAt,
-    bannedAt: dates.bannedAt
-  };
+    phone: normalizePhone(s(formData, "phone")),
+    birthDate: birthDate(s(formData, "birthDate")),
+    status,
+    notes: s(formData, "notes")
+  });
 
-  if (existingByPhone && existingByPhone.id !== id) {
-    await mergeClientIntoTarget(existingByPhone.id, id, data);
-    redirect(myClientsUrl("merged"));
-  }
-
-  await prisma.client.update({ where: { id }, data });
-  redirect(myClientsUrl("saved"));
+  redirect(clientsUrl({ saved: result.mode }));
 }
 
 export async function archiveClient(formData: FormData) {
@@ -65,7 +61,7 @@ export async function archiveClient(formData: FormData) {
     }
   });
 
-  redirect(myClientsUrl("archived"));
+  redirect(clientsUrl({ saved: "archived" }));
 }
 
 export async function restoreClient(formData: FormData) {
@@ -80,5 +76,5 @@ export async function restoreClient(formData: FormData) {
     }
   });
 
-  redirect("/admin/archive?done=restored");
+  redirect("/admin/archive");
 }

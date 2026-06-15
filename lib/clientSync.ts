@@ -1,83 +1,144 @@
+import { ClientStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { normalizePhone } from "@/lib/phone";
 
-export function cleanPhone(value: string) {
-  return value.replace(/[^0-9+]/g, "").trim();
-}
-
-export function dateOnly(value: string) {
-  return new Date(`${value}T00:00:00.000Z`);
-}
-
-export function mergeNotes(...parts: Array<string | null | undefined>) {
-  const clean = parts
-    .map((part) => String(part || "").trim())
-    .filter(Boolean);
-
-  return Array.from(new Set(clean)).join("\n");
-}
-
-export function statusDates(status: string, existing?: { approvedAt?: Date | null; bannedAt?: Date | null }) {
-  return {
-    approvedAt: status === "APPROVED" ? existing?.approvedAt ?? new Date() : existing?.approvedAt ?? null,
-    bannedAt: status === "BANNED" ? existing?.bannedAt ?? new Date() : null
-  };
-}
-
-type ClientUpdateData = {
+type ClientInput = {
   firstName: string;
   lastName: string;
   phone: string;
   birthDate: Date;
-  status: any;
-  notes: string;
-  approvedAt?: Date | null;
-  bannedAt?: Date | null;
+  status?: ClientStatus | string;
+  notes?: string;
 };
 
-export async function mergeClientIntoTarget(sourceId: string, targetId: string, targetData: ClientUpdateData) {
-  if (sourceId === targetId) {
-    return prisma.client.update({ where: { id: targetId }, data: targetData });
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const [source, target] = await Promise.all([
-      tx.client.findUnique({ where: { id: sourceId } }),
-      tx.client.findUnique({ where: { id: targetId } })
-    ]);
-
-    if (!source || !target) throw new Error("Клиент для объединения не найден");
-
-    await tx.booking.updateMany({ where: { clientId: sourceId }, data: { clientId: targetId } });
-    await tx.waitlistEntry.updateMany({ where: { clientId: sourceId }, data: { clientId: targetId } });
-    await tx.client.delete({ where: { id: sourceId } });
-
-    return tx.client.update({
-      where: { id: targetId },
-      data: {
-        ...targetData,
-        notes: mergeNotes(target.notes, source.notes, targetData.notes)
-      }
-    });
-  });
+function cleanText(value: string) {
+  return String(value || "").trim().replace(/\s+/g, " ");
 }
 
-export async function upsertClientByPhone(data: ClientUpdateData) {
-  const existing = await prisma.client.findUnique({ where: { phone: data.phone } });
+function mergeNotes(...items: Array<string | null | undefined>) {
+  const parts = items
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
 
-  if (!existing) {
-    const created = await prisma.client.create({ data });
-    return { client: created, mode: "created" as const };
+  return Array.from(new Set(parts)).join("\n");
+}
+
+function publicStatus(existingStatus: ClientStatus) {
+  if (existingStatus === "APPROVED") return "APPROVED";
+  if (existingStatus === "BANNED") return "BANNED";
+  return "PENDING";
+}
+
+export async function moveClientLinks(sourceId: string, targetId: string) {
+  if (!sourceId || !targetId || sourceId === targetId) return;
+
+  await prisma.booking.updateMany({ where: { clientId: sourceId }, data: { clientId: targetId } });
+  await prisma.waitlistEntry.updateMany({ where: { clientId: sourceId }, data: { clientId: targetId } });
+}
+
+export async function upsertManualClient(input: ClientInput) {
+  const phone = normalizePhone(input.phone);
+  const status = (input.status || "APPROVED") as ClientStatus;
+  const existing = await prisma.client.findUnique({ where: { phone } });
+
+  if (existing) {
+    const client = await prisma.client.update({
+      where: { id: existing.id },
+      data: {
+        firstName: cleanText(input.firstName),
+        lastName: cleanText(input.lastName),
+        birthDate: input.birthDate,
+        status,
+        notes: mergeNotes(existing.notes, input.notes),
+        approvedAt: status === "APPROVED" ? existing.approvedAt ?? new Date() : existing.approvedAt,
+        bannedAt: status === "BANNED" ? new Date() : null
+      }
+    });
+
+    return { client, mode: "merged" as const };
   }
 
-  const updated = await prisma.client.update({
-    where: { id: existing.id },
+  const client = await prisma.client.create({
     data: {
-      ...data,
-      notes: mergeNotes(existing.notes, data.notes),
-      approvedAt: data.status === "APPROVED" ? existing.approvedAt ?? new Date() : existing.approvedAt,
-      bannedAt: data.status === "BANNED" ? existing.bannedAt ?? new Date() : null
+      firstName: cleanText(input.firstName),
+      lastName: cleanText(input.lastName),
+      phone,
+      birthDate: input.birthDate,
+      status,
+      notes: cleanText(input.notes || ""),
+      approvedAt: status === "APPROVED" ? new Date() : null,
+      bannedAt: status === "BANNED" ? new Date() : null
     }
   });
 
-  return { client: updated, mode: "merged" as const };
+  return { client, mode: "created" as const };
+}
+
+export async function syncPublicRegistration(input: ClientInput) {
+  const phone = normalizePhone(input.phone);
+  const existing = await prisma.client.findUnique({ where: { phone } });
+
+  if (existing) {
+    const nextStatus = publicStatus(existing.status);
+    const client = await prisma.client.update({
+      where: { id: existing.id },
+      data: {
+        firstName: cleanText(input.firstName),
+        lastName: cleanText(input.lastName),
+        birthDate: input.birthDate,
+        status: nextStatus,
+        notes: mergeNotes(existing.notes, input.notes),
+        approvedAt: nextStatus === "APPROVED" ? existing.approvedAt ?? new Date() : existing.approvedAt,
+        bannedAt: nextStatus === "BANNED" ? existing.bannedAt ?? new Date() : null
+      }
+    });
+
+    return { client, mode: "existing" as const };
+  }
+
+  const client = await prisma.client.create({
+    data: {
+      firstName: cleanText(input.firstName),
+      lastName: cleanText(input.lastName),
+      phone,
+      birthDate: input.birthDate,
+      notes: cleanText(input.notes || ""),
+      status: "PENDING"
+    }
+  });
+
+  return { client, mode: "created" as const };
+}
+
+export async function saveAdminClient(input: ClientInput & { id: string }) {
+  const phone = normalizePhone(input.phone);
+  const status = (input.status || "APPROVED") as ClientStatus;
+  const current = await prisma.client.findUniqueOrThrow({ where: { id: input.id } });
+  const duplicate = await prisma.client.findUnique({ where: { phone } });
+  const data = {
+    firstName: cleanText(input.firstName),
+    lastName: cleanText(input.lastName),
+    phone,
+    birthDate: input.birthDate,
+    status,
+    notes: cleanText(input.notes || ""),
+    approvedAt: status === "APPROVED" ? current.approvedAt ?? new Date() : current.approvedAt,
+    bannedAt: status === "BANNED" ? current.bannedAt ?? new Date() : null
+  };
+
+  if (duplicate && duplicate.id !== current.id) {
+    await moveClientLinks(duplicate.id, current.id);
+    await prisma.client.delete({ where: { id: duplicate.id } });
+    const client = await prisma.client.update({
+      where: { id: current.id },
+      data: {
+        ...data,
+        notes: mergeNotes(current.notes, duplicate.notes, input.notes)
+      }
+    });
+    return { client, mode: "merged" as const };
+  }
+
+  const client = await prisma.client.update({ where: { id: current.id }, data });
+  return { client, mode: "saved" as const };
 }
