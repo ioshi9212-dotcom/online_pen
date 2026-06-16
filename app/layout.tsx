@@ -5,6 +5,7 @@ import "./globals.css";
 import "./ui-fixes.css";
 import "./admin-dashboard.css";
 import "./client-dashboard.css";
+import "./client-extra.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
