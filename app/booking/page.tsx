@@ -50,6 +50,21 @@ function makeBookingHref(token: string, serviceId: string, date: string, startAt
   return `/booking?client=${token}&service=${serviceId}&date=${date}&time=${encodeURIComponent(startAt.toISOString())}#confirm`;
 }
 
+function ClientMenu({ token, name }: { token: string; name: string }) {
+  return (
+    <header className="client-topbar">
+      <a className="client-logo" href={`/my?client=${token}`}><span>O</span><b>Онлайн-запись</b></a>
+      <nav>
+        <a href={`/my?client=${token}`}>Кабинет</a>
+        <a href={`/my?client=${token}#windows`}>Окна</a>
+        <a href={`/price?client=${token}`}>Прайс</a>
+        <a href={`/profile?client=${token}`}>Профиль</a>
+      </nav>
+      <div className="client-mini-avatar">{name.slice(0, 1).toUpperCase()}</div>
+    </header>
+  );
+}
+
 export default async function BookingPage({ searchParams }: { searchParams: SearchParams }) {
   const token = searchParams.client;
   if (!token) redirect("/login");
@@ -112,20 +127,20 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
     : null;
 
   return (
-    <main className="booking-page">
+    <main className="booking-page client-shell">
+      <ClientMenu token={token} name={client.firstName} />
+
       <section className="booking-panel">
         <div className="booking-title-row">
           <div>
-            <p className="eyebrow">Запись онлайн</p>
+            <p className="client-eyebrow">Запись онлайн</p>
             <h1>Выберите окно</h1>
-            <p className="lead">
-              Привет, {client.firstName}. Тут только открытые онлайн-окна. Если времени нет — сайт не вредничает, мест правда нет.
-            </p>
+            <p className="lead">Привет, {client.firstName}. Тут только открытые онлайн-окна. Выберите услугу, дату и время.</p>
           </div>
-          <a className="quiet-link" href={`/my?client=${token}`}>Мои записи</a>
+          <a className="client-button secondary" href={`/my?client=${token}`}>Назад в кабинет</a>
         </div>
 
-        {searchParams.busy ? <div className="notice danger-notice">Это окно уже уехало. Выберите другое.</div> : null}
+        {searchParams.busy ? <div className="notice danger-notice">Это окно уже заняли. Выберите другое.</div> : null}
 
         <div className="step-block">
           <div className="step-head">
@@ -138,11 +153,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
               {services.map((service) => {
                 const active = selectedService?.id === service.id;
                 return (
-                  <a
-                    className={active ? "service-chip active" : "service-chip"}
-                    href={`/booking?client=${token}&service=${service.id}`}
-                    key={service.id}
-                  >
+                  <a className={active ? "service-chip active" : "service-chip"} href={`/booking?client=${token}&service=${service.id}`} key={service.id}>
                     <strong>{service.title}</strong>
                     <span>{service.durationMinutes} мин · {rub(service.price)}</span>
                     {service.description ? <small>{service.description}</small> : null}
@@ -151,7 +162,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
               })}
             </div>
           ) : (
-            <div className="notice">Активных услуг пока нет. Прайс решил поспать.</div>
+            <div className="notice">Активных услуг пока нет.</div>
           )}
         </div>
 
@@ -171,11 +182,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
                   const active = key === selectedDateKey;
                   const day = daySlots[0].startAt;
                   return (
-                    <a
-                      className={active ? "date-option active" : "date-option"}
-                      href={`/booking?client=${token}&service=${selectedService.id}&date=${key}#time`}
-                      key={key}
-                    >
+                    <a className={active ? "date-option active" : "date-option"} href={`/booking?client=${token}&service=${selectedService.id}&date=${key}#time`} key={key}>
                       <span>{shortDate(day)}</span>
                       <b>{formatDateOnly(day)}</b>
                       <small>{daySlots.length} {daySlots.length === 1 ? "окно" : "окна"}</small>
@@ -186,8 +193,8 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
             ) : (
               <div className="empty-state">
                 <h3>Свободных окон сейчас нет</h3>
-                <p>Система не драматизирует. Она просто честная.</p>
-                <a className="button secondary" href={`/my?client=${token}#waitlist`}>Встать в лист ожидания</a>
+                <p>Можно встать в лист ожидания.</p>
+                <a className="client-button secondary" href={`/my?client=${token}#waitlist`}>Встать в лист ожидания</a>
               </div>
             )}
           </div>
@@ -206,15 +213,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
             <div className="time-grid">
               {selectedSlots.map((slot) => {
                 const active = selectedSlot?.startAt.toISOString() === slot.startAt.toISOString();
-                return (
-                  <a
-                    className={active ? "time-button active" : "time-button"}
-                    href={makeBookingHref(token, selectedService.id, selectedDateKey, slot.startAt)}
-                    key={slot.startAt.toISOString()}
-                  >
-                    {formatTimeOnly(slot.startAt)}–{formatTimeOnly(slot.endAt)}
-                  </a>
-                );
+                return <a className={active ? "time-button active" : "time-button"} href={makeBookingHref(token, selectedService.id, selectedDateKey, slot.startAt)} key={slot.startAt.toISOString()}>{formatTimeOnly(slot.startAt)}–{formatTimeOnly(slot.endAt)}</a>;
               })}
             </div>
           </div>
@@ -226,7 +225,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
               <span className="step-number">4</span>
               <div>
                 <h2>Проверить и отправить</h2>
-                <p>Последний шанс заметить, что пальцы записались не туда.</p>
+                <p>После отправки окно закрепится за вами до решения мастера.</p>
               </div>
             </div>
 
@@ -241,12 +240,10 @@ export default async function BookingPage({ searchParams }: { searchParams: Sear
               <input type="hidden" name="clientToken" value={token} />
               <input type="hidden" name="serviceId" value={selectedService.id} />
               <input type="hidden" name="startAt" value={selectedSlot.startAt.toISOString()} />
-              <label>Комментарий, если надо
-                <textarea name="comment" placeholder="Например: нужен ремонт / хочу нюд / есть идея / идеи нет, держимся" />
-              </label>
+              <label>Комментарий, если надо<textarea name="comment" placeholder="Например: нужен ремонт / хочу нюд" /></label>
               <div className="actions">
                 <button type="submit">Отправить заявку</button>
-                <a className="button secondary" href={`/booking?client=${token}&service=${selectedService.id}&date=${selectedDateKey}#time`}>Выбрать другое время</a>
+                <a className="client-button secondary" href={`/booking?client=${token}&service=${selectedService.id}&date=${selectedDateKey}#time`}>Выбрать другое время</a>
               </div>
             </form>
           </div>
