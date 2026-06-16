@@ -19,6 +19,12 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
         <label>Комментарий<textarea name="comment" placeholder="Например: хочу на коррекцию, удобнее вечером" /></label>
         <button type="submit">Отправить заявку</button>
       </form>
+
+      <div className="actions" style={{ marginTop: 18 }}>
+        <a className="button secondary" href="/login">Я уже клиент</a>
+        <a className="button secondary" href="/price">Прайс</a>
+        <a className="quiet-link" href="/">На главную</a>
+      </div>
     </section>
   );
 }
