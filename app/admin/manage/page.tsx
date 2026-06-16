@@ -1,10 +1,10 @@
 import { isAdmin } from "@/lib/admin";
 import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
-import { formatDateTime, rub } from "@/lib/format";
+import { rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
+import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS } from "@/lib/statusLabels";
 import { redirect } from "next/navigation";
-import { cancelManualBooking, createManualBooking, createManualClient, updateManualBooking, updateManualClient } from "./actions";
+import { createManualBooking, createManualClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,22 +15,9 @@ function one(searchParams: SearchParams, key: string) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function toDateInput(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function toDateTimeInput(date: Date) {
-  return date.toISOString().slice(0, 16);
-}
-
-function durationFromBooking(booking: { startAt: Date; endAt: Date; service: { durationMinutes: number } }) {
-  const minutes = Math.round((booking.endAt.getTime() - booking.startAt.getTime()) / 60_000);
-  return DURATION_OPTIONS.some((item) => item.value === minutes) ? minutes : booking.service.durationMinutes;
-}
-
-function DurationSelect({ defaultValue, formId }: { defaultValue: number; formId?: string }) {
+function DurationSelect({ defaultValue }: { defaultValue: number }) {
   return (
-    <select name="durationMinutes" defaultValue={String(defaultValue)} form={formId}>
+    <select name="durationMinutes" defaultValue={String(defaultValue)}>
       {DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
   );
@@ -42,56 +29,26 @@ function Notice({ searchParams }: { searchParams: SearchParams }) {
   const bookingError = one(searchParams, "bookingError");
 
   if (bookingError) return <div className="notice danger-notice floating-toast">Запись не сохранена: {bookingError}.</div>;
-  if (client === "created") return <div className="notice ok-notice floating-toast">Клиент добавлен в базу.</div>;
-  if (client === "merged") return <div className="notice ok-notice floating-toast">Клиент объединён по номеру телефона.</div>;
-  if (client === "saved") return <div className="notice ok-notice floating-toast">Клиент сохранён.</div>;
+  if (client === "created") return <div className="notice ok-notice floating-toast">Клиент добавлен и выбран для записи.</div>;
+  if (client === "merged") return <div className="notice ok-notice floating-toast">Клиент найден по телефону и выбран для записи.</div>;
   if (booking === "created") return <div className="notice ok-notice floating-toast">Запись создана.</div>;
-  if (booking === "saved") return <div className="notice ok-notice floating-toast">Запись сохранена.</div>;
-  if (booking === "cancelled") return <div className="notice floating-toast">Запись отменена.</div>;
 
   return null;
 }
 
-export default async function ManualAdminPage({ searchParams = {} }: { searchParams?: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
-
-  const selectedClientId = one(searchParams, "clientId") || "";
-  const [clients, bookableClients, services, bookings] = await Promise.all([
-    prisma.client.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }] }),
-    prisma.client.findMany({ where: { status: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-    prisma.service.findMany({ orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { title: "asc" }] }),
-    prisma.booking.findMany({ include: { client: true, service: true }, orderBy: { startAt: "desc" }, take: 80 })
-  ]);
-
-  const defaultServiceDuration = services.find((service) => service.isActive)?.durationMinutes || 150;
-  const selectedClientExists = bookableClients.some((client) => client.id === selectedClientId);
-  const bookingClientDefault = selectedClientExists ? selectedClientId : bookableClients[0]?.id;
-
+function AddClientPanel({ open }: { open: boolean }) {
   return (
-    <div className="grid">
-      <section className="card">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
-          <div>
-            <h1>Ручное управление</h1>
-            <p>Добавление и редактирование клиентов, ручная запись, изменение записи и отмена.</p>
-          </div>
-          <div className="actions">
-            <a className="button secondary" href="/admin/my-clients">Назад к клиентам</a>
-            <a className="button secondary" href="/admin">Админка</a>
-            <a className="button secondary" href="/admin/logout">Выйти</a>
-          </div>
+    <details className="card soft-details add-client-panel" id="add-client" open={open}>
+      <summary className="button secondary">Добавить клиента</summary>
+      <div className="grid" style={{ marginTop: 18 }}>
+        <div>
+          <h2>Новая карточка клиента</h2>
+          <p className="small">Создай клиента здесь же. После сохранения он сразу выберется в форме записи ниже, а поля очистятся.</p>
         </div>
-      </section>
-
-      <Notice searchParams={searchParams} />
-
-      <section className="card">
-        <h2>Добавить клиента</h2>
-        <p className="small">Если номер уже есть в базе, сайт не создаст дубль — обновит общую карточку по телефону.</p>
         <form action={createManualClient} className="grid">
           <div className="grid-3">
-            <label>Имя<input name="firstName" required /></label>
-            <label>Фамилия<input name="lastName" required /></label>
+            <label>Фамилия<input name="lastName" required placeholder="Иванова" /></label>
+            <label>Имя<input name="firstName" required placeholder="Мария" /></label>
             <label>Телефон<input name="phone" required placeholder="89940199045" /></label>
           </div>
           <div className="grid-3">
@@ -101,22 +58,93 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
                 {CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
               </select>
             </label>
-            <label>Заметка<input name="notes" placeholder="например: френч, аллергия, предоплата" /></label>
+            <label>Заметка<input name="notes" placeholder="например: френч, аллергия, любит нюд" /></label>
           </div>
-          <button>Добавить / обновить клиента</button>
+          <div className="actions">
+            <button type="submit">Создать и выбрать</button>
+            <a className="button secondary" href="/admin/my-clients#add-client">Полная база клиентов</a>
+          </div>
         </form>
+      </div>
+    </details>
+  );
+}
+
+export default async function ManualAdminPage({ searchParams = {} }: { searchParams?: SearchParams }) {
+  if (!isAdmin()) redirect("/admin/login");
+
+  const selectedClientId = one(searchParams, "clientId") || "";
+  const addOpen = one(searchParams, "add") === "1";
+
+  const [bookableClients, services] = await Promise.all([
+    prisma.client.findMany({ where: { status: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
+    prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] })
+  ]);
+
+  const defaultServiceDuration = services[0]?.durationMinutes || 150;
+  const selectedClientExists = bookableClients.some((client) => client.id === selectedClientId);
+  const bookingClientDefault = selectedClientExists ? selectedClientId : bookableClients[0]?.id;
+
+  return (
+    <div className="grid">
+      <section className="card">
+        <div className="actions" style={{ justifyContent: "space-between" }}>
+          <div>
+            <h1>Запись вручную</h1>
+            <p>Только ручная запись мастером. Клиенты и записи редактируются в своих разделах, чтобы тут не было каши.</p>
+          </div>
+          <div className="actions">
+            <a className="button" href="/admin/manage?add=1#add-client">Добавить клиента</a>
+            <a className="button secondary" href="/admin/my-clients">Клиенты</a>
+            <a className="button secondary" href="/admin">Админка</a>
+            <a className="button secondary" href="/admin/logout">Выйти</a>
+          </div>
+        </div>
       </section>
 
+      <Notice searchParams={searchParams} />
+      <AddClientPanel open={addOpen || bookableClients.length === 0} />
+
       <section className="card" id="manual-booking">
-        <h2>Записать клиента вручную</h2>
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Основное действие</p>
+            <h2>Записать клиентку</h2>
+            <p>Выбери клиентку, услугу, дату и время. Неподтверждённые и подтверждённые записи занимают окно, поэтому конфликт система не даст сохранить.</p>
+          </div>
+          {selectedClientExists ? <span className="status ok-status">клиент выбран</span> : null}
+        </div>
+
         {selectedClientExists ? <div className="notice ok-notice">Клиент уже выбран из базы. Осталось выбрать услугу, дату и время.</div> : null}
-        {bookableClients.length === 0 || services.length === 0 ? <div className="notice">Нужен хотя бы один подтверждённый клиент и одна услуга.</div> : (
-          <form action={createManualBooking} className="grid">
+
+        {bookableClients.length === 0 ? (
+          <div className="empty-state">
+            <h3>Нет подтверждённых клиентов</h3>
+            <p>Сначала создай карточку клиента через кнопку выше, потом сразу запишешь её здесь же.</p>
+            <a className="button" href="/admin/manage?add=1#add-client">Добавить клиента</a>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="empty-state">
+            <h3>Нет активных услуг</h3>
+            <p>Сначала добавь услугу в прайсе, иначе записывать просто не на что.</p>
+            <a className="button" href="/admin/services">Открыть прайс</a>
+          </div>
+        ) : (
+          <form action={createManualBooking} className="grid manual-booking-form">
             <div className="grid-3">
-              <label>Клиент<select name="clientId" defaultValue={bookingClientDefault}>{bookableClients.map((c) => <option key={c.id} value={c.id}>{c.lastName} {c.firstName} — {c.phone}</option>)}</select></label>
-              <label>Услуга<select name="serviceId">{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {durationLabel(s.durationMinutes)} — {rub(s.price)}</option>)}</select></label>
+              <label>Клиент
+                <select name="clientId" defaultValue={bookingClientDefault}>
+                  {bookableClients.map((client) => <option key={client.id} value={client.id}>{client.lastName} {client.firstName} — {client.phone}</option>)}
+                </select>
+              </label>
+              <label>Услуга
+                <select name="serviceId">
+                  {services.map((service) => <option key={service.id} value={service.id}>{service.title} — {durationLabel(service.durationMinutes)} — {rub(service.price)}</option>)}
+                </select>
+              </label>
               <label>Дата и время<input name="startAt" type="datetime-local" required /></label>
             </div>
+
             <div className="grid-3">
               <label>Длительность<DurationSelect defaultValue={defaultServiceDuration} /></label>
               <label>Статус
@@ -124,86 +152,18 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
                   {BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
                 </select>
               </label>
-              <label>Итоговая цена<input name="finalPrice" type="number" min="0" /></label>
+              <label>Итоговая цена<input name="finalPrice" type="number" min="0" placeholder="если отличается" /></label>
             </div>
-            <label>Комментарий клиента<input name="clientComment" /></label>
-            <label>Твоя заметка<textarea name="adminComment" /></label>
-            <button>Создать запись</button>
+
+            <label>Комментарий клиента<input name="clientComment" placeholder="что просила клиентка" /></label>
+            <label>Заметка мастера<textarea name="adminComment" placeholder="дизайн, нюансы, предоплата, что не забыть" /></label>
+
+            <div className="actions">
+              <button type="submit">Создать запись</button>
+              <a className="button secondary" href="/admin/schedule">Открыть расписание</a>
+            </div>
           </form>
         )}
-      </section>
-
-      <section className="card">
-        <h2>Клиенты</h2>
-        <div className="notice">Сохранение по номеру объединяет карточки, если такой телефон уже есть у другого клиента.</div>
-        <table className="table">
-          <thead><tr><th>Данные</th><th>Статус</th><th>Заметки</th><th></th></tr></thead>
-          <tbody>
-            {clients.map((client) => (
-              <tr key={client.id}>
-                <td>
-                  <form id={`client-${client.id}`} action={updateManualClient} className="grid">
-                    <input type="hidden" name="id" value={client.id} />
-                    <input name="lastName" defaultValue={client.lastName} required />
-                    <input name="firstName" defaultValue={client.firstName} required />
-                    <input name="phone" defaultValue={client.phone} required />
-                    <input name="birthDate" type="date" defaultValue={toDateInput(client.birthDate)} required />
-                  </form>
-                </td>
-                <td>
-                  <div className="grid">
-                    <select name="status" form={`client-${client.id}`} defaultValue={client.status}>
-                      {CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-                    </select>
-                    <span className={`status ${statusClass(client.status)}`}>{clientStatusLabel(client.status)}</span>
-                  </div>
-                </td>
-                <td><textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} /></td>
-                <td className="actions">
-                  <a className="button secondary" href={`/admin/my-clients/${client.id}`}>Профиль</a>
-                  <button form={`client-${client.id}`} className="ok">Сохранить</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="card" id="bookings-list">
-        <h2>Записи</h2>
-        <table className="table">
-          <thead><tr><th>Дата/клиент</th><th>Услуга/статус</th><th>Длительность/цена/комментарии</th><th></th></tr></thead>
-          <tbody>
-            {bookings.map((booking) => (
-              <tr key={booking.id}>
-                <td>
-                  <form id={`booking-${booking.id}`} action={updateManualBooking} className="grid">
-                    <input type="hidden" name="id" value={booking.id} />
-                    <input name="startAt" type="datetime-local" defaultValue={toDateTimeInput(booking.startAt)} required />
-                    <select name="clientId" defaultValue={booking.clientId}>{bookableClients.map((c) => <option key={c.id} value={c.id}>{c.lastName} {c.firstName} — {c.phone}</option>)}</select>
-                    <span className="small">Сейчас: {formatDateTime(booking.startAt)}</span>
-                  </form>
-                </td>
-                <td>
-                  <div className="grid">
-                    <select name="serviceId" form={`booking-${booking.id}`} defaultValue={booking.serviceId}>{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {durationLabel(s.durationMinutes)}</option>)}</select>
-                    <select name="status" form={`booking-${booking.id}`} defaultValue={booking.status}>{BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
-                    <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="grid">
-                    <DurationSelect defaultValue={durationFromBooking(booking)} formId={`booking-${booking.id}`} />
-                    <input name="finalPrice" form={`booking-${booking.id}`} type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} />
-                    <input name="clientComment" form={`booking-${booking.id}`} defaultValue={booking.clientComment} />
-                    <textarea name="adminComment" form={`booking-${booking.id}`} defaultValue={booking.adminComment} />
-                  </div>
-                </td>
-                <td className="actions"><button form={`booking-${booking.id}`} className="ok">Сохранить</button><form action={cancelManualBooking}><input type="hidden" name="id" value={booking.id} /><button className="danger">Отменить</button></form></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </section>
     </div>
   );
