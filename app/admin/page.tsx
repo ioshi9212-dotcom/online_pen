@@ -33,26 +33,9 @@ export default async function AdminPage() {
 
   const [pendingClients, pendingBookings, todayBookings, waitlistEntries] = await Promise.all([
     prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 20 }),
-    prisma.booking.findMany({
-      where: { status: "PENDING" },
-      include: { client: true, service: true },
-      orderBy: { startAt: "asc" },
-      take: 30
-    }),
-    prisma.booking.findMany({
-      where: {
-        startAt: { gte: startOfToday(), lte: endOfToday() },
-        status: { in: ["PENDING", "CONFIRMED"] }
-      },
-      include: { client: true, service: true },
-      orderBy: { startAt: "asc" }
-    }),
-    prisma.waitlistEntry.findMany({
-      where: { status: "ACTIVE" },
-      include: { client: true },
-      orderBy: { createdAt: "desc" },
-      take: 50
-    })
+    prisma.booking.findMany({ where: { status: "PENDING" }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 30 }),
+    prisma.booking.findMany({ where: { startAt: { gte: startOfToday(), lte: endOfToday() }, status: { in: ["PENDING", "CONFIRMED"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" } }),
+    prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 50 })
   ]);
 
   return (
@@ -63,7 +46,10 @@ export default async function AdminPage() {
             <h1>Админка</h1>
             <p>Быстрый доступ к главным разделам. Архив и чёрный список теперь внутри клиентской базы.</p>
           </div>
-          <a className="button secondary" href="/admin/logout">Выйти</a>
+          <div className="actions">
+            <a className="button secondary" href="/admin/profile">Профиль</a>
+            <a className="button secondary" href="/admin/logout">Выйти</a>
+          </div>
         </div>
 
         <div className="admin-menu-grid">
@@ -77,6 +63,7 @@ export default async function AdminPage() {
           <a href="/admin/requests">Все заявки клиентов</a>
           <a href="/admin/bookings">Все записи</a>
           <a href="/admin/blacklist">Чёрный список</a>
+          <a href="/admin/profile">Профиль мастера</a>
         </div>
       </div>
 
@@ -93,7 +80,7 @@ export default async function AdminPage() {
           <h2>{pendingBookings.length}</h2><p>заявок на запись ждут решения</p>
           <details className="inline-details"><summary className="button secondary">Посмотреть</summary><div className="mini-list">
             {pendingBookings.length === 0 ? <div className="notice">Заявок на запись нет.</div> : null}
-            {pendingBookings.map((booking) => <div className="mini-item" key={booking.id}><b>{formatDateTime(booking.startAt)}</b><span>{booking.client.lastName} {booking.client.firstName} — {booking.client.phone}</span><span>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</span>{booking.clientComment ? <small>{booking.clientComment}</small> : null}<div className="actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="ok">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="danger">Отклонить</button></form></div></div>)}
+            {pendingBookings.map((booking) => <div className="mini-item pending-item" key={booking.id}><b>{formatDateTime(booking.startAt)}</b><span>{booking.client.lastName} {booking.client.firstName} — {booking.client.phone}</span><span>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</span>{booking.clientComment ? <small>{booking.clientComment}</small> : null}<div className="actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="ok">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="danger">Отклонить</button></form></div></div>)}
           </div></details>
         </div>
 
@@ -101,7 +88,7 @@ export default async function AdminPage() {
           <h2>{todayBookings.length}</h2><p>активных записей сегодня</p>
           <details className="inline-details"><summary className="button secondary">Посмотреть</summary><div className="mini-list">
             {todayBookings.length === 0 ? <div className="notice">Сегодня активных записей нет.</div> : null}
-            {todayBookings.map((booking) => <div className="mini-item" key={booking.id}><b>{formatDateTime(booking.startAt)}</b><span>{booking.client.lastName} {booking.client.firstName} — {booking.client.phone}</span><span>{booking.service.title} · {bookingStatusLabel(booking.status)}</span><div className="actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="COMPLETED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="ok">Пришла</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="NO_SHOW" /><input type="hidden" name="redirectTo" value="/admin" /><button className="danger">Не пришла</button></form></div></div>)}
+            {todayBookings.map((booking) => <div className={booking.status === "PENDING" ? "mini-item pending-item" : "mini-item"} key={booking.id}><b>{formatDateTime(booking.startAt)}</b><span>{booking.client.lastName} {booking.client.firstName} — {booking.client.phone}</span><span>{booking.service.title} · {bookingStatusLabel(booking.status)}</span><div className="actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="COMPLETED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="ok">Пришла</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="NO_SHOW" /><input type="hidden" name="redirectTo" value="/admin" /><button className="danger">Не пришла</button></form></div></div>)}
           </div></details>
         </div>
       </div>
