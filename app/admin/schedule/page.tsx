@@ -17,6 +17,18 @@ type SelectedTime = {
   isOnline: boolean;
   kind: "free" | "booking" | "block";
   endTime?: string;
+  booking?: {
+    id: string;
+    status: string;
+    clientId: string;
+    clientName: string;
+    serviceId: string;
+    serviceTitle: string;
+    durationMinutes: number;
+    finalPrice: number | null;
+    clientComment: string;
+    adminComment: string;
+  };
 };
 
 function one(value: string | string[] | undefined, fallback = "") {
@@ -56,11 +68,7 @@ function dayLabel(kind: string, isWorkingDay: boolean) {
 
 function Toast({ text }: { text: string }) {
   if (!text) return null;
-  return (
-    <div className="notice ok-notice" style={{ position: "sticky", top: 12, zIndex: 20, boxShadow: "0 14px 32px rgba(126, 84, 100, .18)" }}>
-      Готово: {text}
-    </div>
-  );
+  return <div className="notice ok-notice" style={{ position: "sticky", top: 12, zIndex: 20, boxShadow: "0 14px 32px rgba(126, 84, 100, .18)" }}>Готово: {text}</div>;
 }
 
 function ScheduleMenu() {
@@ -68,18 +76,9 @@ function ScheduleMenu() {
     <section className="card">
       <h2>Что открыть?</h2>
       <div className="admin-menu-grid">
-        <a className="menu-card primary" href="/admin/schedule/free">
-          <span className="menu-title">Список онлайн-окон</span>
-          <span className="menu-text">Только открытые окна для клиентов. Удобно скопировать или сделать скрин.</span>
-        </a>
-        <a className="menu-card" href="/admin/schedule?view=mode">
-          <span className="menu-title">Редактор режима</span>
-          <span className="menu-text">Шаг времени и общий рабочий день с/до на каждый день.</span>
-        </a>
-        <a className="menu-card" href="/admin/schedule?view=calendar">
-          <span className="menu-title">Календарь окон</span>
-          <span className="menu-text">Пометить выходные, открыть онлайн-окна и записать клиента вручную.</span>
-        </a>
+        <a className="menu-card primary" href="/admin/schedule/free"><span className="menu-title">Список онлайн-окон</span><span className="menu-text">Только открытые окна для клиентов. Удобно скопировать или сделать скрин.</span></a>
+        <a className="menu-card" href="/admin/schedule?view=mode"><span className="menu-title">Редактор режима</span><span className="menu-text">Шаг времени и общий рабочий день с/до на каждый день.</span></a>
+        <a className="menu-card" href="/admin/schedule?view=calendar"><span className="menu-title">Календарь окон</span><span className="menu-text">Пометить выходные, открыть онлайн-окна и записать клиента вручную.</span></a>
       </div>
     </section>
   );
@@ -88,7 +87,7 @@ function ScheduleMenu() {
 function buildSelectedTimes(params: {
   selectedDay: Date | null;
   rawTimes: string[];
-  selectedBookings: Array<{ startAt: Date; endAt: Date; client: { firstName: string; lastName: string } }>;
+  selectedBookings: Array<{ id: string; status: string; startAt: Date; endAt: Date; clientId: string; serviceId: string; finalPrice: number | null; clientComment: string; adminComment: string; client: { firstName: string; lastName: string }; service: { title: string; durationMinutes: number } }>;
   selectedBlocks: Array<{ startAt: Date; endAt: Date }>;
   selectedOnlineWindows: Array<{ startAt: Date }>;
   stepMinutes: number;
@@ -105,13 +104,26 @@ function buildSelectedTimes(params: {
 
     const bookingStart = selectedBookings.find((item) => item.startAt.getTime() === slotStart.getTime());
     if (bookingStart) {
+      const pending = bookingStart.status === "PENDING";
       result.push({
         time,
-        busyLabel: `${bookingStart.client.firstName} ${bookingStart.client.lastName} до ${formatTimeOnly(bookingStart.endAt)}`,
+        busyLabel: `${pending ? "ожидает подтверждения" : "занято"}: ${bookingStart.client.firstName} ${bookingStart.client.lastName} до ${formatTimeOnly(bookingStart.endAt)}`,
         isBusy: true,
         isOnline: startsOnline,
         kind: "booking",
-        endTime: formatTimeOnly(bookingStart.endAt)
+        endTime: formatTimeOnly(bookingStart.endAt),
+        booking: {
+          id: bookingStart.id,
+          status: bookingStart.status,
+          clientId: bookingStart.clientId,
+          clientName: `${bookingStart.client.firstName} ${bookingStart.client.lastName}`,
+          serviceId: bookingStart.serviceId,
+          serviceTitle: bookingStart.service.title,
+          durationMinutes: bookingStart.service.durationMinutes,
+          finalPrice: bookingStart.finalPrice,
+          clientComment: bookingStart.clientComment,
+          adminComment: bookingStart.adminComment
+        }
       });
       continue;
     }
@@ -121,14 +133,7 @@ function buildSelectedTimes(params: {
 
     const blockStart = selectedBlocks.find((item) => item.startAt.getTime() === slotStart.getTime());
     if (blockStart) {
-      result.push({
-        time,
-        busyLabel: `закрытое окно до ${formatTimeOnly(blockStart.endAt)}`,
-        isBusy: true,
-        isOnline: startsOnline,
-        kind: "block",
-        endTime: formatTimeOnly(blockStart.endAt)
-      });
+      result.push({ time, busyLabel: `закрытое окно до ${formatTimeOnly(blockStart.endAt)}`, isBusy: true, isOnline: startsOnline, kind: "block", endTime: formatTimeOnly(blockStart.endAt) });
       continue;
     }
 
@@ -137,14 +142,7 @@ function buildSelectedTimes(params: {
 
     const overlapsBlock = selectedBlocks.find((item) => overlaps(slotStart, slotEnd, item.startAt, item.endAt));
     if (overlapsBlock) {
-      result.push({
-        time,
-        busyLabel: `закрытое окно до ${formatTimeOnly(overlapsBlock.endAt)}`,
-        isBusy: true,
-        isOnline: startsOnline,
-        kind: "block",
-        endTime: formatTimeOnly(overlapsBlock.endAt)
-      });
+      result.push({ time, busyLabel: `закрытое окно до ${formatTimeOnly(overlapsBlock.endAt)}`, isBusy: true, isOnline: startsOnline, kind: "block", endTime: formatTimeOnly(overlapsBlock.endAt) });
       continue;
     }
 
@@ -194,15 +192,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
     const day = new Date(month.year, month.monthIndex, dayNumber);
     const key = dateKey(day);
     const effective = getEffectiveDay(day, rules, overrides);
-    return {
-      key,
-      dayNumber,
-      label: dayLabel(effective.kind, effective.isWorkingDay),
-      kind: effective.kind,
-      isWorkingDay: effective.isWorkingDay,
-      bookingsCount: monthBookings.filter((item) => dateKey(item.startAt) === key).length,
-      onlineCount: onlineWindows.filter((item) => dateKey(item.startAt) === key).length
-    };
+    return { key, dayNumber, label: dayLabel(effective.kind, effective.isWorkingDay), kind: effective.kind, isWorkingDay: effective.isWorkingDay, bookingsCount: monthBookings.filter((item) => dateKey(item.startAt) === key).length, onlineCount: onlineWindows.filter((item) => dateKey(item.startAt) === key).length };
   });
 
   const selectedEffective = selectedDay ? getEffectiveDay(selectedDay, rules, overrides) : null;
@@ -227,7 +217,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
       </section>
 
       <Toast text={done} />
-
       {view === "menu" ? <ScheduleMenu /> : null}
 
       {view === "mode" ? (
@@ -236,22 +225,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
           <p>Один общий режим на каждый день. Конкретные выходные и особенные дни отмечаются в календаре.</p>
           <form action={saveScheduleMode} className="grid">
             <div className="grid-3">
-              <label>Шаг времени
-                <select name="stepMinutes" defaultValue={String(stepMinutes)}>
-                  <option value="15">15 минут</option>
-                  <option value="30">30 минут</option>
-                  <option value="45">45 минут</option>
-                  <option value="60">1 час</option>
-                  <option value="90">1,5 часа</option>
-                  <option value="150">2,5 часа</option>
-                </select>
-              </label>
-              <label>Рабочий день с
-                <input name="defaultStartTime" type="time" defaultValue={defaultStartTime} />
-              </label>
-              <label>Рабочий день до
-                <input name="defaultEndTime" type="time" defaultValue={defaultEndTime} />
-              </label>
+              <label>Шаг времени<select name="stepMinutes" defaultValue={String(stepMinutes)}><option value="15">15 минут</option><option value="30">30 минут</option><option value="45">45 минут</option><option value="60">1 час</option><option value="90">1,5 часа</option><option value="150">2,5 часа</option></select></label>
+              <label>Рабочий день с<input name="defaultStartTime" type="time" defaultValue={defaultStartTime} /></label>
+              <label>Рабочий день до<input name="defaultEndTime" type="time" defaultValue={defaultEndTime} /></label>
             </div>
             <button>Сохранить режим на каждый день</button>
           </form>
