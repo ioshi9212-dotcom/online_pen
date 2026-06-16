@@ -39,6 +39,7 @@ model Client {
   birthDate   DateTime
   status      ClientStatus @default(PENDING)
   notes       String       @default("")
+  avatarUrl   String       @default("")
   createdAt   DateTime     @default(now())
   approvedAt  DateTime?
   bannedAt    DateTime?
