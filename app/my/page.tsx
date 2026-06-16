@@ -293,7 +293,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
               <p className="client-eyebrow">Прайс</p>
               <h2>Популярные услуги</h2>
             </div>
-            <a className="client-link" href="/price">Весь прайс</a>
+            <a className="client-link" href={`/price?client=${token}`}>Весь прайс</a>
           </div>
           <div className="client-service-list">
             {services.slice(0, 5).map((service) => <a key={service.id} href={`/booking?client=${token}&service=${service.id}`}><b>{service.title}</b><span>{service.durationMinutes} мин · {rub(service.price)}</span></a>)}
