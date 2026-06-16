@@ -1,45 +1,48 @@
-/* FIX: кнопка входа мастера сбоку и корректная шапка */
 .master-side-link {
-  position: fixed !important;
-  right: 16px !important;
-  bottom: 16px !important;
-  z-index: 80 !important;
-  min-height: 42px !important;
-  border-radius: var(--radius) !important;
-  border: 1px solid var(--blue) !important;
-  background: var(--blue) !important;
-  color: #fff !important;
-  padding: 10px 14px !important;
-  font-weight: 800 !important;
-  box-shadow: 0 8px 24px rgba(47,128,237,.18) !important;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 80;
+  min-height: 44px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  border: 1px solid #111827;
+  font-weight: 800;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .18);
+}
+
+.master-side-link:hover {
+  background: #2f80ed;
+  border-color: #2f80ed;
+}
+
+.master-dashboard + .master-side-link,
+body:has(.master-dashboard) .master-side-link {
+  display: none !important;
+}
+
+button[type="submit"],
+form button:not([type]) {
+  cursor: pointer;
 }
 
 .time-btn[aria-disabled="true"],
-.time-btn.busy,
-.slot-btn.busy {
-  cursor: not-allowed !important;
-  opacity: .72 !important;
+.day-btn[aria-disabled="true"] {
+  cursor: default !important;
+  pointer-events: none !important;
 }
 
-.time-pills a,
-.window-row a {
-  border: 1px solid var(--line-strong) !important;
-  background: var(--panel-soft) !important;
-  color: var(--text) !important;
-  border-radius: var(--radius) !important;
-  padding: 10px 14px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-weight: 800 !important;
+.client-same-note {
+  margin-top: 12px;
 }
 
-.time-pills a:hover,
-.window-row a:hover {
-  border-color: var(--blue) !important;
+.current-booking-card {
+  border-left: 4px solid var(--blue) !important;
+}
+
+.pending-booking-text {
   color: var(--blue-dark) !important;
-}
-
-form button[type="submit"] {
-  pointer-events: auto !important;
+  font-weight: 700;
 }
