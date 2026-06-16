@@ -214,6 +214,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const historyBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const dates = dateOptions(60);
   const defaultService = services[0];
+  const defaultServiceId = defaultService?.id || "";
 
   const daysAhead = getSettingInt(settings, "booking_days_ahead", 60);
   const stepMinutes = getSettingInt(settings, "slot_step_minutes", getSettingInt(settings, "SLOT_STEP_MINUTES", 30));
@@ -268,8 +269,8 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
                   <small>{formatDateOnly(slots[0].startAt)}</small>
                 </div>
                 <div className="client-time-pills">
-                  {slots.slice(0, 5).map((slot) => <a key={slot.startAt.toISOString()} href={bookingHref(token, defaultService.id, key, slot)}>{formatTimeOnly(slot.startAt)}</a>)}
-                  {slots.length > 5 ? <a className="muted" href={`/booking?client=${token}&service=${defaultService.id}&date=${key}#time`}>ещё {slots.length - 5}</a> : null}
+                  {slots.slice(0, 5).map((slot) => <a key={slot.startAt.toISOString()} href={bookingHref(token, defaultServiceId, key, slot)}>{formatTimeOnly(slot.startAt)}</a>)}
+                  {slots.length > 5 ? <a className="muted" href={`/booking?client=${token}&service=${defaultServiceId}&date=${key}#time`}>ещё {slots.length - 5}</a> : null}
                 </div>
               </article>
             ))}
@@ -282,7 +283,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
           </div>
         )}
 
-        {defaultService ? <a className="client-link" href={`/booking?client=${token}&service=${defaultService.id}`}>Показать весь месяц →</a> : null}
+        {defaultService ? <a className="client-link" href={`/booking?client=${token}&service=${defaultServiceId}`}>Показать весь месяц →</a> : null}
       </section>
 
       <section className="client-grid-2">
