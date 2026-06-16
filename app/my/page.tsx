@@ -1,9 +1,13 @@
 import { cancelClientBooking, joinWaitlist } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
-import { formatDateTime, rub } from "@/lib/format";
+import { formatDateOnly, formatDateTime, formatTimeOnly, rub } from "@/lib/format";
+import { generateSlots, getSettingInt } from "@/lib/schedule";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+
+type SearchParams = { client?: string; created?: string; waitlist?: string; cancelled?: string; login?: string; known?: string };
+type Slot = { startAt: Date; endAt: Date };
 
 function statusText(status: string) {
   const map: Record<string, string> = {
@@ -19,10 +23,38 @@ function statusText(status: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "CONFIRMED") return "status ok-status";
-  if (status === "PENDING") return "status wait";
-  if (["CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "NO_SHOW"].includes(status)) return "status danger-status";
-  return "status";
+  if (status === "CONFIRMED") return "client-status ok";
+  if (status === "PENDING") return "client-status wait";
+  if (["CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "NO_SHOW"].includes(status)) return "client-status danger";
+  return "client-status";
+}
+
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function shortDate(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+
+  if (diffDays === 0) return "Сегодня";
+  if (diffDays === 1) return "Завтра";
+
+  return new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" }).format(date);
+}
+
+function groupSlotsByDate(slots: Slot[]) {
+  const map = new Map<string, Slot[]>();
+  for (const slot of slots) {
+    const key = dateKey(slot.startAt);
+    const list = map.get(key) || [];
+    list.push(slot);
+    map.set(key, list);
+  }
+  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
 
 function dateOptions(days = 60) {
@@ -50,16 +82,113 @@ function waitlistText(entry: { mode: string; desiredDates: string; createdAt: Da
   return "Ищет ближайшее свободное окно";
 }
 
+function bookingHref(token: string, serviceId: string, key: string, slot: Slot) {
+  return `/booking?client=${token}&service=${serviceId}&date=${key}&time=${encodeURIComponent(slot.startAt.toISOString())}#confirm`;
+}
+
 function Notice({ type }: { type?: string }) {
-  if (type === "created") return <div className="notice ok-notice">Заявка отправлена. Я подтвержу — и место будет железно.</div>;
-  if (type === "waitlist") return <div className="notice ok-notice">Записала в ждуны. Если окно появится — увижу заявку.</div>;
-  if (type === "cancelled") return <div className="notice">Запись отменена. Спасибо, что не исчезла в туман.</div>;
-  if (type === "login") return <div className="notice ok-notice">Я тебя узнала. Вот твои записи.</div>;
-  if (type === "known") return <div className="notice ok-notice">Ты уже есть в базе. Расписание открыто.</div>;
+  if (type === "created") return <div className="notice ok-notice floating-toast">Заявка отправлена. Окно уже закреплено за вами.</div>;
+  if (type === "waitlist") return <div className="notice ok-notice floating-toast">Вы в листе ожидания. Мастер увидит пожелания.</div>;
+  if (type === "cancelled") return <div className="notice floating-toast">Запись отменена.</div>;
+  if (type === "login") return <div className="notice ok-notice floating-toast">Вход выполнен. Вот ваш кабинет.</div>;
+  if (type === "known") return <div className="notice ok-notice floating-toast">Вы уже есть в базе. Можно записываться.</div>;
   return null;
 }
 
-export default async function MyPage({ searchParams }: { searchParams: { client?: string; created?: string; waitlist?: string; cancelled?: string; login?: string; known?: string } }) {
+function ClientTopbar({ token, name }: { token: string; name: string }) {
+  return (
+    <header className="client-topbar">
+      <a className="client-logo" href={`/my?client=${token}`}><span>O</span><b>Онлайн-запись</b></a>
+      <nav>
+        <a href="#windows">Окна</a>
+        <a href="#price">Прайс</a>
+        <a href="#waitlist">Ждуны</a>
+        <a href={`/profile?client=${token}`}>Профиль</a>
+      </nav>
+      <div className="client-mini-avatar">{name.slice(0, 1).toUpperCase()}</div>
+    </header>
+  );
+}
+
+function ActiveBookingCard({ token, bookings }: { token: string; bookings: Array<any> }) {
+  const main = bookings[0];
+
+  if (!main) {
+    return (
+      <section className="client-card client-hero-card no-booking">
+        <div>
+          <p className="client-eyebrow">Сейчас</p>
+          <h2>Активной записи нет</h2>
+          <p>Ниже сразу видны ближайшие свободные окна. Выберите время — и сайт доведёт до подтверждения.</p>
+        </div>
+        <a className="client-button" href="#windows">Выбрать окно</a>
+      </section>
+    );
+  }
+
+  return (
+    <section className="client-card client-hero-card active-booking">
+      <div>
+        <p className="client-eyebrow">Ваша запись</p>
+        <h2>{formatDateTime(main.startAt)}</h2>
+        <p>{main.service.title} · {rub(main.finalPrice ?? main.service.price)}</p>
+        <span className={statusClass(main.status)}>{statusText(main.status)}</span>
+        {main.status === "PENDING" ? <p className="client-hint">Окно уже закреплено за вами. Осталось дождаться подтверждения мастера.</p> : null}
+      </div>
+      <details className="client-danger-details">
+        <summary className="client-button secondary">Отменить</summary>
+        <form action={cancelClientBooking} className="client-inline-form">
+          <input type="hidden" name="clientToken" value={token} />
+          <input type="hidden" name="bookingId" value={main.id} />
+          <p>Точно отменить эту запись?</p>
+          <button className="danger" type="submit">Да, отменить</button>
+        </form>
+      </details>
+    </section>
+  );
+}
+
+function WaitlistBlock({ token, dates, waitlist }: { token: string; dates: { value: string; label: string }[]; waitlist: Array<any> }) {
+  return (
+    <section className="client-card" id="waitlist">
+      <div className="client-section-head">
+        <div>
+          <p className="client-eyebrow">Если не подходит время</p>
+          <h2>Лист ожидания</h2>
+          <p>Можно оставить пожелания. Мастер увидит, если освободится подходящее окно.</p>
+        </div>
+        {waitlist.length ? <span className="client-status wait">уже в списке</span> : null}
+      </div>
+
+      {waitlist.length ? (
+        <div className="client-waitlist-current">
+          {waitlist.map((entry) => <p key={entry.id}>{waitlistText(entry)}</p>)}
+        </div>
+      ) : null}
+
+      <details className="client-details" open={waitlist.length === 0}>
+        <summary className="client-button secondary">Встать в лист ожидания</summary>
+        <form action={joinWaitlist} className="client-form">
+          <input type="hidden" name="clientToken" value={token} />
+          <div className="client-choice-grid">
+            <label><input type="radio" name="waitMode" value="NEAREST" defaultChecked /><span><b>Ближайшее окно</b><small>Подойдёт любое освободившееся время.</small></span></label>
+            <label><input type="radio" name="waitMode" value="DATES" /><span><b>Конкретные даты</b><small>Отметьте удобные дни.</small></span></label>
+          </div>
+          <details className="client-details nested">
+            <summary>Выбрать даты</summary>
+            <div className="client-date-picks">
+              {dates.map((date) => <label key={date.value}><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}
+            </div>
+          </details>
+          <label>Комментарий<textarea name="note" placeholder="Например: могу после 15:00 / только выходные / срочно" /></label>
+          <button type="submit">Отправить пожелания</button>
+        </form>
+      </details>
+    </section>
+  );
+}
+
+export default async function MyPage({ searchParams }: { searchParams: SearchParams }) {
   const token = searchParams.client;
   if (!token) redirect("/login");
 
@@ -74,130 +203,114 @@ export default async function MyPage({ searchParams }: { searchParams: { client?
   if (!client) redirect("/login");
   if (client.status !== "APPROVED") redirect("/unavailable");
 
-  const dates = dateOptions(60);
+  const [services, rules, settings] = await Promise.all([
+    prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
+    prisma.scheduleRule.findMany(),
+    prisma.setting.findMany()
+  ]);
+
   const noticeType = searchParams.created ? "created" : searchParams.waitlist ? "waitlist" : searchParams.cancelled ? "cancelled" : searchParams.login ? "login" : searchParams.known ? "known" : undefined;
-  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
+  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status)).sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
   const historyBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
+  const dates = dateOptions(60);
+  const defaultService = services[0];
+
+  const daysAhead = getSettingInt(settings, "booking_days_ahead", 60);
+  const stepMinutes = getSettingInt(settings, "slot_step_minutes", getSettingInt(settings, "SLOT_STEP_MINUTES", 30));
+  const horizon = new Date();
+  horizon.setDate(horizon.getDate() + daysAhead + 1);
+
+  const [bookings, blockedSlots, dayOverrides, onlineWindows] = await Promise.all([
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { lt: horizon } }, select: { startAt: true, endAt: true } }),
+    prisma.blockedSlot.findMany({ where: { startAt: { lt: horizon } }, select: { startAt: true, endAt: true } }),
+    prisma.dayOverride.findMany(),
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date(), lt: horizon } }, select: { startAt: true }, orderBy: { startAt: "asc" } })
+  ]);
+
+  const onlineWindowSet = new Set(onlineWindows.map((window) => window.startAt.toISOString()));
+  const allSlots = defaultService ? generateSlots({ service: defaultService, rules, bookings, blockedSlots, daysAhead, stepMinutes, dayOverrides }) : [];
+  const freeSlots = allSlots.filter((slot) => onlineWindowSet.has(slot.startAt.toISOString()));
+  const freeGroups = groupSlotsByDate(freeSlots).slice(0, 7);
+  const totalVisibleSlots = freeGroups.reduce((sum, [, slots]) => sum + slots.length, 0);
 
   return (
-    <div className="grid page-stack">
-      <section className="card profile-hero">
-        <div className="avatar-preview">
-          {client.avatarUrl ? <img src={client.avatarUrl} alt="Фото клиента" /> : <span>{client.firstName.slice(0, 1).toUpperCase()}</span>}
-        </div>
-        <div>
-          <p className="eyebrow">Личный кабинет</p>
-          <h1>Привет, {client.firstName}</h1>
-          <p>Тут твои заявки, подтверждённые записи и лист ожидания. Если планы решили умереть — лучше нажать отмену, чем исчезнуть.</p>
-        </div>
-        <div className="actions profile-actions">
-          <a className="button" href={`/booking?client=${token}`}>Новая запись</a>
-          <a className="button secondary" href={`/profile?client=${token}`}>Профиль</a>
-          <a className="button secondary" href="/price">Прайс</a>
-          <a className="quiet-link" href="#waitlist">Лист ожидания</a>
-        </div>
-      </section>
-
+    <main className="client-shell">
+      <ClientTopbar token={token} name={client.firstName} />
       <Notice type={noticeType} />
 
-      <section className="card">
-        <h2>Активные записи</h2>
-        {activeBookings.length === 0 ? (
-          <div className="empty-state">
-            <h3>Активных записей нет</h3>
-            <p>Свободная женщина. Подозрительно, но допустим.</p>
-            <a className="button" href={`/booking?client=${token}`}>Выбрать окно</a>
+      <section className="client-welcome">
+        <div>
+          <p className="client-eyebrow">Личный кабинет</p>
+          <h1>Привет, {client.firstName} ✨</h1>
+          <p>Здесь только нужное: ваша запись, ближайшие свободные окна, лист ожидания и прайс.</p>
+        </div>
+        <div className="client-avatar-large">{client.avatarUrl ? <img src={client.avatarUrl} alt="Фото клиента" /> : client.firstName.slice(0, 1).toUpperCase()}</div>
+      </section>
+
+      <ActiveBookingCard token={token} bookings={activeBookings} />
+
+      <section className="client-card" id="windows">
+        <div className="client-section-head">
+          <div>
+            <p className="client-eyebrow">Онлайн-запись</p>
+            <h2>Ближайшие свободные окна</h2>
+            <p>{defaultService ? `Показаны окна, которые подходят под услугу “${defaultService.title}”. Услугу можно поменять на следующем шаге.` : "Сначала мастер добавит услуги в прайс."}</p>
           </div>
-        ) : (
-          <div className="booking-card-list">
-            {activeBookings.map((booking) => (
-              <article className="booking-card" key={booking.id}>
+          <span className="client-status ok">{totalVisibleSlots} окон</span>
+        </div>
+
+        {freeGroups.length ? (
+          <div className="client-window-days">
+            {freeGroups.map(([key, slots]) => (
+              <article className="client-window-day" key={key}>
                 <div>
-                  <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
-                  <h3>{formatDateTime(booking.startAt)}</h3>
-                  <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
-                  {booking.clientComment ? <small>{booking.clientComment}</small> : null}
+                  <b>{shortDate(slots[0].startAt)}</b>
+                  <small>{formatDateOnly(slots[0].startAt)}</small>
                 </div>
-                <details className="soft-details cancel-details">
-                  <summary className="button secondary">Отменить</summary>
-                  <form action={cancelClientBooking} className="grid">
-                    <input type="hidden" name="clientToken" value={token} />
-                    <input type="hidden" name="bookingId" value={booking.id} />
-                    <p className="small">Точно отменяем? Сайт не осуждает, просто уточняет.</p>
-                    <button className="danger" type="submit">Да, отменить</button>
-                  </form>
-                </details>
+                <div className="client-time-pills">
+                  {slots.slice(0, 5).map((slot) => <a key={slot.startAt.toISOString()} href={bookingHref(token, defaultService.id, key, slot)}>{formatTimeOnly(slot.startAt)}</a>)}
+                  {slots.length > 5 ? <a className="muted" href={`/booking?client=${token}&service=${defaultService.id}&date=${key}#time`}>ещё {slots.length - 5}</a> : null}
+                </div>
               </article>
             ))}
           </div>
+        ) : (
+          <div className="client-empty">
+            <h3>Свободных окон пока нет</h3>
+            <p>Можно встать в лист ожидания — мастер увидит, если освободится подходящее время.</p>
+            <a className="client-button" href="#waitlist">Встать в лист ожидания</a>
+          </div>
         )}
+
+        {defaultService ? <a className="client-link" href={`/booking?client=${token}&service=${defaultService.id}`}>Показать весь месяц →</a> : null}
       </section>
 
-      <section className="card" id="waitlist">
-        <div className="section-head">
-          <div>
-            <h2>Лист ожидания</h2>
-            <p>Если подходящего времени нет — можно оставить заявку. Я увижу пожелания в админке.</p>
+      <section className="client-grid-2">
+        <section className="client-card" id="price">
+          <div className="client-section-head">
+            <div>
+              <p className="client-eyebrow">Прайс</p>
+              <h2>Популярные услуги</h2>
+            </div>
+            <a className="client-link" href="/price">Весь прайс</a>
           </div>
-          {client.waitlist.length ? <span className="status wait">уже в списке</span> : null}
-        </div>
-
-        {client.waitlist.length ? (
-          <div className="notice">
-            <b>Активные заявки:</b>
-            <ul>
-              {client.waitlist.map((entry) => <li key={entry.id}>{waitlistText(entry)}</li>)}
-            </ul>
+          <div className="client-service-list">
+            {services.slice(0, 5).map((service) => <a key={service.id} href={`/booking?client=${token}&service=${service.id}`}><b>{service.title}</b><span>{service.durationMinutes} мин · {rub(service.price)}</span></a>)}
+            {services.length === 0 ? <div className="client-empty small">Прайс пока пуст.</div> : null}
           </div>
-        ) : null}
+        </section>
 
-        <details className="soft-details" open={client.waitlist.length === 0}>
-          <summary className="button secondary">Добавить себя в лист ожидания</summary>
-          <form action={joinWaitlist} className="grid waitlist-form">
-            <input type="hidden" name="clientToken" value={token} />
-            <label className="radio-card">
-              <input type="radio" name="waitMode" value="NEAREST" defaultChecked />
-              <span><b>Ближайшее свободное окно</b><br /><small>Подойдёт, если главное — попасть пораньше.</small></span>
-            </label>
-            <label className="radio-card">
-              <input type="radio" name="waitMode" value="DATES" />
-              <span><b>Конкретные даты</b><br /><small>Можно отметить несколько дней на ближайшие два месяца.</small></span>
-            </label>
-            <details className="soft-details nested">
-              <summary>Показать даты</summary>
-              <div className="date-pick-grid">
-                {dates.map((date) => (
-                  <label key={date.value} className="date-chip">
-                    <input type="checkbox" name="desiredDates" value={date.value} />
-                    <span>{date.label}</span>
-                  </label>
-                ))}
-              </div>
-            </details>
-            <label>Комментарий
-              <textarea name="note" placeholder="Например: могу вечером / лучше после 15:00 / нужен ремонт одного ногтя" />
-            </label>
-            <button>Отправить в лист ожидания</button>
-          </form>
-        </details>
+        <WaitlistBlock token={token} dates={dates} waitlist={client.waitlist} />
       </section>
 
       {historyBookings.length ? (
-        <section className="card">
-          <h2>История</h2>
-          <div className="booking-card-list history-list">
-            {historyBookings.slice(0, 12).map((booking) => (
-              <article className="booking-card muted-card" key={booking.id}>
-                <div>
-                  <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
-                  <h3>{formatDateTime(booking.startAt)}</h3>
-                  <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
-                </div>
-              </article>
-            ))}
+        <section className="client-card">
+          <div className="client-section-head"><div><p className="client-eyebrow">История</p><h2>Прошлые записи</h2></div></div>
+          <div className="client-history-list">
+            {historyBookings.slice(0, 6).map((booking) => <article key={booking.id}><span className={statusClass(booking.status)}>{statusText(booking.status)}</span><b>{formatDateTime(booking.startAt)}</b><p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p></article>)}
           </div>
         </section>
       ) : null}
-    </div>
+    </main>
   );
 }
