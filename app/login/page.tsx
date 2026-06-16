@@ -12,6 +12,12 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
         <label>Дата рождения<input name="birthDate" required type="date" /></label>
         <button type="submit">Войти</button>
       </form>
+
+      <div className="actions" style={{ marginTop: 18 }}>
+        <a className="button secondary" href="/register">Я новая — отправить заявку</a>
+        <a className="button secondary" href="/price">Прайс</a>
+        <a className="quiet-link" href="/">На главную</a>
+      </div>
     </section>
   );
 }
