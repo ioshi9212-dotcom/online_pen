@@ -32,8 +32,8 @@ export default async function RequestsPage() {
               <td>{client.birthDate.toISOString().slice(0, 10)}</td>
               <td>{client.notes}</td>
               <td className="actions">
-                <form action={approveClient}><input type="hidden" name="id" value={client.id} /><button className="ok">Подтвердить</button></form>
-                <form action={rejectClient}><input type="hidden" name="id" value={client.id} /><button className="danger">Отклонить</button></form>
+                <form action={approveClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin/requests" /><button className="ok">Подтвердить</button></form>
+                <form action={rejectClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin/requests" /><button className="danger">Отклонить</button></form>
               </td>
             </tr>
           ))}
