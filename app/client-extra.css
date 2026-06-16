@@ -1,9 +1,11 @@
-.container:has(.booking-page) {
+.container:has(.booking-page),
+.container:has(.client-auth-page) {
   width: min(1180px, calc(100% - 28px));
   padding-top: 22px;
 }
 
-.container:has(.booking-page) > .header {
+.container:has(.booking-page) > .header,
+.container:has(.client-auth-page) > .header {
   display: none;
 }
 
@@ -11,13 +13,34 @@
   padding-bottom: 54px;
 }
 
-.booking-panel {
+.booking-panel,
+.client-auth-card {
   border: 1px solid rgba(255, 195, 219, .17);
   border-radius: 18px;
   background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.028));
   box-shadow: 0 28px 80px rgba(0,0,0,.24);
   backdrop-filter: blur(18px);
   padding: clamp(18px, 3vw, 30px);
+}
+
+.client-auth-card {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.client-auth-card.wide {
+  width: min(920px, 100%);
+}
+
+.client-auth-card h1 {
+  margin: 0 0 10px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.02;
+  letter-spacing: -.06em;
+}
+
+.client-auth-card p {
+  color: #c8aeb9;
 }
 
 .booking-title-row {
