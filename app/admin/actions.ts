@@ -12,16 +12,21 @@ function getId(formData: FormData) {
   return String(formData.get("id") || "");
 }
 
+function redirectTarget(formData: FormData, fallback: string) {
+  const value = String(formData.get("redirectTo") || "");
+  return value.startsWith("/admin") ? value : fallback;
+}
+
 export async function approveClient(formData: FormData) {
   guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
-  redirect("/admin");
+  redirect(redirectTarget(formData, "/admin"));
 }
 
 export async function rejectClient(formData: FormData) {
   guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "REJECTED" } });
-  redirect("/admin");
+  redirect(redirectTarget(formData, "/admin"));
 }
 
 export async function banClient(formData: FormData) {
@@ -40,7 +45,7 @@ export async function setBookingStatus(formData: FormData) {
   guard();
   const id = getId(formData);
   const status = String(formData.get("status"));
-  const redirectTo = String(formData.get("redirectTo") || "/admin/bookings");
+  const redirectTo = redirectTarget(formData, "/admin/bookings");
 
   await prisma.booking.update({
     where: { id },
