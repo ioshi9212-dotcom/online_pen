@@ -2,45 +2,33 @@
 
 import { useEffect } from "react";
 
-const dangerWords = [
-  "удал",
-  "архив",
-  "чёрн",
-  "черн",
-  "отмен",
-  "отклон",
-  "заблок",
-  "убрать"
-];
+const words = ["удал", "архив", "отмен", "отклон", "заблок", "убрать"];
 
-function normalize(text: string) {
-  return text.toLowerCase().replace(/ё/g, "е").trim();
+function norm(value: string) {
+  return value.toLowerCase().replace(/ё/g, "е").trim();
 }
 
-function messageFor(label: string) {
-  const text = normalize(label);
-
-  if (text.includes("архив")) return "Отправить в архив? Клиент пропадёт из активного списка, но данные останутся в базе.";
-  if (text.includes("черн") || text.includes("заблок")) return "Добавить в чёрный список? Клиент потеряет доступ к онлайн-записи.";
-  if (text.includes("удал")) return "Удалить? Это действие может убрать данные из списка.";
-  if (text.includes("отмен")) return "Отменить запись? Окно снова станет доступным, если оно было занято.";
-  if (text.includes("отклон")) return "Отклонить заявку? Клиент не получит доступ или запись не будет подтверждена.";
-  if (text.includes("убрать")) return "Убрать из списка? Действие сразу применится.";
-
-  return "Вы уверены? Действие применится сразу.";
+function textFor(label: string) {
+  const text = norm(label);
+  if (text.includes("архив")) return "Отправить в архив? Данные останутся в базе, но пропадут из активного списка.";
+  if (text.includes("удал")) return "Удалить? Действие применится сразу.";
+  if (text.includes("отмен")) return "Отменить запись?";
+  if (text.includes("отклон")) return "Отклонить заявку?";
+  if (text.includes("заблок")) return "Заблокировать клиента?";
+  if (text.includes("убрать")) return "Убрать из списка?";
+  return "Вы уверены?";
 }
 
-function shouldConfirm(element: HTMLElement | null, form?: HTMLFormElement | null) {
+function confirmText(element: HTMLElement | null, form?: HTMLFormElement | null) {
   const explicit = element?.getAttribute("data-confirm") || form?.getAttribute("data-confirm");
   if (explicit) return explicit;
 
-  const label = normalize(element?.textContent || "");
-  const formLabel = normalize(form?.textContent || "");
-  const hasDangerClass = Boolean(element?.classList.contains("danger") || form?.classList.contains("danger"));
-  const hasDangerText = dangerWords.some((word) => label.includes(word)) || dangerWords.some((word) => formLabel.includes(word));
+  const label = norm(element?.textContent || "");
+  const byClass = Boolean(element?.classList.contains("danger") || form?.classList.contains("danger"));
+  const byText = words.some((word) => label.includes(word));
 
-  if (!hasDangerClass && !hasDangerText) return "";
-  return messageFor(label || formLabel);
+  if (!byClass && !byText) return "";
+  return textFor(label);
 }
 
 export default function ConfirmDangerActions() {
@@ -49,24 +37,19 @@ export default function ConfirmDangerActions() {
       const submitEvent = event as SubmitEvent;
       const form = event.target instanceof HTMLFormElement ? event.target : null;
       const submitter = submitEvent.submitter instanceof HTMLElement ? submitEvent.submitter : null;
-      const message = shouldConfirm(submitter, form);
-
-      if (!message) return;
-      if (!window.confirm(message)) event.preventDefault();
+      const message = confirmText(submitter, form);
+      if (message && !window.confirm(message)) event.preventDefault();
     }
 
     function onClick(event: MouseEvent) {
-      const target = event.target instanceof HTMLElement ? event.target.closest("a") : null;
-      if (!(target instanceof HTMLElement)) return;
-      const message = shouldConfirm(target, null);
-
-      if (!message) return;
-      if (!window.confirm(message)) event.preventDefault();
+      const link = event.target instanceof HTMLElement ? event.target.closest("a") : null;
+      if (!(link instanceof HTMLElement)) return;
+      const message = confirmText(link, null);
+      if (message && !window.confirm(message)) event.preventDefault();
     }
 
     document.addEventListener("submit", onSubmit, true);
     document.addEventListener("click", onClick, true);
-
     return () => {
       document.removeEventListener("submit", onSubmit, true);
       document.removeEventListener("click", onClick, true);
