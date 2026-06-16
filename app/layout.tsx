@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import ConfirmDangerActions from "./ConfirmDangerActions";
 import "./globals.css";
 import "./ui-fixes.css";
 
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body>
+        <ConfirmDangerActions />
         <div className="site-frame">
           <div className="container">
             <header className="header">
