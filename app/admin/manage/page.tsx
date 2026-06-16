@@ -41,13 +41,13 @@ function Notice({ searchParams }: { searchParams: SearchParams }) {
   const booking = one(searchParams, "booking");
   const bookingError = one(searchParams, "bookingError");
 
-  if (bookingError) return <div className="notice danger-notice">Запись не сохранена: {bookingError}.</div>;
-  if (client === "created") return <div className="notice ok-notice">Клиент добавлен в базу.</div>;
-  if (client === "merged") return <div className="notice ok-notice">Клиент объединён по номеру телефона. Записи и ждуны остались в общей карточке.</div>;
-  if (client === "saved") return <div className="notice ok-notice">Клиент сохранён.</div>;
-  if (booking === "created") return <div className="notice ok-notice">Запись создана.</div>;
-  if (booking === "saved") return <div className="notice ok-notice">Запись сохранена.</div>;
-  if (booking === "cancelled") return <div className="notice">Запись отменена.</div>;
+  if (bookingError) return <div className="notice danger-notice floating-toast">Запись не сохранена: {bookingError}.</div>;
+  if (client === "created") return <div className="notice ok-notice floating-toast">Клиент добавлен в базу.</div>;
+  if (client === "merged") return <div className="notice ok-notice floating-toast">Клиент объединён по номеру телефона.</div>;
+  if (client === "saved") return <div className="notice ok-notice floating-toast">Клиент сохранён.</div>;
+  if (booking === "created") return <div className="notice ok-notice floating-toast">Запись создана.</div>;
+  if (booking === "saved") return <div className="notice ok-notice floating-toast">Запись сохранена.</div>;
+  if (booking === "cancelled") return <div className="notice floating-toast">Запись отменена.</div>;
 
   return null;
 }
@@ -55,6 +55,7 @@ function Notice({ searchParams }: { searchParams: SearchParams }) {
 export default async function ManualAdminPage({ searchParams = {} }: { searchParams?: SearchParams }) {
   if (!isAdmin()) redirect("/admin/login");
 
+  const selectedClientId = one(searchParams, "clientId") || "";
   const [clients, bookableClients, services, bookings] = await Promise.all([
     prisma.client.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }] }),
     prisma.client.findMany({ where: { status: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
@@ -63,6 +64,8 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
   ]);
 
   const defaultServiceDuration = services.find((service) => service.isActive)?.durationMinutes || 150;
+  const selectedClientExists = bookableClients.some((client) => client.id === selectedClientId);
+  const bookingClientDefault = selectedClientExists ? selectedClientId : bookableClients[0]?.id;
 
   return (
     <div className="grid">
@@ -73,6 +76,7 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
             <p>Добавление и редактирование клиентов, ручная запись, изменение записи и отмена.</p>
           </div>
           <div className="actions">
+            <a className="button secondary" href="/admin/my-clients">Назад к клиентам</a>
             <a className="button secondary" href="/admin">Админка</a>
             <a className="button secondary" href="/admin/logout">Выйти</a>
           </div>
@@ -103,12 +107,13 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
         </form>
       </section>
 
-      <section className="card">
+      <section className="card" id="manual-booking">
         <h2>Записать клиента вручную</h2>
+        {selectedClientExists ? <div className="notice ok-notice">Клиент уже выбран из базы. Осталось выбрать услугу, дату и время.</div> : null}
         {bookableClients.length === 0 || services.length === 0 ? <div className="notice">Нужен хотя бы один подтверждённый клиент и одна услуга.</div> : (
           <form action={createManualBooking} className="grid">
             <div className="grid-3">
-              <label>Клиент<select name="clientId">{bookableClients.map((c) => <option key={c.id} value={c.id}>{c.lastName} {c.firstName} — {c.phone}</option>)}</select></label>
+              <label>Клиент<select name="clientId" defaultValue={bookingClientDefault}>{bookableClients.map((c) => <option key={c.id} value={c.id}>{c.lastName} {c.firstName} — {c.phone}</option>)}</select></label>
               <label>Услуга<select name="serviceId">{services.map((s) => <option key={s.id} value={s.id}>{s.title} — {durationLabel(s.durationMinutes)} — {rub(s.price)}</option>)}</select></label>
               <label>Дата и время<input name="startAt" type="datetime-local" required /></label>
             </div>
@@ -154,14 +159,17 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
                   </div>
                 </td>
                 <td><textarea name="notes" form={`client-${client.id}`} defaultValue={client.notes} /></td>
-                <td><button form={`client-${client.id}`} className="ok">Сохранить</button></td>
+                <td className="actions">
+                  <a className="button secondary" href={`/admin/my-clients/${client.id}`}>Профиль</a>
+                  <button form={`client-${client.id}`} className="ok">Сохранить</button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </section>
 
-      <section className="card">
+      <section className="card" id="bookings-list">
         <h2>Записи</h2>
         <table className="table">
           <thead><tr><th>Дата/клиент</th><th>Услуга/статус</th><th>Длительность/цена/комментарии</th><th></th></tr></thead>
