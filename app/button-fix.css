@@ -1,0 +1,45 @@
+/* FIX: кнопка входа мастера сбоку и корректная шапка */
+.master-side-link {
+  position: fixed !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  z-index: 80 !important;
+  min-height: 42px !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--blue) !important;
+  background: var(--blue) !important;
+  color: #fff !important;
+  padding: 10px 14px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 24px rgba(47,128,237,.18) !important;
+}
+
+.time-btn[aria-disabled="true"],
+.time-btn.busy,
+.slot-btn.busy {
+  cursor: not-allowed !important;
+  opacity: .72 !important;
+}
+
+.time-pills a,
+.window-row a {
+  border: 1px solid var(--line-strong) !important;
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius) !important;
+  padding: 10px 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 800 !important;
+}
+
+.time-pills a:hover,
+.window-row a:hover {
+  border-color: var(--blue) !important;
+  color: var(--blue-dark) !important;
+}
+
+form button[type="submit"] {
+  pointer-events: auto !important;
+}

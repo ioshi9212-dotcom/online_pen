@@ -67,15 +67,7 @@ export default async function AdminPage() {
 
   const { start, end } = todayRange();
 
-  const [
-    pendingClients,
-    pendingBookings,
-    activeClients,
-    services,
-    waitlist,
-    todayBookings,
-    totalBookings
-  ] = await Promise.all([
+  const [pendingClients, pendingBookings, activeClients, services, waitlist, todayBookings, totalBookings] = await Promise.all([
     prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 8 }),
     prisma.booking.findMany({ where: { status: "PENDING" }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 8 }),
     prisma.client.count({ where: { status: "APPROVED" } }),
@@ -136,7 +128,6 @@ export default async function AdminPage() {
               <div><h2>Сегодня</h2><p>Записи на день</p></div>
               <a className="button secondary" href="/admin/schedule">Расписание</a>
             </div>
-
             <div className="simple-list">
               {todayBookings.map((booking) => (
                 <div className="simple-row" key={booking.id}>
@@ -161,8 +152,16 @@ export default async function AdminPage() {
                   <b>{client.lastName} {client.firstName}</b>
                   <span>{client.phone}</span>
                   <div className="actions">
-                    <form action={approveClient}><input type="hidden" name="id" value={client.id} /><button>Подтвердить</button></form>
-                    <form action={rejectClient}><input type="hidden" name="id" value={client.id} /><button className="danger">Отклонить</button></form>
+                    <form action={approveClient}>
+                      <input type="hidden" name="id" value={client.id} />
+                      <input type="hidden" name="redirectTo" value="/admin" />
+                      <button type="submit">Подтвердить</button>
+                    </form>
+                    <form action={rejectClient}>
+                      <input type="hidden" name="id" value={client.id} />
+                      <input type="hidden" name="redirectTo" value="/admin" />
+                      <button type="submit" className="danger">Отклонить</button>
+                    </form>
                   </div>
                 </div>
               ))}
@@ -176,18 +175,17 @@ export default async function AdminPage() {
                       <input type="hidden" name="id" value={booking.id} />
                       <input type="hidden" name="status" value="CONFIRMED" />
                       <input type="hidden" name="redirectTo" value="/admin" />
-                      <button>Подтвердить</button>
+                      <button type="submit">Подтвердить</button>
                     </form>
                     <form action={setBookingStatus}>
                       <input type="hidden" name="id" value={booking.id} />
                       <input type="hidden" name="status" value="REJECTED" />
                       <input type="hidden" name="redirectTo" value="/admin" />
-                      <button className="danger">Отклонить</button>
+                      <button type="submit" className="danger">Отклонить</button>
                     </form>
                   </div>
                 </div>
               ))}
-
               {requestCount === 0 ? <p>Новых заявок нет.</p> : null}
             </div>
           </article>
@@ -205,7 +203,6 @@ export default async function AdminPage() {
             <div><h2>Ждуны</h2><p>Клиенты, которые ждут ближайшее окно</p></div>
             <span className="badge">{waitlist.length}</span>
           </div>
-
           <div className="grid">
             {waitlist.map((entry) => (
               <div className="card" key={entry.id}>
@@ -213,7 +210,7 @@ export default async function AdminPage() {
                 <p>{entry.note || "Без комментария"}</p>
                 <form action={closeWaitlistEntry}>
                   <input type="hidden" name="id" value={entry.id} />
-                  <button className="secondary">Убрать</button>
+                  <button type="submit" className="secondary">Убрать</button>
                 </form>
               </div>
             ))}
