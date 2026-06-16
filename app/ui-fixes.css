@@ -22,7 +22,8 @@ select,
 .booking-card,
 .mini-item,
 .flow-step,
-.menu-card {
+.menu-card,
+.client-list-card {
   border-radius: 14px;
 }
 
@@ -61,12 +62,101 @@ select,
   color: #ffd7e3;
   font-size: 38px;
   font-weight: 950;
+  flex: 0 0 auto;
+}
+
+.small-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 16px;
+  font-size: 28px;
 }
 
 .avatar-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.floating-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 80;
+  max-width: min(420px, calc(100vw - 32px));
+  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  animation: toast-hide 4.8s ease forwards;
+}
+
+@keyframes toast-hide {
+  0%, 72% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(16px); pointer-events: none; visibility: hidden; }
+}
+
+.client-card-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.client-list-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.035);
+  padding: 18px;
+}
+
+.client-card-main {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.client-card-main h3 {
+  margin: 0 0 6px;
+}
+
+.client-card-main p {
+  margin: 0 0 8px;
+}
+
+.client-card-main small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.client-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.compact-details {
+  width: 100%;
+}
+
+.compact-details summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.compact-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.inline-edit-card {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.14);
+  border-radius: 14px;
 }
 
 .pending-item,
@@ -95,6 +185,22 @@ select,
   gap: 12px;
 }
 
+@media (max-width: 860px) {
+  .client-list-card {
+    grid-template-columns: 1fr;
+  }
+
+  .client-card-actions {
+    justify-content: stretch;
+    max-width: none;
+  }
+
+  .client-card-actions .button,
+  .client-card-actions button {
+    flex: 1;
+  }
+}
+
 @media (max-width: 760px) {
   .profile-hero {
     grid-template-columns: 1fr;
@@ -107,5 +213,11 @@ select,
 
   .profile-actions .button {
     flex: 1;
+  }
+
+  .floating-toast {
+    right: 16px;
+    left: 16px;
+    bottom: 16px;
   }
 }
