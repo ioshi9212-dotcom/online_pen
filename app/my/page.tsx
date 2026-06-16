@@ -81,21 +81,24 @@ export default async function MyPage({ searchParams }: { searchParams: { client?
 
   return (
     <div className="grid page-stack">
-      <section className="card">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">Личный кабинет</p>
-            <h1>Привет, {client.firstName}</h1>
-            <p>Тут твои заявки, подтверждённые записи и лист ожидания. Если планы решили умереть — лучше нажать отмену, чем исчезнуть.</p>
-          </div>
-          <div className="actions">
-            <a className="button" href={`/booking?client=${token}`}>Новая запись</a>
-            <a className="button secondary" href="/price">Прайс</a>
-            <a className="quiet-link" href="#waitlist">Лист ожидания</a>
-          </div>
+      <section className="card profile-hero">
+        <div className="avatar-preview">
+          {client.avatarUrl ? <img src={client.avatarUrl} alt="Фото клиента" /> : <span>{client.firstName.slice(0, 1).toUpperCase()}</span>}
         </div>
-        <Notice type={noticeType} />
+        <div>
+          <p className="eyebrow">Личный кабинет</p>
+          <h1>Привет, {client.firstName}</h1>
+          <p>Тут твои заявки, подтверждённые записи и лист ожидания. Если планы решили умереть — лучше нажать отмену, чем исчезнуть.</p>
+        </div>
+        <div className="actions profile-actions">
+          <a className="button" href={`/booking?client=${token}`}>Новая запись</a>
+          <a className="button secondary" href={`/profile?client=${token}`}>Профиль</a>
+          <a className="button secondary" href="/price">Прайс</a>
+          <a className="quiet-link" href="#waitlist">Лист ожидания</a>
+        </div>
       </section>
+
+      <Notice type={noticeType} />
 
       <section className="card">
         <h2>Активные записи</h2>
