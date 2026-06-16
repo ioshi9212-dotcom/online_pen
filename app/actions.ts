@@ -26,6 +26,20 @@ export async function registerClient(formData: FormData) {
   const birthDate = new Date(required(formData.get("birthDate"), "Дата рождения"));
   const notes = String(formData.get("comment") || "").trim();
 
+  const existing = await prisma.client.findUnique({ where: { phone } });
+
+  if (existing?.status === "PENDING") {
+    redirect(`/pending?phone=${encodeURIComponent(existing.phone)}&already=1`);
+  }
+
+  if (existing?.status === "APPROVED") {
+    redirect(`/my?client=${existing.publicToken}&known=1`);
+  }
+
+  if (existing?.status === "BANNED") {
+    redirect("/unavailable");
+  }
+
   const result = await syncPublicRegistration({ firstName, lastName, phone, birthDate, notes });
   const client = result.client;
 
@@ -47,7 +61,7 @@ export async function loginClient(formData: FormData) {
 
   if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
   if (client.status === "BANNED") redirect(`/unavailable`);
-  redirect(`/pending?phone=${encodeURIComponent(phone)}`);
+  redirect(`/pending?phone=${encodeURIComponent(phone)}&already=1`);
 }
 
 export async function updateClientProfile(formData: FormData) {
