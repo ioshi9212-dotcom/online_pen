@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import "./ui-fixes.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
