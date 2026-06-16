@@ -1,0 +1,111 @@
+:root {
+  --radius: 18px;
+}
+
+.nav a,
+.button,
+button,
+.quiet-link {
+  border-radius: 14px;
+}
+
+input,
+textarea,
+select,
+.notice,
+.radio-card,
+.summary-card div,
+.slot,
+.calendar-day,
+.service-chip,
+.service-price-card,
+.booking-card,
+.mini-item,
+.flow-step,
+.menu-card {
+  border-radius: 14px;
+}
+
+.header {
+  border-radius: 20px;
+}
+
+.tag,
+.pill,
+.status,
+.date-chip span,
+.month-switcher a,
+.flow-step span,
+.step-number,
+.modal-close,
+.toast a {
+  border-radius: 999px;
+}
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.avatar-preview {
+  width: 92px;
+  height: 92px;
+  border: 1px solid var(--line-strong);
+  border-radius: 22px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: #ffd7e3;
+  font-size: 38px;
+  font-weight: 950;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pending-item,
+.busy-slot.pending {
+  border-color: rgba(240,199,123,.48) !important;
+  background: rgba(240,199,123,.10) !important;
+}
+
+.busy-slot.confirmed {
+  border-color: rgba(169,215,188,.44) !important;
+  background: rgba(169,215,188,.09) !important;
+}
+
+.busy-slot summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.busy-slot summary::-webkit-details-marker {
+  display: none;
+}
+
+.busy-slot-panel {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .profile-hero {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .profile-actions {
+    width: 100%;
+  }
+
+  .profile-actions .button {
+    flex: 1;
+  }
+}
