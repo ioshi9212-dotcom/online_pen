@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import ConfirmDangerActions from "./ConfirmDangerActions";
 import "./globals.css";
 import "./ui-fixes.css";
+import "./admin-dashboard.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
