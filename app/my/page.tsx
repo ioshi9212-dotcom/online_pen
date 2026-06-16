@@ -1,18 +1,99 @@
 import { cancelClientBooking, joinWaitlist } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
+import { rub } from "@/lib/format";
 import { redirect } from "next/navigation";
-export const dynamic = "force-dynamic";
-type SearchParams = { client?: string; created?: string; waitlist?: string; cancelled?: string };
-function rub(value: number) { return new Intl.NumberFormat("ru-RU").format(value) + " ₽"; }
-function dateKey(date: Date) { return date.toISOString().slice(0, 10); }
-function formatDate(date: Date) { return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date); }
-function formatTime(date: Date) { return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date); }
-function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) { return aStart < bEnd && aEnd > bStart; }
-function groupByDate(slots: Array<{ startAt: Date; endAt: Date }>) { const map = new Map<string, Array<{ startAt: Date; endAt: Date }>>(); for (const slot of slots) { const key = dateKey(slot.startAt); const list = map.get(key) || []; list.push(slot); map.set(key, list); } return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)); }
-function bookingHref(token: string, serviceId: string, key: string, startAt: Date) { return `/booking?client=${token}&service=${serviceId}&date=${key}&time=${encodeURIComponent(startAt.toISOString())}`; }
-function ClientMenu({ token, name }: { token: string; name: string }) { return <header className="client-topbar"><a className="client-logo" href={`/my?client=${token}`}><span>▣</span><b>Онлайн-запись</b></a><nav><a href={`/my?client=${token}`}>Мои записи</a><a href={`/my?client=${token}#windows`}>Окна</a><a href={`/price?client=${token}`}>Прайс</a><a href={`/profile?client=${token}`}>Профиль</a><a className="primary" href={`/booking?client=${token}`}>Выбрать время</a></nav><div className="client-mini-avatar">{name.slice(0,1).toUpperCase()}</div></header>; }
 
-function statusText(status:string){return {PENDING:"Ожидает подтверждения",CONFIRMED:"Подтверждена",CANCELLED_BY_CLIENT:"Отменена вами",CANCELLED_BY_ADMIN:"Отменена мастером",REJECTED:"Отклонена",COMPLETED:"Завершена",NO_SHOW:"Неявка"}[status]||status}
-function statusClass(status:string){if(status==="CONFIRMED")return "client-status ok"; if(status==="PENDING")return "client-status wait"; if(["CANCELLED_BY_CLIENT","CANCELLED_BY_ADMIN","REJECTED","NO_SHOW"].includes(status))return "client-status danger"; return "client-status"}
-function dateOptions(days=21){const r:{value:string,label:string}[]=[];const f=new Intl.DateTimeFormat("ru-RU",{day:"2-digit",month:"2-digit",weekday:"short"});const s=new Date();s.setHours(0,0,0,0);for(let i=0;i<days;i++){const d=new Date(s);d.setDate(s.getDate()+i);r.push({value:d.toISOString().slice(0,10),label:f.format(d)})}return r}
-export default async function MyPage({searchParams}:{searchParams:SearchParams}){const token=searchParams.client;if(!token)redirect("/login");const client=await prisma.client.findUnique({where:{publicToken:token},include:{bookings:{include:{service:true},orderBy:{startAt:"desc"}},waitlist:{where:{status:"ACTIVE"},orderBy:{createdAt:"desc"}}}});if(!client)redirect("/login");if(client.status!=="APPROVED")redirect("/unavailable");const services=await prisma.service.findMany({where:{isActive:true},orderBy:[{sortOrder:"asc"},{title:"asc"}]});const service=services[0];const horizon=new Date();horizon.setDate(horizon.getDate()+60);const [online,busy]=await Promise.all([prisma.onlineWindow.findMany({where:{startAt:{gte:new Date(),lt:horizon}},orderBy:{startAt:"asc"}}),prisma.booking.findMany({where:{status:{in:["PENDING","CONFIRMED"]},startAt:{lt:horizon}},select:{startAt:true,endAt:true}})]);const free=service?online.map(w=>({startAt:w.startAt,endAt:new Date(w.startAt.getTime()+service.durationMinutes*60000)})).filter(s=>!busy.some(b=>overlaps(s.startAt,s.endAt,b.startAt,b.endAt))):[];const groups=groupByDate(free).slice(0,7);const active=client.bookings.filter(b=>["PENDING","CONFIRMED"].includes(b.status)).sort((a,b)=>a.startAt.getTime()-b.startAt.getTime());const main=active[0];return <main className="client-shell"><ClientMenu token={token} name={client.firstName}/>{searchParams.created?<div className="notice ok-notice floating-toast">Заявка отправлена. Окно закреплено за вами.</div>:null}<section className="client-welcome"><div><h1>Привет, {client.firstName}</h1><p>Ваша запись, свободные окна, лист ожидания и прайс.</p></div><div className="client-avatar-large">{client.firstName.slice(0,1)}</div></section><section className="client-card">{main?<div className="client-section-head"><div><h2>Ваша запись</h2><h3>{formatDate(main.startAt)} · {formatTime(main.startAt)}</h3><p>{main.service.title} · {rub(main.finalPrice??main.service.price)}</p><span className={statusClass(main.status)}>{statusText(main.status)}</span>{main.status==="PENDING"?<p>Окно уже закреплено за вами. Осталось дождаться подтверждения мастера.</p>:null}</div><details><summary className="client-button secondary">Отменить</summary><form action={cancelClientBooking} className="grid" data-confirm="Отменить запись?"><input type="hidden" name="clientToken" value={token}/><input type="hidden" name="bookingId" value={main.id}/><button className="danger">Да, отменить</button></form></details></div>:<div className="client-section-head"><div><h2>Активной записи нет</h2><p>Выберите свободное окно ниже.</p></div><a className="client-button primary" href="#windows">Выбрать окно</a></div>}</section><section className="client-card" id="windows"><div className="client-section-head"><div><h2>Ближайшие свободные окна</h2><p>{service?`Показаны окна для услуги “${service.title}”.`:"Прайс пока пуст."}</p></div><span className="client-status ok">{free.length} окон</span></div>{groups.length?<div className="client-window-days">{groups.map(([key,slots])=><article className="client-window-day" key={key}><div><b>{formatDate(slots[0].startAt)}</b><small>{slots.length} свободных</small></div><div className="client-time-pills">{slots.slice(0,6).map(slot=><a key={slot.startAt.toISOString()} href={bookingHref(token,service.id,key,slot.startAt)}>{formatTime(slot.startAt)}</a>)}</div></article>)}</div>:<div className="client-empty"><h3>Свободных окон пока нет</h3><a className="client-button primary" href="#waitlist">Встать в лист ожидания</a></div>}</section><section className="client-grid-2"><section className="client-card" id="price"><div className="client-section-head"><h2>Прайс</h2><a className="client-link" href={`/price?client=${token}`}>Весь прайс →</a></div><div className="client-service-list">{services.slice(0,5).map(s=><a key={s.id} href={`/booking?client=${token}&service=${s.id}`}><b>{s.title}</b><span>{s.durationMinutes} мин · {rub(s.price)}</span></a>)}</div></section><section className="client-card" id="waitlist"><h2>Лист ожидания</h2><p>Если нужного времени нет, оставьте пожелания.</p><details open={client.waitlist.length===0}><summary className="client-button secondary">Встать в лист ожидания</summary><form action={joinWaitlist} className="grid"><input type="hidden" name="clientToken" value={token}/><label><input type="radio" name="waitMode" value="NEAREST" defaultChecked/> Ближайшее окно</label><label><input type="radio" name="waitMode" value="DATES"/> Конкретные даты</label><div className="actions">{dateOptions().map(d=><label key={d.value}><input type="checkbox" name="desiredDates" value={d.value}/> {d.label}</label>)}</div><label>Комментарий<textarea name="note"/></label><button>Отправить</button></form></details></section></section></main>}
+export const dynamic = "force-dynamic";
+
+function fmtDate(date: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
+}
+function fmtTime(date: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date);
+}
+function statusText(status: string) {
+  return status === "PENDING" ? "Ожидает подтверждения" : status === "CONFIRMED" ? "Подтверждена" : status;
+}
+function statusClass(status: string) {
+  return status === "PENDING" ? "status wait" : status === "CONFIRMED" ? "status ok" : "status";
+}
+function dateOptions(days = 45) {
+  const arr: { value: string; label: string }[] = [];
+  const start = new Date(); start.setHours(0,0,0,0);
+  for (let i=0;i<days;i++) { const d = new Date(start); d.setDate(start.getDate()+i); arr.push({ value: d.toISOString().slice(0,10), label: new Intl.DateTimeFormat("ru-RU", { day:"2-digit", month:"2-digit", weekday:"short" }).format(d) }); }
+  return arr;
+}
+
+export default async function MyPage({ searchParams }: { searchParams: { client?: string; created?: string; waitlist?: string; cancelled?: string } }) {
+  const token = searchParams.client;
+  if (!token) redirect("/login");
+
+  const client = await prisma.client.findUnique({
+    where: { publicToken: token },
+    include: {
+      bookings: { include: { service: true }, orderBy: { startAt: "asc" } },
+      waitlist: { where: { status: "ACTIVE" }, orderBy: { createdAt: "desc" } }
+    }
+  });
+  if (!client) redirect("/login");
+  if (client.status !== "APPROVED") redirect("/unavailable");
+
+  const [services, onlineWindows, busyBookings] = await Promise.all([
+    prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }], take: 5 }),
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 30 }),
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, select: { startAt: true } })
+  ]);
+  const busy = new Set(busyBookings.map((b) => b.startAt.toISOString()));
+  const free = onlineWindows.filter((w) => !busy.has(w.startAt.toISOString())).slice(0, 12);
+  const grouped = free.reduce((map, item) => { const k = item.startAt.toISOString().slice(0,10); map.set(k, [...(map.get(k)||[]), item]); return map; }, new Map<string, typeof free>());
+  const activeBookings = client.bookings.filter((b) => ["PENDING", "CONFIRMED"].includes(b.status));
+  const mainBooking = activeBookings[0];
+  const firstService = services[0];
+
+  return (
+    <main className="client-page">
+      <section className="hero">
+        <div className="actions" style={{ justifyContent: "space-between" }}>
+          <div><h1>Привет, {client.firstName}</h1><p>Ваша запись, свободные окна и лист ожидания.</p></div>
+          <div className="actions"><a className="button secondary" href={`/profile?client=${token}`}>Профиль</a><a className="button" href={`/booking?client=${token}`}>Записаться</a></div>
+        </div>
+      </section>
+
+      {searchParams.created ? <div className="notice ok-status">Заявка отправлена. Окно уже закреплено за вами.</div> : null}
+      {searchParams.waitlist ? <div className="notice ok-status">Вы в листе ожидания.</div> : null}
+      {searchParams.cancelled ? <div className="notice">Запись отменена.</div> : null}
+
+      <section className="card">
+        <h2>Ваша запись</h2>
+        {mainBooking ? (
+          <div className="grid">
+            <p><b>{fmtDate(mainBooking.startAt)}, {fmtTime(mainBooking.startAt)}</b></p>
+            <p>{mainBooking.service.title} · {rub(mainBooking.finalPrice ?? mainBooking.service.price)}</p>
+            <span className={statusClass(mainBooking.status)}>{statusText(mainBooking.status)}</span>
+            {mainBooking.status === "PENDING" ? <p>Окно уже закреплено за вами. Осталось дождаться подтверждения мастера.</p> : null}
+            <details><summary className="button secondary">Отменить</summary><form action={cancelClientBooking} className="grid" style={{ marginTop: 12 }}><input type="hidden" name="clientToken" value={token} /><input type="hidden" name="bookingId" value={mainBooking.id} /><button className="danger">Да, отменить</button></form></details>
+          </div>
+        ) : <div className="empty-state"><p>Активной записи нет.</p><a className="button" href="#windows">Выбрать окно</a></div>}
+      </section>
+
+      <section className="card" id="windows">
+        <h2>Ближайшие свободные окна</h2>
+        {firstService ? <p>Показаны открытые окна. Услугу можно поменять на следующем шаге.</p> : <p>Прайс пока пуст.</p>}
+        <div className="window-list">
+          {Array.from(grouped.entries()).map(([key, items]) => (
+            <div className="window-row" key={key}>
+              <div><b>{fmtDate(items[0].startAt)}</b><p>{items.length} свободно</p></div>
+              <div className="time-pills">{items.map((w) => <a key={w.id} href={`/booking?client=${token}&service=${firstService?.id || ""}&time=${encodeURIComponent(w.startAt.toISOString())}`}>{fmtTime(w.startAt)}</a>)}</div>
+            </div>
+          ))}
+          {free.length === 0 ? <div className="empty-state"><p>Свободных окон пока нет.</p><a className="button secondary" href="#waitlist">Встать в лист ожидания</a></div> : null}
+        </div>
+      </section>
+
+      <section className="top-split">
+        <article className="card" id="price"><h2>Прайс</h2><div className="grid">{services.map((s) => <a className="service-card" key={s.id} href={`/booking?client=${token}&service=${s.id}`}><b>{s.title}</b><p>{s.durationMinutes} мин · {rub(s.price)}</p></a>)}</div></article>
+        <article className="card" id="waitlist"><h2>Лист ожидания</h2><p>Если подходящего времени нет — оставьте пожелания.</p><form action={joinWaitlist} className="grid"><input type="hidden" name="clientToken" value={token} /><select name="waitMode" defaultValue="NEAREST"><option value="NEAREST">Ближайшее окно</option><option value="DATES">Конкретные даты</option></select><div className="time-pills">{dateOptions(14).map((d) => <label key={d.value} style={{ width: "auto" }}><input type="checkbox" name="desiredDates" value={d.value} /> {d.label}</label>)}</div><textarea name="note" placeholder="Комментарий" /><button>Отправить</button></form></article>
+      </section>
+    </main>
+  );
+}

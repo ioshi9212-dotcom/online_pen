@@ -1,5 +1,29 @@
 import { prisma } from "@/lib/prisma";
-export const dynamic="force-dynamic";
-type SearchParams={client?:string};
-function rub(v:number){return new Intl.NumberFormat("ru-RU").format(v)+" ₽"}
-export default async function PricePage({searchParams={}}:{searchParams?:SearchParams}){const token=searchParams.client;const services=await prisma.service.findMany({where:{isActive:true},orderBy:[{sortOrder:"asc"},{title:"asc"}]});return <main className="client-shell"><header className="client-topbar"><a className="client-logo" href={token?`/my?client=${token}`:"/"}><span>▣</span><b>Онлайн-запись</b></a><nav>{token?<a href={`/my?client=${token}`}>Кабинет</a>:<a href="/register">Записаться</a>}{token?<a className="primary" href={`/booking?client=${token}`}>Выбрать время</a>:<a href="/login">Войти</a>}</nav></header><section className="plain-card"><h1>Прайс</h1><p>Выберите услугу и переходите к свободным окнам.</p></section><section className="client-price-grid">{services.map(s=><article className="client-price-card" key={s.id}><h2>{s.title}</h2><p>{s.description||"Описание услуги можно добавить позже."}</p><p><b>{rub(s.price)}</b> · {s.durationMinutes} мин</p>{token?<a className="client-button primary" href={`/booking?client=${token}&service=${s.id}`}>Выбрать</a>:<a className="client-button primary" href="/register">Записаться</a>}</article>)}</section></main>}
+import { rub } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
+
+export default async function PricePage({ searchParams = {} }: { searchParams?: { client?: string } }) {
+  const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
+  const token = searchParams.client;
+
+  return (
+    <main className="price-page">
+      <section className="hero">
+        <h1>Прайс</h1>
+        <p>Выберите услугу и перейдите к записи.</p>
+      </section>
+      <section className="price-grid">
+        {services.map((service) => (
+          <article className="price-card" key={service.id}>
+            <h2>{service.title}</h2>
+            <p>{service.description || "Описание услуги."}</p>
+            <p><b>{rub(service.price)}</b> · {service.durationMinutes} мин</p>
+            {token ? <a className="button" href={`/booking?client=${token}&service=${service.id}`}>Выбрать</a> : <a className="button secondary" href="/register">Записаться</a>}
+          </article>
+        ))}
+        {services.length === 0 ? <div className="notice">Прайс пока пуст.</div> : null}
+      </section>
+    </main>
+  );
+}

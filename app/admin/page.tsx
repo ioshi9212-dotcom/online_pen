@@ -2,6 +2,73 @@ import { approveClient, closeWaitlistEntry, rejectClient, setBookingStatus } fro
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-export const dynamic="force-dynamic";
-function rub(v:number){return new Intl.NumberFormat("ru-RU").format(v)+" ₽"}function formatTime(d:Date){return new Intl.DateTimeFormat("ru-RU",{hour:"2-digit",minute:"2-digit"}).format(d)}function start(d:Date){const r=new Date(d);r.setHours(0,0,0,0);return r}function end(d:Date){const r=new Date(d);r.setHours(23,59,59,999);return r}function add(d:Date,n:number){const r=new Date(d);r.setDate(r.getDate()+n);return r}function statusLabel(s:string){return {PENDING:"Ожидает",CONFIRMED:"Подтверждена",COMPLETED:"Завершено"}[s]||s}
-export default async function AdminPage(){if(!isAdmin())redirect("/admin/login");const today=new Date();const weekEnd=add(today,7);const[pendingClients,pendingBookings,todayBookings,weekBookings,waitlist,clientsCount,servicesCount,monthBookings]=await Promise.all([prisma.client.findMany({where:{status:"PENDING"},orderBy:{createdAt:"desc"},take:5}),prisma.booking.findMany({where:{status:"PENDING"},include:{client:true,service:true},orderBy:{createdAt:"desc"},take:5}),prisma.booking.findMany({where:{startAt:{gte:start(today),lte:end(today)},status:{in:["PENDING","CONFIRMED","COMPLETED"]}},include:{client:true,service:true},orderBy:{startAt:"asc"},take:8}),prisma.booking.count({where:{startAt:{gte:today,lt:weekEnd},status:{in:["PENDING","CONFIRMED","COMPLETED"]}}}),prisma.waitlistEntry.findMany({where:{status:"ACTIVE"},include:{client:true},orderBy:{createdAt:"desc"},take:5}),prisma.client.count({where:{status:"APPROVED"}}),prisma.service.count({where:{isActive:true}}),prisma.booking.findMany({where:{status:{in:["PENDING","CONFIRMED","COMPLETED"]}},include:{service:true},take:100})]);const requestCount=pendingClients.length+pendingBookings.length;const income=monthBookings.reduce((sum,b)=>sum+(b.finalPrice??b.service.price??0),0);return <main className="admin-page"><header className="admin-topbar"><a className="admin-logo" href="/admin"><span>▣</span><b>Онлайн-запись</b></a><nav><a href="/admin/manage">Ручная запись</a><a href="/admin/my-clients">Клиенты</a><a href="/admin/schedule">Расписание</a><a href="/admin/services">Прайс</a><a href="/admin/requests">Заявки</a><a className="primary" href="/admin/manage">Записать</a></nav></header><section className="plain-card"><div className="admin-head"><div><h1>Кабинет мастера</h1><p>Записи, клиенты, заявки и свободные окна.</p></div><a className="client-button secondary" href="/admin/logout">Выйти</a></div></section><section className="info-grid"><a className="info-card" href="/admin/manage"><div className="info-icon">＋</div><div><h3>Ручная запись</h3><p>Записать клиента вручную.</p></div></a><a className="info-card" href="/admin/my-clients"><div className="info-icon">◌</div><div><h3>Клиенты</h3><p>База клиентов.</p></div></a><a className="info-card" href="/admin/schedule"><div className="info-icon">▣</div><div><h3>Свободные окна</h3><p>Открыть и редактировать окна.</p></div></a></section><section className="info-grid"><article className="plain-card"><h2>{weekBookings}</h2><p>записей на неделю</p></article><article className="plain-card"><h2>{requestCount}</h2><p>заявок</p></article><article className="plain-card"><h2>{waitlist.length}</h2><p>ждут окно</p></article></section><section className="calendar-section"><article className="calendar-box"><div className="client-section-head"><h2>Сегодня</h2><a className="client-link" href="/admin/bookings">Все записи →</a></div><div className="grid">{todayBookings.length===0?<div className="notice">Сегодня записей нет.</div>:null}{todayBookings.map(b=><div className="notice" key={b.id}><div className="client-section-head"><div><b>{formatTime(b.startAt)} · {b.client.firstName} {b.client.lastName}</b><p>{b.service.title}</p></div><span className={b.status==="PENDING"?"status wait":"status ok"}>{statusLabel(b.status)}</span></div></div>)}</div></article><article className="selected-date-box"><div className="client-section-head"><h2>Заявки</h2><a className="client-link" href="/admin/requests">Все заявки →</a></div><div className="grid">{pendingClients.map(c=><div className="notice" key={c.id}><b>{c.lastName} {c.firstName}</b><p>{c.phone}</p><div className="actions"><form action={approveClient}><input type="hidden" name="id" value={c.id}/><button className="primary">Подтвердить</button></form><form action={rejectClient}><input type="hidden" name="id" value={c.id}/><button className="danger">Отклонить</button></form></div></div>)}{pendingBookings.map(b=><div className="notice" key={b.id}><b>{b.client.lastName} {b.client.firstName}</b><p>{b.service.title} · {rub(b.finalPrice??b.service.price)}</p><div className="actions"><form action={setBookingStatus}><input type="hidden" name="id" value={b.id}/><input type="hidden" name="status" value="CONFIRMED"/><input type="hidden" name="redirectTo" value="/admin"/><button className="primary">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={b.id}/><input type="hidden" name="status" value="REJECTED"/><input type="hidden" name="redirectTo" value="/admin"/><button className="danger">Отклонить</button></form></div></div>)}{requestCount===0?<div className="notice">Новых заявок нет.</div>:null}</div></article></section><section className="calendar-section"><article className="steps-box"><h2>Быстрые разделы</h2><div className="feature-grid"><a className="plain-card" href="/admin/my-clients"><h3>Клиенты</h3><p>{clientsCount} клиентов</p></a><a className="plain-card" href="/admin/services"><h3>Прайс</h3><p>{servicesCount} услуг</p></a><a className="plain-card" href="/admin/profile"><h3>Профиль мастера</h3><p>Настройки</p></a></div></article><article className="price-box"><h2>Доход</h2><h3>{rub(income)}</h3><p>по активным и завершённым записям</p></article></section><section className="plain-card" id="waitlist"><div className="client-section-head"><h2>Ждуны</h2><span className="status wait">{waitlist.length}</span></div><div className="grid">{waitlist.length===0?<div className="notice">Лист ожидания пуст.</div>:null}{waitlist.map(e=><div className="notice" key={e.id}><div className="client-section-head"><div><b>{e.client.lastName} {e.client.firstName}</b><p>{e.note||"без комментария"}</p></div><form action={closeWaitlistEntry} data-confirm="Убрать клиента из листа ожидания?"><input type="hidden" name="id" value={e.id}/><button className="secondary">Убрать</button></form></div></div>)}</div></section></main>}
+
+export const dynamic = "force-dynamic";
+
+function fmt(date: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+export default async function AdminPage() {
+  if (!isAdmin()) redirect("/admin/login");
+
+  const [pendingClients, pendingBookings, activeClients, services, waitlist] = await Promise.all([
+    prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 8 }),
+    prisma.booking.findMany({ where: { status: "PENDING" }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 8 }),
+    prisma.client.count({ where: { status: "APPROVED" } }),
+    prisma.service.count({ where: { isActive: true } }),
+    prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 8 })
+  ]);
+
+  return (
+    <main className="admin-page">
+      <section className="hero">
+        <div className="actions" style={{ justifyContent: "space-between" }}>
+          <div><h1>Админка</h1><p>Простое меню мастера без лишнего дизайна.</p></div>
+          <a className="button secondary" href="/admin/logout">Выйти</a>
+        </div>
+      </section>
+
+      <section className="admin-menu-grid">
+        <a className="admin-menu-card" href="/admin/manage"><h3>Ручная запись</h3><p>Записать клиентку вручную</p></a>
+        <a className="admin-menu-card" href="/admin/my-clients"><h3>Клиенты</h3><p>База клиентов</p></a>
+        <a className="admin-menu-card" href="/admin/schedule"><h3>Расписание</h3><p>Свободные окна и календарь</p></a>
+        <a className="admin-menu-card" href="/admin/services"><h3>Прайс</h3><p>Услуги и цены</p></a>
+        <a className="admin-menu-card" href="/admin/requests"><h3>Заявки</h3><p>Подтверждение клиентов</p></a>
+        <a className="admin-menu-card" href="/admin/profile"><h3>Профиль мастера</h3><p>Настройки</p></a>
+      </section>
+
+      <section className="kpi-grid">
+        <div className="kpi-card"><h2>{pendingClients.length}</h2><p>новых клиентов</p></div>
+        <div className="kpi-card"><h2>{pendingBookings.length}</h2><p>заявок на запись</p></div>
+        <div className="kpi-card"><h2>{activeClients}</h2><p>клиентов в базе</p></div>
+        <div className="kpi-card"><h2>{services}</h2><p>активных услуг</p></div>
+      </section>
+
+      <section className="top-split">
+        <article className="card">
+          <h2>Заявки клиентов</h2>
+          <div className="grid">
+            {pendingClients.map((client) => <div className="card" key={client.id}><b>{client.lastName} {client.firstName}</b><p>{client.phone}</p><div className="actions"><form action={approveClient}><input type="hidden" name="id" value={client.id} /><button>Подтвердить</button></form><form action={rejectClient}><input type="hidden" name="id" value={client.id} /><button className="danger">Отклонить</button></form></div></div>)}
+            {pendingClients.length === 0 ? <p>Новых заявок нет.</p> : null}
+          </div>
+        </article>
+        <article className="card">
+          <h2>Заявки на запись</h2>
+          <div className="grid">
+            {pendingBookings.map((booking) => <div className="card" key={booking.id}><b>{fmt(booking.startAt)}</b><p>{booking.client.firstName} {booking.client.lastName} · {booking.service.title}</p><div className="actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button>Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button className="danger">Отклонить</button></form></div></div>)}
+            {pendingBookings.length === 0 ? <p>Заявок на запись нет.</p> : null}
+          </div>
+        </article>
+      </section>
+
+      <section className="card">
+        <h2>Ждуны</h2>
+        <div className="grid">
+          {waitlist.map((entry) => <div className="card" key={entry.id}><b>{entry.client.lastName} {entry.client.firstName}</b><p>{entry.note || "Без комментария"}</p><form action={closeWaitlistEntry}><input type="hidden" name="id" value={entry.id} /><button className="secondary">Убрать</button></form></div>)}
+          {waitlist.length === 0 ? <p>Лист ожидания пуст.</p> : null}
+        </div>
+      </section>
+    </main>
+  );
+}

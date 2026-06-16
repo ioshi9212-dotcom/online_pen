@@ -1,15 +1,87 @@
 import { createBooking } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
+import { rub } from "@/lib/format";
 import { redirect } from "next/navigation";
-export const dynamic="force-dynamic";
-type SearchParams={client?:string;service?:string;date?:string;time?:string;busy?:string};
-function rub(value: number) { return new Intl.NumberFormat("ru-RU").format(value) + " ₽"; }
-function dateKey(date: Date) { return date.toISOString().slice(0, 10); }
-function formatDate(date: Date) { return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date); }
-function formatTime(date: Date) { return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date); }
-function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) { return aStart < bEnd && aEnd > bStart; }
-function groupByDate(slots: Array<{ startAt: Date; endAt: Date }>) { const map = new Map<string, Array<{ startAt: Date; endAt: Date }>>(); for (const slot of slots) { const key = dateKey(slot.startAt); const list = map.get(key) || []; list.push(slot); map.set(key, list); } return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)); }
-function bookingHref(token: string, serviceId: string, key: string, startAt: Date) { return `/booking?client=${token}&service=${serviceId}&date=${key}&time=${encodeURIComponent(startAt.toISOString())}`; }
-function ClientMenu({ token, name }: { token: string; name: string }) { return <header className="client-topbar"><a className="client-logo" href={`/my?client=${token}`}><span>▣</span><b>Онлайн-запись</b></a><nav><a href={`/my?client=${token}`}>Мои записи</a><a href={`/my?client=${token}#windows`}>Окна</a><a href={`/price?client=${token}`}>Прайс</a><a href={`/profile?client=${token}`}>Профиль</a><a className="primary" href={`/booking?client=${token}`}>Выбрать время</a></nav><div className="client-mini-avatar">{name.slice(0,1).toUpperCase()}</div></header>; }
 
-export default async function BookingPage({searchParams}:{searchParams:SearchParams}){const token=searchParams.client;if(!token)redirect("/login");const client=await prisma.client.findUnique({where:{publicToken:token}});if(!client||client.status!=="APPROVED")redirect("/unavailable");const services=await prisma.service.findMany({where:{isActive:true},orderBy:[{sortOrder:"asc"},{title:"asc"}]});const service=searchParams.service?services.find(s=>s.id===searchParams.service)||services[0]:services[0];const horizon=new Date();horizon.setDate(horizon.getDate()+60);const[online,busy]=await Promise.all([prisma.onlineWindow.findMany({where:{startAt:{gte:new Date(),lt:horizon}},orderBy:{startAt:"asc"}}),prisma.booking.findMany({where:{status:{in:["PENDING","CONFIRMED"]},startAt:{lt:horizon}},select:{startAt:true,endAt:true}})]);const slots=service?online.map(w=>({startAt:w.startAt,endAt:new Date(w.startAt.getTime()+service.durationMinutes*60000)})).filter(s=>!busy.some(b=>overlaps(s.startAt,s.endAt,b.startAt,b.endAt))):[];const groups=groupByDate(slots);const selectedDate=searchParams.date&&groups.some(([k])=>k===searchParams.date)?searchParams.date:groups[0]?.[0]||"";const selectedSlots=groups.find(([k])=>k===selectedDate)?.[1]||[];const selectedSlot=searchParams.time?slots.find(s=>s.startAt.toISOString()===searchParams.time):null;return <main className="booking-page client-shell"><ClientMenu token={token} name={client.firstName}/><section className="booking-panel"><div className="booking-title-row"><div><h1>Свободные окна и запись</h1><p className="lead">Выберите дату, время и отправьте заявку.</p></div><a className="client-button secondary" href={`/my?client=${token}`}>Назад</a></div>{searchParams.busy?<div className="notice danger-notice">Это окно уже заняли. Выберите другое.</div>:null}<section className="step-block"><div className="step-head"><span className="step-number">1</span><h2>Услуга</h2></div><div className="service-list">{services.map(s=><a className={service?.id===s.id?"service-chip active":"service-chip"} href={`/booking?client=${token}&service=${s.id}`} key={s.id}><strong>{s.title}</strong><span>{s.durationMinutes} мин · {rub(s.price)}</span></a>)}</div></section>{service?<section className="step-block"><div className="step-head"><span className="step-number">2</span><h2>Дата</h2></div><div className="date-card-list">{groups.slice(0,21).map(([key,daySlots])=><a className={key===selectedDate?"date-option active":"date-option"} href={`/booking?client=${token}&service=${service.id}&date=${key}`} key={key}><b>{formatDate(daySlots[0].startAt)}</b><small>{daySlots.length} свободных</small></a>)}</div></section>:null}{service&&selectedSlots.length?<section className="step-block"><div className="step-head"><span className="step-number">3</span><h2>Время</h2></div><div className="time-grid">{selectedSlots.map(slot=><a className={selectedSlot?.startAt.toISOString()===slot.startAt.toISOString()?"time-button active":"time-button"} href={bookingHref(token,service.id,selectedDate,slot.startAt)} key={slot.startAt.toISOString()}>{formatTime(slot.startAt)}–{formatTime(slot.endAt)}</a>)}</div></section>:null}{service&&selectedSlot?<section className="step-block confirm-panel"><div className="step-head"><span className="step-number">4</span><h2>Отправить заявку</h2></div><div className="summary-card"><div><span>Услуга</span><b>{service.title}</b></div><div><span>Дата</span><b>{formatDate(selectedSlot.startAt)}</b></div><div><span>Время</span><b>{formatTime(selectedSlot.startAt)}</b></div><div><span>Цена</span><b>{rub(service.price)}</b></div></div><form action={createBooking} className="grid"><input type="hidden" name="clientToken" value={token}/><input type="hidden" name="serviceId" value={service.id}/><input type="hidden" name="startAt" value={selectedSlot.startAt.toISOString()}/><label>Комментарий<textarea name="comment"/></label><button className="primary">Отправить заявку</button></form></section>:null}</section></main>}
+export const dynamic = "force-dynamic";
+
+function fmtDate(date: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
+}
+function fmtTime(date: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date);
+}
+function dayKey(date: Date) {
+  return date.toISOString().slice(0,10);
+}
+
+export default async function BookingPage({ searchParams }: { searchParams: { client?: string; service?: string; time?: string; busy?: string } }) {
+  const token = searchParams.client;
+  if (!token) redirect("/login");
+
+  const client = await prisma.client.findUnique({ where: { publicToken: token } });
+  if (!client || client.status !== "APPROVED") redirect("/unavailable");
+
+  const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
+  const selectedService = services.find((s) => s.id === searchParams.service) || services[0];
+
+  const [onlineWindows, busyBookings] = await Promise.all([
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 50 }),
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, select: { startAt: true } })
+  ]);
+  const busy = new Set(busyBookings.map((b) => b.startAt.toISOString()));
+  const free = onlineWindows.filter((w) => !busy.has(w.startAt.toISOString()));
+  const grouped = free.reduce((map, item) => { const k = dayKey(item.startAt); map.set(k, [...(map.get(k)||[]), item]); return map; }, new Map<string, typeof free>());
+  const selectedSlot = searchParams.time ? free.find((w) => w.startAt.toISOString() === searchParams.time) : undefined;
+
+  return (
+    <main className="booking-page">
+      <section className="hero">
+        <div className="actions" style={{ justifyContent: "space-between" }}>
+          <div><h1>Запись онлайн</h1><p>{client.firstName}, выберите услугу и свободное время.</p></div>
+          <a className="button secondary" href={`/my?client=${token}`}>В кабинет</a>
+        </div>
+      </section>
+
+      {searchParams.busy ? <div className="notice danger-status">Это окно уже заняли. Выберите другое.</div> : null}
+
+      <section className="step-block">
+        <h2>1. Услуга</h2>
+        <div className="service-grid">
+          {services.map((service) => <a key={service.id} className={selectedService?.id === service.id ? "service-option active" : "service-option"} href={`/booking?client=${token}&service=${service.id}`}><b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small></a>)}
+        </div>
+      </section>
+
+      <section className="step-block">
+        <h2>2. Дата и время</h2>
+        <div className="window-list">
+          {Array.from(grouped.entries()).slice(0, 14).map(([key, items]) => (
+            <div className="window-row" key={key}>
+              <div><b>{fmtDate(items[0].startAt)}</b><p>{items.length} свободно</p></div>
+              <div className="time-pills">{items.map((w) => <a key={w.id} href={`/booking?client=${token}&service=${selectedService?.id || ""}&time=${encodeURIComponent(w.startAt.toISOString())}#confirm`}>{fmtTime(w.startAt)}</a>)}</div>
+            </div>
+          ))}
+          {free.length === 0 ? <div className="empty-state">Свободных окон нет. Можно встать в лист ожидания в кабинете.</div> : null}
+        </div>
+      </section>
+
+      {selectedService && selectedSlot ? (
+        <section className="step-block" id="confirm">
+          <h2>3. Подтверждение</h2>
+          <div className="grid-3">
+            <div className="card"><small>Услуга</small><b>{selectedService.title}</b></div>
+            <div className="card"><small>Дата</small><b>{fmtDate(selectedSlot.startAt)}</b></div>
+            <div className="card"><small>Время</small><b>{fmtTime(selectedSlot.startAt)}</b></div>
+          </div>
+          <form action={createBooking} className="grid" style={{ marginTop: 16 }}>
+            <input type="hidden" name="clientToken" value={token} />
+            <input type="hidden" name="serviceId" value={selectedService.id} />
+            <input type="hidden" name="startAt" value={selectedSlot.startAt.toISOString()} />
+            <label>Комментарий<textarea name="comment" placeholder="Например: ремонт, дизайн, пожелания" /></label>
+            <button type="submit">Отправить заявку</button>
+          </form>
+        </section>
+      ) : null}
+    </main>
+  );
+}
