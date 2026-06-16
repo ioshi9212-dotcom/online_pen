@@ -22,11 +22,9 @@ function textFor(label: string) {
 function confirmText(element: HTMLElement | null, form?: HTMLFormElement | null) {
   const explicit = element?.getAttribute("data-confirm") || form?.getAttribute("data-confirm");
   if (explicit) return explicit;
-
   const label = norm(element?.textContent || "");
   const byClass = Boolean(element?.classList.contains("danger") || form?.classList.contains("danger"));
   const byText = words.some((word) => label.includes(word));
-
   if (!byClass && !byText) return "";
   return textFor(label);
 }
@@ -40,14 +38,12 @@ export default function ConfirmDangerActions() {
       const message = confirmText(submitter, form);
       if (message && !window.confirm(message)) event.preventDefault();
     }
-
     function onClick(event: MouseEvent) {
       const link = event.target instanceof HTMLElement ? event.target.closest("a") : null;
       if (!(link instanceof HTMLElement)) return;
       const message = confirmText(link, null);
       if (message && !window.confirm(message)) event.preventDefault();
     }
-
     document.addEventListener("submit", onSubmit, true);
     document.addEventListener("click", onClick, true);
     return () => {
@@ -55,6 +51,5 @@ export default function ConfirmDangerActions() {
       document.removeEventListener("click", onClick, true);
     };
   }, []);
-
   return null;
 }
