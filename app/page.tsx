@@ -1,17 +1,88 @@
-import { prisma } from "@/lib/prisma";
+export default function HomePage() {
+  const days = Array.from({ length: 35 }, (_, i) => i + 1);
+  const slots = [
+    ["10:00", "Занято", "busy"],
+    ["11:00", "Занято", "busy"],
+    ["12:00", "Занято", "busy"],
+    ["13:00", "Занято", "busy"],
+    ["14:00", "Свободно", "free"],
+    ["15:00", "Занято", "busy"],
+    ["16:00", "Занято", "busy"],
+    ["17:00", "Занято", "busy"],
+    ["18:00", "Занято", "busy"]
+  ];
 
-export const dynamic = "force-dynamic";
-function rub(value: number) { return new Intl.NumberFormat("ru-RU").format(value) + " ₽"; }
-export default async function HomePage() {
-  const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }], take: 4 });
   return (
-    <main className="public-page">
-      <header className="public-header"><a className="public-logo" href="/"><span>▣</span><b>Онлайн-запись</b></a><nav><a href="/price">Прайс</a><a href="#how">Как записаться</a><a href="/login">Войти</a><a className="primary" href="/register">Выбрать время</a></nav></header>
-      <section className="plain-card public-hero"><h1>Свободные окна и запись</h1><p className="lead">Выберите дату, время и отправьте заявку.</p></section>
-      <section className="info-grid"><article className="info-card"><div className="info-icon">▣</div><div><h3>Свободные окна</h3><p>Показываем только актуальные свободные даты и время.</p><a className="client-link" href="/register">Выбрать время →</a></div></article><article className="info-card"><div className="info-icon">✓</div><div><h3>Как записаться</h3><p>Выберите услугу, дату и время, отправьте заявку.</p><a className="client-link" href="#how">Подробнее →</a></div></article><article className="info-card"><div className="info-icon">◌</div><div><h3>Лист ожидания</h3><p>Если всё занято — встаньте в лист ожидания.</p><a className="client-link" href="/login">Войти →</a></div></article></section>
-      <section className="calendar-section"><div className="calendar-box"><h2>Ближайшие свободные даты</h2><div className="month-head"><button className="secondary">‹</button><b>Июнь</b><button className="secondary">›</button></div><div className="month-grid">{["пн","вт","ср","чт","пт","сб","вс"].map((d)=><small key={d}>{d}</small>)}{Array.from({length:35}).map((_,i)=>{const day=i+1;const active=day===17;const has=[17,18,19,20,21,24,25,26,27,28].includes(day);return <a key={day} className={`${active?"active":""} ${has?"has-windows":""}`} href="/register">{day}</a>})}</div></div><div className="selected-date-box"><h2>Выбранная дата</h2><h3>17 июня, вторник</h3><p>3 занято · 1 свободно</p><div className="time-grid">{["10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"].map((time)=><a key={time} className={`time-pill ${time==="14:00"?"free":"busy"}`} href="/register">{time}<small>{time==="14:00"?"Свободно":"Занято"}</small></a>)}</div></div></section>
-      <section className="calendar-section" id="how"><div className="steps-box"><h2>Пошагово</h2><div className="steps-row"><div className="step"><span className="step-num">1</span><p><b>Выберите услугу</b><br/>Из прайса.</p></div><span>›</span><div className="step"><span className="step-num">2</span><p><b>Выберите дату и время</b><br/>Только свободные окна.</p></div><span>›</span><div className="step"><span className="step-num">3</span><p><b>Отправьте заявку</b><br/>Мастер подтвердит запись.</p></div></div></div><div className="price-box"><h2>Прайс</h2>{services.length?services.map((s)=><p key={s.id} style={{display:"flex",justifyContent:"space-between"}}><span>{s.title}</span><b>{rub(s.price)}</b></p>):<p>Прайс пока пуст.</p>}<a className="client-link" href="/price">Весь прайс →</a></div></section>
-      <section className="wait-box"><div className="client-section-head"><div><h2>Нет подходящего времени?</h2><p>Встаньте в лист ожидания — мастер увидит пожелания.</p></div><a className="client-button primary" href="/login">Встать в лист ожидания</a></div></section>
+    <main className="page">
+      <section className="hero">
+        <p className="muted">Онлайн-запись</p>
+        <h1>Свободные окна и запись</h1>
+        <p className="lead">Выберите дату, время и отправьте заявку.</p>
+      </section>
+
+      <section className="info-cards">
+        <article className="info-card">
+          <h3>Свободные окна</h3>
+          <p>Показываем только актуальные свободные даты и время.</p>
+          <a className="button" href="/register">Выбрать время</a>
+        </article>
+        <article className="info-card">
+          <h3>Как записаться</h3>
+          <p>Выберите услугу, дату и время, отправьте заявку.</p>
+          <a className="button secondary" href="#how">Подробнее</a>
+        </article>
+        <article className="info-card">
+          <h3>Лист ожидания</h3>
+          <p>Если всё занято — можно оставить пожелания.</p>
+          <a className="button secondary" href="/login">Войти</a>
+        </article>
+      </section>
+
+      <section className="calendar-layout">
+        <article className="calendar-card">
+          <h2>Ближайшие свободные даты</h2>
+          <div className="actions" style={{ justifyContent: "space-between", marginTop: 12 }}>
+            <button className="secondary">‹</button><b>Июнь 2026</b><button className="secondary">›</button>
+          </div>
+          <div className="calendar-head">{["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"].map(d => <span key={d}>{d}</span>)}</div>
+          <div className="calendar-grid">
+            {days.map((day) => <a key={day} className={day === 17 ? "day-btn active" : "day-btn"} href="/register"><span>{day}</span>{[17,18,19,21,24,27].includes(day) ? <i className="dot" /> : null}</a>)}
+          </div>
+        </article>
+
+        <article className="selected-day-card card">
+          <p className="muted">Выбранная дата</p>
+          <h2>17 июня, вторник</h2>
+          <p>3 занято · 1 свободно</p>
+          <div className="time-grid">
+            {slots.map(([time, label, kind]) => <a key={time} className={`time-btn ${kind}`} href={kind === "free" ? "/register" : "#"}><b>{time}</b><span>{label}</span></a>)}
+          </div>
+        </article>
+      </section>
+
+      <section className="top-split" id="how">
+        <article className="card">
+          <h2>Пошагово</h2>
+          <div className="steps">
+            <div className="step"><span className="step-number">1</span><b>Выберите услугу</b><p>Из прайса.</p></div>
+            <div className="step"><span className="step-number">2</span><b>Выберите дату и время</b><p>Только свободные окна.</p></div>
+            <div className="step"><span className="step-number">3</span><b>Отправьте заявку</b><p>Место закрепится за вами.</p></div>
+          </div>
+        </article>
+        <article className="card">
+          <h2>Прайс</h2>
+          <p>Маникюр — 1500 ₽</p>
+          <p>Маникюр + покрытие — 2000 ₽</p>
+          <a className="button secondary" href="/price">Весь прайс</a>
+        </article>
+      </section>
+
+      <section className="card">
+        <div className="actions" style={{ justifyContent: "space-between" }}>
+          <div><h2>Нет подходящего времени?</h2><p>Войдите в кабинет и встаньте в лист ожидания.</p></div>
+          <a className="button" href="/login">Войти</a>
+        </div>
+      </section>
     </main>
   );
 }
