@@ -11,6 +11,14 @@ function required(value: FormDataEntryValue | null, name: string) {
   return text;
 }
 
+function optional(value: FormDataEntryValue | null) {
+  return String(value || "").trim();
+}
+
+function birthDateFrom(value: string) {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
 export async function registerClient(formData: FormData) {
   const firstName = required(formData.get("firstName"), "Имя");
   const lastName = required(formData.get("lastName"), "Фамилия");
@@ -40,6 +48,28 @@ export async function loginClient(formData: FormData) {
   if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
   if (client.status === "BANNED") redirect(`/unavailable`);
   redirect(`/pending?phone=${encodeURIComponent(phone)}`);
+}
+
+export async function updateClientProfile(formData: FormData) {
+  const clientToken = required(formData.get("clientToken"), "Клиент");
+  const firstName = required(formData.get("firstName"), "Имя");
+  const lastName = required(formData.get("lastName"), "Фамилия");
+  const phone = formatPhone(required(formData.get("phone"), "Телефон"));
+  const birthDate = birthDateFrom(required(formData.get("birthDate"), "Дата рождения"));
+  const avatarUrl = optional(formData.get("avatarUrl"));
+
+  const client = await prisma.client.findUnique({ where: { publicToken: clientToken } });
+  if (!client) redirect("/login");
+
+  const duplicate = await prisma.client.findUnique({ where: { phone } });
+  if (duplicate && duplicate.id !== client.id) redirect(`/profile?client=${clientToken}&error=phone-exists`);
+
+  await prisma.client.update({
+    where: { id: client.id },
+    data: { firstName, lastName, phone, birthDate, avatarUrl }
+  });
+
+  redirect(`/profile?client=${clientToken}&saved=1`);
 }
 
 export async function createBooking(formData: FormData) {
