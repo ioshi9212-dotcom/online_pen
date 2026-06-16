@@ -3,6 +3,15 @@ import { registerClient } from "@/app/actions";
 export default function RegisterPage({ searchParams }: { searchParams: { phone?: string } }) {
   return (
     <main className="client-shell client-auth-page">
+      <header className="client-topbar">
+        <a className="client-logo" href="/"><span>O</span><b>Онлайн-запись</b></a>
+        <nav>
+          <a href="/login">Вход</a>
+          <a href="/price">Прайс</a>
+        </nav>
+        <div className="client-mini-avatar">O</div>
+      </header>
+
       <section className="client-card client-auth-card wide">
         <p className="client-eyebrow">Новая заявка</p>
         <h1>Регистрация</h1>
