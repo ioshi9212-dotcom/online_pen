@@ -1,0 +1,135 @@
+/* Inline client booking flow */
+.booking-builder {
+  display: grid;
+  gap: 18px;
+}
+
+.booking-builder-form {
+  display: grid;
+  gap: 20px;
+}
+
+.booking-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.booking-summary-row > div,
+.confirm-box,
+.booking-status-card {
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.booking-summary-row span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.service-check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.service-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+}
+
+.service-check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.service-check span,
+.service-check b,
+.service-check small {
+  display: block;
+}
+
+.service-check small {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.service-check:has(input:checked) {
+  border-color: var(--blue);
+  background: #e8f1ff;
+}
+
+.confirm-box {
+  display: grid;
+  gap: 12px;
+}
+
+.confirm-box button {
+  width: fit-content;
+}
+
+.booking-status-list {
+  display: grid;
+  gap: 12px;
+}
+
+.booking-status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.booking-status-card p,
+.booking-status-card small {
+  display: block;
+  margin-top: 6px;
+}
+
+.time-btn.active {
+  outline: 3px solid rgba(47, 128, 237, .28);
+}
+
+.date-pick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-chip input {
+  display: none;
+}
+
+.date-chip span {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.date-chip input:checked + span {
+  border-color: var(--blue);
+  background: #e8f1ff;
+}
+
+@media (max-width: 900px) {
+  .booking-summary-row,
+  .service-check-grid,
+  .booking-status-card {
+    grid-template-columns: 1fr;
+  }
+}
