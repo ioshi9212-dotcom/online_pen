@@ -6,6 +6,7 @@ import SiteHeader from "./SiteHeader";
 import "./globals.css";
 import "./plain-interface.css";
 import "./button-fix.css";
+import "./inline-booking.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
