@@ -99,7 +99,7 @@ function noticeText(searchParams: SearchParams) {
   if (searchParams.login) return "Вход выполнен.";
   if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
   if (searchParams.busy) return "Это окно уже заняли или оно не подходит по длительности. Выберите другое.";
-  if (searchParams.bookingError === "service") return "Выберите хотя бы одну услугу.";
+  if (searchParams.bookingError === "service") return "Выберите услугу.";
   return "";
 }
 
@@ -155,7 +155,6 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const note = noticeText(searchParams);
   const monthDays = Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1);
   const dates = dateOptions(21);
-  const estimatedPrice = services.reduce((sum, service) => sum + (service.price || 0), 0);
 
   return (
     <main className="page client-page">
@@ -164,7 +163,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
         <h1>Свободные окна и запись</h1>
-        <p className="lead">{client.firstName}, всё собирается на этой странице: дата, время, услуги и отправка заявки.</p>
+        <p className="lead">{client.firstName}, всё собирается на этой странице: дата, время, услуга и отправка заявки.</p>
       </section>
 
       <section className="info-cards">
@@ -180,7 +179,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         </article>
         <article className="info-card">
           <h3>3. Соберите запись</h3>
-          <p>Ниже выберите одну или несколько процедур, комментарий и отправьте заявку.</p>
+          <p>Ниже выберите одну услугу, комментарий и отправьте заявку.</p>
           <a className="button secondary" href="#booking-builder">К сборке</a>
         </article>
       </section>
@@ -235,8 +234,8 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         <div className="section-head">
           <div>
             <p className="muted">Сборка записи</p>
-            <h2>Дата, время, услуги и отправка</h2>
-            <p>Выберите время выше — здесь появится форма записи. Можно выбрать несколько процедур в одной заявке.</p>
+            <h2>Дата, время, услуга и отправка</h2>
+            <p>Выберите время выше — здесь появится форма записи. На одно окно можно выбрать только одну услугу.</p>
           </div>
           {selectedWindow ? <span className="status ok">{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)}</span> : <span className="status">Время не выбрано</span>}
         </div>
@@ -256,18 +255,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             </div>
 
             <div>
-              <h3>Услуги</h3>
-              <p className="muted">Отметьте одну или несколько процедур. Длительность и цена сложатся.</p>
+              <h3>Услуга</h3>
+              <p className="muted">Выберите одну процедуру для этого времени. Если нужна ещё одна услуга — запишитесь на отдельное свободное окно после этой записи.</p>
               <div className="service-check-grid">
                 {services.map((service, index) => (
                   <label className="service-check" key={service.id}>
-                    <input type="checkbox" name="serviceIds" value={service.id} defaultChecked={index === 0} />
+                    <input type="radio" name="serviceId" value={service.id} defaultChecked={index === 0} />
                     <span><b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small></span>
                   </label>
                 ))}
               </div>
               {services.length === 0 ? <div className="notice">Прайс пока пуст. Записаться нельзя.</div> : null}
-              {services.length > 1 ? <p className="muted">Если выбрать все услуги, ориентировочно: {rub(estimatedPrice)}. Итог мастер уточнит после заявки.</p> : null}
+              {services.length > 1 ? <p className="muted">Для второй процедуры выберите следующее свободное время отдельной заявкой.</p> : null}
             </div>
 
             <label>Комментарий к записи<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
@@ -327,7 +326,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
           <div className="steps">
             <div className="step"><span className="step-number">1</span><b>Дата</b><p>Выберите день в календаре.</p></div>
             <div className="step"><span className="step-number">2</span><b>Время</b><p>Выберите свободное окно справа.</p></div>
-            <div className="step"><span className="step-number">3</span><b>Услуги</b><p>Отметьте одну или несколько процедур.</p></div>
+            <div className="step"><span className="step-number">3</span><b>Услуга</b><p>Выберите одну процедуру.</p></div>
           </div>
         </article>
         <article className="card" id="price">
