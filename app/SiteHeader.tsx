@@ -27,7 +27,7 @@ export default function SiteHeader() {
               <a href={`/my?client=${clientToken}#windows`}>Свободные окна</a>
               <a href={`/price?client=${clientToken}`}>Прайс</a>
               <a href={`/profile?client=${clientToken}`}>Профиль</a>
-              <a className="primary-link" href={`/booking?client=${clientToken}`}>Выбрать время</a>
+              <a className="primary-link" href={`/my?client=${clientToken}#booking-builder`}>Выбрать время</a>
             </>
           ) : (
             <>
