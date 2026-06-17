@@ -19,6 +19,18 @@ function birthDateFrom(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function myUrl(token: string, params: Record<string, string | undefined> = {}) {
+  const search = new URLSearchParams({ client: token });
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) search.set(key, value);
+  });
+  return `/my?${search.toString()}`;
+}
+
 export async function registerClient(formData: FormData) {
   const firstName = required(formData.get("firstName"), "Имя");
   const lastName = required(formData.get("lastName"), "Фамилия");
@@ -28,17 +40,9 @@ export async function registerClient(formData: FormData) {
 
   const existing = await prisma.client.findUnique({ where: { phone } });
 
-  if (existing?.status === "PENDING") {
-    redirect(`/pending?phone=${encodeURIComponent(existing.phone)}&already=1`);
-  }
-
-  if (existing?.status === "APPROVED") {
-    redirect(`/my?client=${existing.publicToken}&known=1`);
-  }
-
-  if (existing?.status === "BANNED") {
-    redirect("/unavailable");
-  }
+  if (existing?.status === "PENDING") redirect(`/pending?phone=${encodeURIComponent(existing.phone)}&already=1`);
+  if (existing?.status === "APPROVED") redirect(`/my?client=${existing.publicToken}&known=1`);
+  if (existing?.status === "BANNED") redirect("/unavailable");
 
   const result = await syncPublicRegistration({ firstName, lastName, phone, birthDate, notes });
   const client = result.client;
@@ -78,30 +82,39 @@ export async function updateClientProfile(formData: FormData) {
   const duplicate = await prisma.client.findUnique({ where: { phone } });
   if (duplicate && duplicate.id !== client.id) redirect(`/profile?client=${clientToken}&error=phone-exists`);
 
-  await prisma.client.update({
-    where: { id: client.id },
-    data: { firstName, lastName, phone, birthDate, avatarUrl }
-  });
+  await prisma.client.update({ where: { id: client.id }, data: { firstName, lastName, phone, birthDate, avatarUrl } });
 
   redirect(`/profile?client=${clientToken}&saved=1`);
 }
 
 export async function createBooking(formData: FormData) {
   const token = required(formData.get("clientToken"), "Клиент");
-  const serviceId = required(formData.get("serviceId"), "Услуга");
   const startAt = new Date(required(formData.get("startAt"), "Время"));
-  const clientComment = String(formData.get("comment") || "").trim();
+  const rawComment = String(formData.get("comment") || "").trim();
+  const returnDate = optional(formData.get("returnDate")) || startAt.toISOString().slice(0, 10);
+  const returnTime = optional(formData.get("returnTime")) || startAt.toISOString();
+
+  const serviceIdsFromCheckboxes = formData.getAll("serviceIds").map((value) => String(value));
+  const legacyServiceId = String(formData.get("serviceId") || "");
+  const serviceIds = unique(serviceIdsFromCheckboxes.length ? serviceIdsFromCheckboxes : [legacyServiceId]);
 
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client || client.status !== "APPROVED") redirect("/unavailable");
 
-  const service = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!service || !service.isActive) redirect(`/booking?client=${token}`);
+  if (serviceIds.length === 0) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
+
+  const services = await prisma.service.findMany({ where: { id: { in: serviceIds }, isActive: true } });
+  const orderedServices = serviceIds.map((id) => services.find((service) => service.id === id)).filter(Boolean) as typeof services;
+
+  if (orderedServices.length === 0) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
+
+  const primaryService = orderedServices[0];
+  const totalDuration = orderedServices.reduce((sum, service) => sum + service.durationMinutes, 0);
+  const totalPrice = orderedServices.reduce((sum, service) => sum + service.price, 0);
+  const endAt = new Date(startAt.getTime() + totalDuration * 60_000);
 
   const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
-  if (!onlineWindow) redirect(`/booking?client=${token}&service=${serviceId}&busy=1`);
-
-  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
 
   const conflict = await prisma.booking.findFirst({
     where: {
@@ -112,29 +125,30 @@ export async function createBooking(formData: FormData) {
   });
 
   const blocked = await prisma.blockedSlot.findFirst({
-    where: {
-      startAt: { lt: endAt },
-      endAt: { gt: startAt }
-    }
+    where: { startAt: { lt: endAt }, endAt: { gt: startAt } }
   });
 
-  if (conflict || blocked) {
-    redirect(`/booking?client=${token}&service=${serviceId}&busy=1`);
-  }
+  if (conflict || blocked) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
+
+  const serviceList = orderedServices.map((service) => service.title).join(", ");
+  const clientComment = [
+    orderedServices.length > 1 ? `Выбранные услуги: ${serviceList}` : "",
+    rawComment
+  ].filter(Boolean).join("\n");
 
   const booking = await prisma.booking.create({
     data: {
       clientId: client.id,
-      serviceId,
+      serviceId: primaryService.id,
       startAt,
       endAt,
       clientComment,
-      finalPrice: service.price,
+      finalPrice: totalPrice,
       status: "PENDING"
     }
   });
 
-  redirect(`/my?client=${token}&created=${booking.id}`);
+  redirect(myUrl(token, { created: booking.id }));
 }
 
 export async function joinWaitlist(formData: FormData) {
