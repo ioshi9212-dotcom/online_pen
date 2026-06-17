@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import ConfirmDangerActions from "./ConfirmDangerActions";
 import SiteHeader from "./SiteHeader";
 import "./globals.css";
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <ConfirmDangerActions />
         <div className="app-shell">
-          <SiteHeader />
+          <Suspense fallback={null}>
+            <SiteHeader />
+          </Suspense>
           {children}
         </div>
       </body>
