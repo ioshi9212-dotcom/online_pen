@@ -17,7 +17,11 @@
 
 .booking-summary-row > div,
 .confirm-box,
-.booking-status-card {
+.booking-status-card,
+.price-preview-item,
+.waitlist-current-card,
+.waitlist-choice-card,
+.waitlist-empty-state {
   border: 1px solid var(--line);
   background: var(--panel-soft);
   border-radius: var(--radius);
@@ -103,6 +107,99 @@
   outline: 3px solid rgba(47, 128, 237, .28);
 }
 
+.instruction-cards .button {
+  display: none;
+}
+
+.price-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.price-preview-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.price-preview-item h3,
+.price-preview-item p {
+  margin: 0;
+}
+
+.price-preview-item p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.price-preview-item b {
+  white-space: nowrap;
+}
+
+.waitlist-big-card {
+  display: grid;
+  gap: 18px;
+}
+
+.waitlist-current-list {
+  display: grid;
+  gap: 12px;
+}
+
+.waitlist-current-card {
+  display: grid;
+  gap: 8px;
+  border-left: 4px solid var(--blue);
+}
+
+.waitlist-current-card h3,
+.waitlist-current-card p {
+  margin: 0;
+}
+
+.waitlist-current-card small {
+  color: var(--muted);
+}
+
+.waitlist-empty-state {
+  border-style: dashed;
+}
+
+.waitlist-empty-state h3,
+.waitlist-empty-state p {
+  margin: 0;
+}
+
+.waitlist-empty-state p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.waitlist-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.waitlist-choice-card {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.waitlist-choice-card h3,
+.waitlist-choice-card p {
+  margin: 0;
+}
+
+.waitlist-choice-card p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.waitlist-date-grid,
 .date-pick-grid {
   display: flex;
   flex-wrap: wrap;
@@ -116,20 +213,40 @@
 .date-chip span {
   display: inline-flex;
   border: 1px solid var(--line);
-  background: var(--panel-soft);
+  background: #fff;
   border-radius: var(--radius);
   padding: 8px 10px;
+  cursor: pointer;
 }
 
 .date-chip input:checked + span {
   border-color: var(--blue);
   background: #e8f1ff;
+  color: #174ea6;
+  font-weight: 800;
+}
+
+.chosen-date-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chosen-date-list span {
+  display: inline-flex;
+  border-radius: var(--radius);
+  background: #e8f1ff;
+  color: #174ea6;
+  padding: 8px 10px;
+  font-weight: 800;
 }
 
 @media (max-width: 900px) {
   .booking-summary-row,
   .service-check-grid,
-  .booking-status-card {
+  .booking-status-card,
+  .price-preview-grid,
+  .waitlist-choice-grid {
     grid-template-columns: 1fr;
   }
 }
