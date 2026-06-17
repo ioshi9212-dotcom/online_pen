@@ -1,4 +1,4 @@
-import { cancelClientBooking, joinWaitlist } from "@/app/actions";
+import { cancelClientBooking, createBooking, joinWaitlist } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -8,11 +8,14 @@ export const dynamic = "force-dynamic";
 type SearchParams = {
   client?: string;
   date?: string;
+  time?: string;
   created?: string;
   waitlist?: string;
   cancelled?: string;
   login?: string;
   known?: string;
+  busy?: string;
+  bookingError?: string;
 };
 
 type OnlineWindowItem = {
@@ -22,6 +25,10 @@ type OnlineWindowItem = {
 
 function fmtDate(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
+}
+
+function fmtShortDate(date: Date) {
+  return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", weekday: "short" }).format(date);
 }
 
 function fmtMonth(date: Date) {
@@ -80,10 +87,7 @@ function dateOptions(days = 14) {
   for (let index = 0; index < days; index++) {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
-    result.push({
-      value: dayKey(date),
-      label: new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", weekday: "short" }).format(date)
-    });
+    result.push({ value: dayKey(date), label: fmtShortDate(date) });
   }
   return result;
 }
@@ -94,7 +98,19 @@ function noticeText(searchParams: SearchParams) {
   if (searchParams.cancelled) return "Запись отменена.";
   if (searchParams.login) return "Вход выполнен.";
   if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
+  if (searchParams.busy) return "Это окно уже заняли или оно не подходит по длительности. Выберите другое.";
+  if (searchParams.bookingError === "service") return "Выберите хотя бы одну услугу.";
   return "";
+}
+
+function waitlistText(entry: { mode: string; desiredDates: string }) {
+  if (entry.mode === "DATES") {
+    try {
+      const dates = JSON.parse(entry.desiredDates || "[]") as string[];
+      if (dates.length) return `Желаемые даты: ${dates.map((date) => new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")).join(", ")}`;
+    } catch {}
+  }
+  return "Ищет ближайшее свободное окно";
 }
 
 export default async function MyPage({ searchParams }: { searchParams: SearchParams }) {
@@ -113,8 +129,8 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   if (client.status !== "APPROVED") redirect("/unavailable");
 
   const [services, onlineWindows, busyBookings] = await Promise.all([
-    prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }], take: 6 }),
-    prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 80 }),
+    prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 120 }),
     prisma.booking.findMany({
       where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } },
       select: { startAt: true, endAt: true }
@@ -131,38 +147,41 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const selectedWindows = allWindowsByDate.get(selectedDateKey) || [];
   const selectedFreeCount = selectedWindows.filter((window) => !busyStartSet.has(window.startAt.toISOString())).length;
   const selectedBusyCount = selectedWindows.length - selectedFreeCount;
+  const selectedTime = searchParams.time || "";
+  const selectedWindow = selectedWindows.find((window) => window.startAt.toISOString() === selectedTime && !busyStartSet.has(window.startAt.toISOString()));
   const monthBase = selectedWindows[0]?.startAt || selectedDate;
-  const firstService = services[0];
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
-  const mainBooking = activeBookings[0];
+  const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
   const monthDays = Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1);
+  const dates = dateOptions(21);
+  const estimatedPrice = services.reduce((sum, service) => sum + (service.price || 0), 0);
 
   return (
     <main className="page client-page">
-      {note ? <div className="notice ok-status">{note}</div> : null}
+      {note ? <div className={searchParams.busy || searchParams.bookingError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
 
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
         <h1>Свободные окна и запись</h1>
-        <p className="lead">{client.firstName}, выберите дату, время и отправьте заявку.</p>
+        <p className="lead">{client.firstName}, всё собирается на этой странице: дата, время, услуги и отправка заявки.</p>
       </section>
 
       <section className="info-cards">
         <article className="info-card">
-          <h3>Свободные окна</h3>
-          <p>Показываем только актуальные свободные даты и время.</p>
-          <a className="button" href="#windows">Выбрать время</a>
-        </article>
-        <article className="info-card" id="current">
-          <h3>Ваша запись</h3>
-          <p>{mainBooking ? `${fmtDate(mainBooking.startAt)}, ${fmtTime(mainBooking.startAt)}` : "Активной записи пока нет."}</p>
-          <a className="button secondary" href="#my-booking">Посмотреть</a>
+          <h3>1. Выберите дату</h3>
+          <p>Календарь остаётся на месте. Даты с точкой — есть открытые окна.</p>
+          <a className="button" href="#windows">К календарю</a>
         </article>
         <article className="info-card">
-          <h3>Лист ожидания</h3>
-          <p>Если всё занято — можно оставить пожелания.</p>
-          <a className="button secondary" href="#waitlist">Встать в лист ожидания</a>
+          <h3>2. Выберите время</h3>
+          <p>Справа появится список времени. Занятое видно, но нажать нельзя.</p>
+          <a className="button secondary" href="#selected-day">К времени</a>
+        </article>
+        <article className="info-card">
+          <h3>3. Соберите запись</h3>
+          <p>Ниже выберите одну или несколько процедур, комментарий и отправьте заявку.</p>
+          <a className="button secondary" href="#booking-builder">К сборке</a>
         </article>
       </section>
 
@@ -193,18 +212,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
           </div>
         </article>
 
-        <article className="selected-day-card card">
+        <article className="selected-day-card card" id="selected-day">
           <p className="muted">Выбранная дата</p>
           <h2>{fmtDate(selectedDate)}</h2>
           <p>{selectedBusyCount} занято · {selectedFreeCount} свободно</p>
           <div className="time-grid">
             {selectedWindows.map((window) => {
               const isBusy = busyStartSet.has(window.startAt.toISOString());
-              const href = firstService ? `/booking?client=${token}&service=${firstService.id}&time=${encodeURIComponent(window.startAt.toISOString())}#confirm` : `/price?client=${token}`;
+              const active = selectedTime === window.startAt.toISOString();
               return isBusy ? (
                 <span key={window.id} className="time-btn busy" aria-disabled="true"><b>{fmtTime(window.startAt)}</b><span>Занято</span></span>
               ) : (
-                <a key={window.id} className="time-btn free" href={href}><b>{fmtTime(window.startAt)}</b><span>Свободно</span></a>
+                <a key={window.id} className={active ? "time-btn free active" : "time-btn free"} href={`/my?client=${token}&date=${selectedDateKey}&time=${encodeURIComponent(window.startAt.toISOString())}#booking-builder`}><b>{fmtTime(window.startAt)}</b><span>Свободно</span></a>
               );
             })}
             {selectedWindows.length === 0 ? <div className="empty-state"><p>На эту дату открытых окон нет.</p></div> : null}
@@ -212,41 +231,103 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         </article>
       </section>
 
-      <section className="card current-booking-card" id="my-booking">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
+      <section className="card booking-builder" id="booking-builder">
+        <div className="section-head">
           <div>
-            <h2>Ваша запись</h2>
-            {mainBooking ? (
-              <>
-                <p><b>{fmtDate(mainBooking.startAt)}, {fmtTime(mainBooking.startAt)}</b></p>
-                <p>{mainBooking.service.title} · {rub(mainBooking.finalPrice ?? mainBooking.service.price)}</p>
-                <span className={statusClass(mainBooking.status)}>{statusText(mainBooking.status)}</span>
-                {mainBooking.status === "PENDING" ? <p className="pending-booking-text">Окно уже закреплено за вами. Осталось дождаться подтверждения мастера.</p> : null}
-              </>
-            ) : (
-              <p>Активной записи нет. Выберите свободное окно выше.</p>
-            )}
+            <p className="muted">Сборка записи</p>
+            <h2>Дата, время, услуги и отправка</h2>
+            <p>Выберите время выше — здесь появится форма записи. Можно выбрать несколько процедур в одной заявке.</p>
           </div>
-          {mainBooking ? (
-            <details>
-              <summary className="button secondary">Отменить</summary>
-              <form action={cancelClientBooking} className="grid" style={{ marginTop: 12 }}>
-                <input type="hidden" name="clientToken" value={token} />
-                <input type="hidden" name="bookingId" value={mainBooking.id} />
-                <button type="submit" className="danger">Да, отменить</button>
-              </form>
-            </details>
-          ) : <a className="button" href="#windows">Выбрать время</a>}
+          {selectedWindow ? <span className="status ok">{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)}</span> : <span className="status">Время не выбрано</span>}
         </div>
+
+        {selectedWindow ? (
+          <form action={createBooking} className="booking-builder-form">
+            <input type="hidden" name="clientToken" value={token} />
+            <input type="hidden" name="startAt" value={selectedWindow.startAt.toISOString()} />
+            <input type="hidden" name="returnDate" value={selectedDateKey} />
+            <input type="hidden" name="returnTime" value={selectedWindow.startAt.toISOString()} />
+
+            <div className="booking-summary-row">
+              <div><span>Дата</span><b>{fmtDate(selectedWindow.startAt)}</b></div>
+              <div><span>Время</span><b>{fmtTime(selectedWindow.startAt)}</b></div>
+              <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b></div>
+              <div><span>Телефон</span><b>{client.phone}</b></div>
+            </div>
+
+            <div>
+              <h3>Услуги</h3>
+              <p className="muted">Отметьте одну или несколько процедур. Длительность и цена сложатся.</p>
+              <div className="service-check-grid">
+                {services.map((service, index) => (
+                  <label className="service-check" key={service.id}>
+                    <input type="checkbox" name="serviceIds" value={service.id} defaultChecked={index === 0} />
+                    <span><b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small></span>
+                  </label>
+                ))}
+              </div>
+              {services.length === 0 ? <div className="notice">Прайс пока пуст. Записаться нельзя.</div> : null}
+              {services.length > 1 ? <p className="muted">Если выбрать все услуги, ориентировочно: {rub(estimatedPrice)}. Итог мастер уточнит после заявки.</p> : null}
+            </div>
+
+            <label>Комментарий к записи<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
+
+            <div className="confirm-box">
+              <h3>Проверка</h3>
+              <p>После отправки окно закрепится за вами, а мастер увидит заявку. Статус появится ниже в блоке “Ваши записи”.</p>
+              <button type="submit">Отправить заявку</button>
+            </div>
+          </form>
+        ) : (
+          <div className="empty-state">
+            <h3>Выберите время справа</h3>
+            <p>После выбора времени здесь появится список услуг, комментарий и кнопка отправки.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="card current-booking-card" id="my-booking">
+        <div className="section-head">
+          <div>
+            <h2>Ваши записи</h2>
+            <p>Здесь появится отправленная заявка и её статус: ожидает, подтверждена или отклонена.</p>
+          </div>
+          <a className="button secondary" href="#windows">Выбрать ещё окно</a>
+        </div>
+        {activeBookings.length ? (
+          <div className="booking-status-list">
+            {activeBookings.map((booking) => (
+              <article className="booking-status-card" key={booking.id}>
+                <div>
+                  <b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b>
+                  <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
+                  <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
+                  {booking.status === "PENDING" ? <p className="pending-booking-text">Окно уже закреплено за вами. Осталось дождаться подтверждения мастера.</p> : null}
+                  {booking.clientComment ? <small>{booking.clientComment}</small> : null}
+                </div>
+                <details>
+                  <summary className="button secondary">Отменить</summary>
+                  <form action={cancelClientBooking} className="grid" style={{ marginTop: 12 }}>
+                    <input type="hidden" name="clientToken" value={token} />
+                    <input type="hidden" name="bookingId" value={booking.id} />
+                    <button type="submit" className="danger">Да, отменить</button>
+                  </form>
+                </details>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p>Активной записи нет. Выберите дату и время выше.</p>
+        )}
       </section>
 
       <section className="top-split" id="how">
         <article className="card">
           <h2>Пошагово</h2>
           <div className="steps">
-            <div className="step"><span className="step-number">1</span><b>Выберите услугу</b><p>Из прайса.</p></div>
-            <div className="step"><span className="step-number">2</span><b>Выберите дату и время</b><p>Только свободные окна.</p></div>
-            <div className="step"><span className="step-number">3</span><b>Отправьте заявку</b><p>Место закрепится за вами.</p></div>
+            <div className="step"><span className="step-number">1</span><b>Дата</b><p>Выберите день в календаре.</p></div>
+            <div className="step"><span className="step-number">2</span><b>Время</b><p>Выберите свободное окно справа.</p></div>
+            <div className="step"><span className="step-number">3</span><b>Услуги</b><p>Отметьте одну или несколько процедур.</p></div>
           </div>
         </article>
         <article className="card" id="price">
@@ -255,30 +336,46 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             {services.slice(0, 3).map((service) => <p key={service.id}>{service.title} — {rub(service.price)}</p>)}
             {services.length === 0 ? <p>Прайс пока пуст.</p> : null}
           </div>
-          <a className="button secondary client-same-note" href={`/price?client=${token}`}>Весь прайс</a>
+          <a className="button secondary" href={`/price?client=${token}`}>Весь прайс</a>
         </article>
       </section>
 
       <section className="card" id="waitlist">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
+        <div className="section-head">
           <div>
-            <h2>Нет подходящего времени?</h2>
-            <p>Встаньте в лист ожидания — мастер увидит пожелания.</p>
+            <h2>Лист ожидания</h2>
+            <p>Если подходящего времени нет — оставьте пожелания.</p>
           </div>
+          {client.waitlist.length ? <span className="status wait">уже в списке</span> : null}
         </div>
-        <form action={joinWaitlist} className="grid" style={{ marginTop: 16 }}>
-          <input type="hidden" name="clientToken" value={token} />
-          <select name="waitMode" defaultValue="NEAREST">
-            <option value="NEAREST">Ближайшее окно</option>
-            <option value="DATES">Конкретные даты</option>
-          </select>
-          <div className="time-pills">
-            {dateOptions(14).map((date) => <label key={date.value} style={{ width: "auto" }}><input type="checkbox" name="desiredDates" value={date.value} /> {date.label}</label>)}
-          </div>
-          <textarea name="note" placeholder="Например: могу после 15:00 / только выходные / срочно" />
-          <button type="submit">Отправить пожелания</button>
-        </form>
+
+        {client.waitlist.length ? <div className="notice">{client.waitlist.map((entry) => <p key={entry.id}>{waitlistText(entry)}</p>)}</div> : null}
+
+        <details open={client.waitlist.length === 0}>
+          <summary className="button secondary">Встать в лист ожидания</summary>
+          <form action={joinWaitlist} className="grid" style={{ marginTop: 12 }}>
+            <input type="hidden" name="clientToken" value={token} />
+            <div className="grid-2">
+              <label><input type="radio" name="waitMode" value="NEAREST" defaultChecked />Ближайшее окно</label>
+              <label><input type="radio" name="waitMode" value="DATES" />Конкретные даты</label>
+            </div>
+            <div className="date-pick-grid">
+              {dates.map((date) => <label key={date.value} className="date-chip"><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}
+            </div>
+            <label>Комментарий<textarea name="note" placeholder="Например: могу после 15:00 / только выходные / срочно" /></label>
+            <button type="submit">Отправить пожелания</button>
+          </form>
+        </details>
       </section>
+
+      {pastBookings.length ? (
+        <section className="card">
+          <h2>История</h2>
+          <div className="booking-status-list">
+            {pastBookings.slice(0, 6).map((booking) => <article className="booking-status-card" key={booking.id}><b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p><span className={statusClass(booking.status)}>{statusText(booking.status)}</span></article>)}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
