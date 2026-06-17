@@ -1,0 +1,209 @@
+.admin-workdesk {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-home-header {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-home-header h1 {
+  margin: 0 0 8px;
+}
+
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-summary-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-summary-card b {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.admin-summary-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-main-grid {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-home-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.admin-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-panel-head h2,
+.admin-panel-head p {
+  margin: 0;
+}
+
+.admin-panel-head p {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.admin-row-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-booking-row,
+.admin-request-row,
+.admin-wait-row,
+.admin-window-row {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.admin-booking-row {
+  grid-template-columns: 74px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.admin-booking-row time {
+  font-weight: 900;
+  color: var(--blue-dark);
+}
+
+.admin-booking-row b,
+.admin-booking-row span,
+.admin-booking-row small {
+  display: block;
+}
+
+.admin-booking-row small,
+.admin-request-row small,
+.admin-wait-row small,
+.admin-window-row small {
+  color: var(--muted);
+}
+
+.admin-status {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+  background: #fff;
+}
+
+.admin-status.ok {
+  color: var(--green);
+  border-color: #b8e3c6;
+  background: #f1fbf4;
+}
+
+.admin-status.wait {
+  color: var(--yellow);
+  border-color: #ead391;
+  background: #fff9e8;
+}
+
+.admin-status.done {
+  color: var(--muted);
+}
+
+.admin-request-row {
+  border-left: 4px solid #ead391;
+  background: #fff9e8;
+}
+
+.admin-request-main {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-window-row {
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.admin-window-row time {
+  font-weight: 900;
+}
+
+.admin-empty {
+  color: var(--muted);
+  background: var(--panel-soft);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.admin-wait-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-wait-dates span {
+  background: #e8f1ff;
+  color: var(--blue-dark);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .admin-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-main-grid,
+  .admin-booking-row,
+  .admin-window-row {
+    grid-template-columns: 1fr;
+  }
+}
