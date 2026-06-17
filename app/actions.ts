@@ -140,14 +140,16 @@ export async function joinWaitlist(formData: FormData) {
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client || client.status !== "APPROVED") redirect("/unavailable");
 
+  const waitMode = mode === "DATES" ? "DATES" : "NEAREST";
+
   const existing = await prisma.waitlistEntry.findFirst({
     where: { clientId: client.id, status: "ACTIVE" },
     orderBy: { createdAt: "desc" }
   });
 
   const data = {
-    mode: mode === "DATES" ? "DATES" : "NEAREST",
-    desiredDates: mode === "DATES" ? JSON.stringify(desiredDates) : "[]",
+    mode: waitMode,
+    desiredDates: waitMode === "DATES" ? JSON.stringify(desiredDates) : "[]",
     note,
     status: "ACTIVE"
   };
@@ -158,7 +160,7 @@ export async function joinWaitlist(formData: FormData) {
     await prisma.waitlistEntry.create({ data: { clientId: client.id, ...data } });
   }
 
-  redirect(`/my?client=${token}&waitlist=1`);
+  redirect(`/my?client=${token}&waitlist=${waitMode === "DATES" ? "dates" : "nearest"}#waitlist`);
 }
 
 export async function cancelClientBooking(formData: FormData) {
