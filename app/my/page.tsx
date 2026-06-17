@@ -23,6 +23,13 @@ type OnlineWindowItem = {
   startAt: Date;
 };
 
+type WaitlistItem = {
+  id: string;
+  mode: string;
+  desiredDates: string;
+  note: string | null;
+};
+
 function fmtDate(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
 }
@@ -80,7 +87,7 @@ function statusClass(status: string) {
   return "status";
 }
 
-function dateOptions(days = 14) {
+function dateOptions(days = 21) {
   const result: { value: string; label: string }[] = [];
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -94,6 +101,8 @@ function dateOptions(days = 14) {
 
 function noticeText(searchParams: SearchParams) {
   if (searchParams.created) return "Заявка отправлена. Окно уже закреплено за вами.";
+  if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
+  if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
   if (searchParams.waitlist) return "Вы в листе ожидания. Мастер увидит пожелания.";
   if (searchParams.cancelled) return "Запись отменена.";
   if (searchParams.login) return "Вход выполнен.";
@@ -103,14 +112,27 @@ function noticeText(searchParams: SearchParams) {
   return "";
 }
 
-function waitlistText(entry: { mode: string; desiredDates: string }) {
-  if (entry.mode === "DATES") {
-    try {
-      const dates = JSON.parse(entry.desiredDates || "[]") as string[];
-      if (dates.length) return `Желаемые даты: ${dates.map((date) => new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")).join(", ")}`;
-    } catch {}
+function waitlistDates(entry: WaitlistItem) {
+  if (entry.mode !== "DATES") return [];
+  try {
+    const dates = JSON.parse(entry.desiredDates || "[]") as string[];
+    return dates.filter(Boolean);
+  } catch {
+    return [];
   }
-  return "Ищет ближайшее свободное окно";
+}
+
+function waitlistTitle(entry: WaitlistItem) {
+  return entry.mode === "DATES" ? "Ожидание на конкретные даты" : "Ожидание ближайшего окна";
+}
+
+function waitlistDescription(entry: WaitlistItem) {
+  const dates = waitlistDates(entry);
+  if (entry.mode === "DATES" && dates.length) {
+    return `Выбранные даты: ${dates.map((date) => new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")).join(", ")}`;
+  }
+  if (entry.mode === "DATES") return "Конкретные даты пока не выбраны.";
+  return "Мастер увидит, что вы готовы прийти в ближайшее освободившееся окно.";
 }
 
 export default async function MyPage({ searchParams }: { searchParams: SearchParams }) {
@@ -154,7 +176,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
   const monthDays = Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1);
-  const dates = dateOptions(21);
+  const dates = dateOptions(28);
 
   return (
     <main className="page client-page">
@@ -166,21 +188,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         <p className="lead">{client.firstName}, всё собирается на этой странице: дата, время, услуга и отправка заявки.</p>
       </section>
 
-      <section className="info-cards">
+      <section className="info-cards instruction-cards">
         <article className="info-card">
           <h3>1. Выберите дату</h3>
-          <p>Календарь остаётся на месте. Даты с точкой — есть открытые окна.</p>
-          <a className="button" href="#windows">К календарю</a>
+          <p>Календарь остаётся на месте. Даты с точкой — это дни, где есть свободные окна.</p>
         </article>
         <article className="info-card">
           <h3>2. Выберите время</h3>
-          <p>Справа появится список времени. Занятое видно, но нажать нельзя.</p>
-          <a className="button secondary" href="#selected-day">К времени</a>
+          <p>Справа появится список времени. Занятые окна видно, но нажать на них нельзя.</p>
         </article>
         <article className="info-card">
-          <h3>3. Соберите запись</h3>
-          <p>Ниже выберите одну услугу, комментарий и отправьте заявку.</p>
-          <a className="button secondary" href="#booking-builder">К сборке</a>
+          <h3>3. Отправьте заявку</h3>
+          <p>Ниже выберите одну услугу, проверьте данные и отправьте запись мастеру.</p>
         </article>
       </section>
 
@@ -320,51 +339,92 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         )}
       </section>
 
-      <section className="top-split" id="how">
-        <article className="card">
-          <h2>Пошагово</h2>
-          <div className="steps">
-            <div className="step"><span className="step-number">1</span><b>Дата</b><p>Выберите день в календаре.</p></div>
-            <div className="step"><span className="step-number">2</span><b>Время</b><p>Выберите свободное окно справа.</p></div>
-            <div className="step"><span className="step-number">3</span><b>Услуга</b><p>Выберите одну процедуру.</p></div>
-          </div>
-        </article>
-        <article className="card" id="price">
-          <h2>Прайс</h2>
-          <div className="grid">
-            {services.slice(0, 3).map((service) => <p key={service.id}>{service.title} — {rub(service.price)}</p>)}
-            {services.length === 0 ? <p>Прайс пока пуст.</p> : null}
+      <section className="card price-preview-card" id="price">
+        <div className="section-head">
+          <div>
+            <h2>Прайс</h2>
+            <p>Коротко по услугам. Полный список можно открыть отдельно.</p>
           </div>
           <a className="button secondary" href={`/price?client=${token}`}>Весь прайс</a>
-        </article>
+        </div>
+        {services.length ? (
+          <div className="price-preview-grid">
+            {services.slice(0, 6).map((service) => (
+              <article className="price-preview-item" key={service.id}>
+                <div>
+                  <h3>{service.title}</h3>
+                  <p>{service.durationMinutes} мин</p>
+                </div>
+                <b>{rub(service.price)}</b>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">Прайс пока пуст.</div>
+        )}
       </section>
 
-      <section className="card" id="waitlist">
+      <section className="card waitlist-big-card" id="waitlist">
         <div className="section-head">
           <div>
             <h2>Лист ожидания</h2>
-            <p>Если подходящего времени нет — оставьте пожелания.</p>
+            <p>Если подходящего времени нет, можно оставить заявку на ближайшее окно или выбрать удобные даты.</p>
           </div>
-          {client.waitlist.length ? <span className="status wait">уже в списке</span> : null}
+          {client.waitlist.length ? <span className="status wait">вы в списке</span> : <span className="status">не стоите</span>}
         </div>
 
-        {client.waitlist.length ? <div className="notice">{client.waitlist.map((entry) => <p key={entry.id}>{waitlistText(entry)}</p>)}</div> : null}
+        {client.waitlist.length ? (
+          <div className="waitlist-current-list">
+            {client.waitlist.map((entry) => (
+              <article className="waitlist-current-card" key={entry.id}>
+                <h3>{waitlistTitle(entry)}</h3>
+                <p>{waitlistDescription(entry)}</p>
+                {waitlistDates(entry).length ? (
+                  <div className="chosen-date-list">
+                    {waitlistDates(entry).map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}
+                  </div>
+                ) : null}
+                {entry.note ? <small>Комментарий: {entry.note}</small> : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="waitlist-empty-state">
+            <h3>В листе ожидания вы не стоите</h3>
+            <p>Выберите вариант ниже. Мастер увидит заявку и сможет предложить время, если появится свободное окно.</p>
+          </div>
+        )}
 
-        <details open={client.waitlist.length === 0}>
-          <summary className="button secondary">Встать в лист ожидания</summary>
-          <form action={joinWaitlist} className="grid" style={{ marginTop: 12 }}>
-            <input type="hidden" name="clientToken" value={token} />
-            <div className="grid-2">
-              <label><input type="radio" name="waitMode" value="NEAREST" defaultChecked />Ближайшее окно</label>
-              <label><input type="radio" name="waitMode" value="DATES" />Конкретные даты</label>
+        <div className="waitlist-choice-grid">
+          <article className="waitlist-choice-card">
+            <div>
+              <h3>Ближайшее окно</h3>
+              <p>Подойдёт, если вы готовы прийти в любое ближайшее свободное время. Мастер получит уведомление, что вы ждёте окно.</p>
             </div>
-            <div className="date-pick-grid">
-              {dates.map((date) => <label key={date.value} className="date-chip"><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}
+            <form action={joinWaitlist} className="grid">
+              <input type="hidden" name="clientToken" value={token} />
+              <input type="hidden" name="waitMode" value="NEAREST" />
+              <label>Комментарий<textarea name="note" placeholder="Например: могу после 15:00 / только выходные / срочно" /></label>
+              <button type="submit">Ближайшее окно</button>
+            </form>
+          </article>
+
+          <article className="waitlist-choice-card">
+            <div>
+              <h3>Конкретные даты</h3>
+              <p>Выберите несколько дат. Нажатые даты подсветятся. Повторное нажатие убирает дату из выбора.</p>
             </div>
-            <label>Комментарий<textarea name="note" placeholder="Например: могу после 15:00 / только выходные / срочно" /></label>
-            <button type="submit">Отправить пожелания</button>
-          </form>
-        </details>
+            <form action={joinWaitlist} className="grid">
+              <input type="hidden" name="clientToken" value={token} />
+              <input type="hidden" name="waitMode" value="DATES" />
+              <div className="waitlist-date-grid">
+                {dates.map((date) => <label key={date.value} className="date-chip wait-date-chip"><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}
+              </div>
+              <label>Комментарий<textarea name="note" placeholder="Например: лучше вечером / эти даты свободна до 14:00" /></label>
+              <button type="submit">Готово — отправить даты</button>
+            </form>
+          </article>
+        </div>
       </section>
 
       {pastBookings.length ? (
