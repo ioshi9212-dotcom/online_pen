@@ -19,10 +19,6 @@ function birthDateFrom(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-function unique(values: string[]) {
-  return Array.from(new Set(values.filter(Boolean)));
-}
-
 function myUrl(token: string, params: Record<string, string | undefined> = {}) {
   const search = new URLSearchParams({ client: token });
   Object.entries(params).forEach(([key, value]) => {
@@ -89,32 +85,22 @@ export async function updateClientProfile(formData: FormData) {
 
 export async function createBooking(formData: FormData) {
   const token = required(formData.get("clientToken"), "Клиент");
+  const serviceId = required(formData.get("serviceId"), "Услуга");
   const startAt = new Date(required(formData.get("startAt"), "Время"));
-  const rawComment = String(formData.get("comment") || "").trim();
+  const clientComment = String(formData.get("comment") || "").trim();
   const returnDate = optional(formData.get("returnDate")) || startAt.toISOString().slice(0, 10);
   const returnTime = optional(formData.get("returnTime")) || startAt.toISOString();
-
-  const serviceIdsFromCheckboxes = formData.getAll("serviceIds").map((value) => String(value));
-  const legacyServiceId = String(formData.get("serviceId") || "");
-  const serviceIds = unique(serviceIdsFromCheckboxes.length ? serviceIdsFromCheckboxes : [legacyServiceId]);
 
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client || client.status !== "APPROVED") redirect("/unavailable");
 
-  if (serviceIds.length === 0) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
-
-  const services = await prisma.service.findMany({ where: { id: { in: serviceIds }, isActive: true } });
-  const orderedServices = serviceIds.map((id) => services.find((service) => service.id === id)).filter(Boolean) as typeof services;
-
-  if (orderedServices.length === 0) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
-
-  const primaryService = orderedServices[0];
-  const totalDuration = orderedServices.reduce((sum, service) => sum + service.durationMinutes, 0);
-  const totalPrice = orderedServices.reduce((sum, service) => sum + service.price, 0);
-  const endAt = new Date(startAt.getTime() + totalDuration * 60_000);
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service || !service.isActive) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
 
   const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
   if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
+
+  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
 
   const conflict = await prisma.booking.findFirst({
     where: {
@@ -130,20 +116,14 @@ export async function createBooking(formData: FormData) {
 
   if (conflict || blocked) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
 
-  const serviceList = orderedServices.map((service) => service.title).join(", ");
-  const clientComment = [
-    orderedServices.length > 1 ? `Выбранные услуги: ${serviceList}` : "",
-    rawComment
-  ].filter(Boolean).join("\n");
-
   const booking = await prisma.booking.create({
     data: {
       clientId: client.id,
-      serviceId: primaryService.id,
+      serviceId: service.id,
       startAt,
       endAt,
       clientComment,
-      finalPrice: totalPrice,
+      finalPrice: service.price,
       status: "PENDING"
     }
   });
