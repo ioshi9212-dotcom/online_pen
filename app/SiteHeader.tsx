@@ -9,38 +9,25 @@ export default function SiteHeader() {
   if (pathname.startsWith("/admin")) return null;
 
   const clientToken = searchParams.get("client") || "";
-  const isClientArea = Boolean(clientToken);
-  const homeHref = isClientArea ? `/my?client=${clientToken}` : "/";
+  const windowsHref = clientToken ? `/my?client=${clientToken}#windows` : "/login";
+  const profileHref = clientToken ? `/profile?client=${clientToken}` : "/login";
+  const homeHref = clientToken ? `/my?client=${clientToken}` : "/";
 
   return (
-    <>
-      <header className="top-menu">
-        <a className="brand" href={homeHref}>
-          <span className="brand-icon">▣</span>
-          <b>Онлайн-запись</b>
-        </a>
+    <header className="top-menu compact-client-menu">
+      <a className="brand" href={homeHref}>
+        <span className="brand-icon">▣</span>
+        <b>Онлайн-запись</b>
+      </a>
 
-        <nav className="menu-links" aria-label="Основное меню">
-          {isClientArea ? (
-            <>
-              <a href={`/my?client=${clientToken}`}>Кабинет</a>
-              <a href={`/my?client=${clientToken}#windows`}>Свободные окна</a>
-              <a href={`/price?client=${clientToken}`}>Прайс</a>
-              <a href={`/profile?client=${clientToken}`}>Профиль</a>
-              <a className="primary-link" href={`/my?client=${clientToken}#booking-builder`}>Выбрать время</a>
-            </>
-          ) : (
-            <>
-              <a href="/price">Прайс</a>
-              <a href="/#how">Как записаться</a>
-              <a href="/login">Войти</a>
-              <a className="primary-link" href="/register">Записаться</a>
-            </>
-          )}
-        </nav>
-      </header>
-
-      <a className="master-side-link" href="/admin" title="Вход мастера по паролю">Мастер</a>
-    </>
+      <nav className="menu-links compact-client-links" aria-label="Основное меню">
+        <a href={windowsHref}>Свободные окна</a>
+        <a href={profileHref}>Профиль</a>
+        <div className="master-menu-entry">
+          <a className="primary-link" href="/admin">Кабинет мастера</a>
+          <small>Клиентам туда нельзя. Там скучно, пароли и ответственность.</small>
+        </div>
+      </nav>
+    </header>
   );
 }
