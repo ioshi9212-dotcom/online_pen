@@ -158,7 +158,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         token={token}
         client={{ firstName: client.firstName, lastName: client.lastName, phone: client.phone }}
         windows={windows}
-        services={bookableServices.map((service) => ({ id: service.id, title: service.title, durationMinutes: service.durationMinutes, price: service.price }))}
+        services={bookableServices.map((service) => ({ id: service.id, title: service.title, description: service.description, durationMinutes: service.durationMinutes, price: service.price }))}
         initialDate={initialDate}
         initialTime={initialTime}
       />
