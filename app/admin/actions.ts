@@ -25,7 +25,7 @@ export async function approveClient(formData: FormData) {
 
 export async function rejectClient(formData: FormData) {
   guard();
-  await prisma.client.update({ where: { id: getId(formData) }, data: { status: "REJECTED" } });
+  await prisma.client.update({ where: { id: getId(formData) }, data: { status: "REJECTED", approvedAt: null, bannedAt: null } });
   redirect(redirectTarget(formData, "/admin"));
 }
 
