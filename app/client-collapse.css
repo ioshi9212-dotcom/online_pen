@@ -1,0 +1,59 @@
+.calendar-grid button.day-btn,
+.time-grid button.time-btn {
+  font: inherit;
+}
+
+.collapsed-client-section {
+  display: block;
+}
+
+.collapsed-client-section[open] {
+  display: grid;
+  gap: 16px;
+}
+
+.collapsible-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-summary h2,
+.collapsible-summary p {
+  margin: 0;
+}
+
+.collapsible-summary p {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.waitlist-status-strip {
+  border: 1px solid #ead391;
+  background: #fff9e8;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-weight: 800;
+  color: #8a6a00;
+}
+
+.history-section .booking-status-list,
+.waitlist-big-card .waitlist-current-list,
+.waitlist-big-card .waitlist-choice-grid,
+.waitlist-big-card .waitlist-empty-state {
+  margin-top: 14px;
+}
+
+@media (max-width: 760px) {
+  .collapsible-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
