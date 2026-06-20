@@ -22,7 +22,7 @@ function birthDateFrom(value: string) {
 function myUrl(token: string, params: Record<string, string | undefined> = {}) {
   const search = new URLSearchParams({ client: token });
   Object.entries(params).forEach(([key, value]) => {
-    if (value) search.set(key, String(value));
+    if (value) search.set(key, value);
   });
   return `/my?${search.toString()}`;
 }
@@ -61,6 +61,7 @@ export async function loginClient(formData: FormData) {
 
   if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
   if (client.status === "BANNED") redirect(`/unavailable`);
+  if (client.status === "REJECTED") redirect(`/register?phone=${encodeURIComponent(phone)}&rejected=1`);
   redirect(`/pending?phone=${encodeURIComponent(phone)}&already=1`);
 }
 
