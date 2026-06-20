@@ -97,10 +97,9 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const [selectedTime, setSelectedTime] = useState(initialTime);
 
   const availableMonthKeys = useMemo(() => Array.from(new Set(windows.map((item) => monthKey(item.startAt)))).sort(), [windows]);
-  const minMonthKey = availableMonthKeys[0] || currentMonthKey;
   const maxMonthKey = availableMonthKeys[availableMonthKeys.length - 1] || currentMonthKey;
   const visibleMonth = monthStart(visibleMonthKey);
-  const showPrev = visibleMonthKey > currentMonthKey && visibleMonthKey > minMonthKey;
+  const showPrev = visibleMonthKey > currentMonthKey;
   const showNext = visibleMonthKey < maxMonthKey;
 
   const monthDays = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonthKey]);
