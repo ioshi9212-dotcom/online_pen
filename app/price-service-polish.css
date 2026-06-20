@@ -1,0 +1,129 @@
+.price-hero {
+  background: linear-gradient(135deg, #ffffff, #f8fbff);
+}
+
+.price-section {
+  display: grid;
+  gap: 16px;
+}
+
+.pretty-price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pretty-price-card {
+  min-height: 190px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.main-price-card {
+  border-left: 5px solid var(--blue);
+}
+
+.price-label {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: #e8f1ff;
+  color: var(--blue-dark);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.pretty-price-card h3,
+.pretty-price-card p {
+  margin: 0;
+}
+
+.pretty-price-card p {
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.pretty-price-bottom,
+.pretty-addon-row > div:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pretty-price-bottom span,
+.pretty-addon-row span {
+  color: var(--muted);
+}
+
+.pretty-price-bottom b,
+.pretty-addon-row b {
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.pretty-addon-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pretty-addon-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 16px;
+  align-items: center;
+}
+
+.pretty-addon-row h3,
+.pretty-addon-row p {
+  margin: 0;
+}
+
+.pretty-addon-row p {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.service-visibility-box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.service-visibility-box p {
+  margin: -4px 0 8px 28px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.service-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-title-line {
+  align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+  .pretty-price-grid,
+  .pretty-addon-row {
+    grid-template-columns: 1fr;
+  }
+}
