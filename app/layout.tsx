@@ -12,6 +12,7 @@ import "./admin-home-clean.css";
 import "./price-service-polish.css";
 import "./public-cleanup.css";
 import "./client-collapse.css";
+import "./calendar-dot-force.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
