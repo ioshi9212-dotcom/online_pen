@@ -1,4 +1,5 @@
-import { cancelClientBooking, cancelWaitlistEntry, createBooking, joinWaitlist } from "@/app/actions";
+import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
+import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -18,7 +19,6 @@ type SearchParams = {
   bookingError?: string;
 };
 
-type OnlineWindowItem = { id: string; startAt: Date };
 type WaitlistItem = { id: string; mode: string; desiredDates: string; note: string | null };
 
 function fmtDate(date: Date) {
@@ -29,33 +29,12 @@ function fmtShortDate(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", weekday: "short" }).format(date);
 }
 
-function fmtMonth(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(date);
-}
-
 function fmtTime(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 function dayKey(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-function daysInMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-}
-
-function monthOffset(date: Date) {
-  const first = new Date(date.getFullYear(), date.getMonth(), 1);
-  return (first.getDay() + 6) % 7;
-}
-
-function groupByDate(items: OnlineWindowItem[]) {
-  return items.reduce((map, item) => {
-    const key = dayKey(item.startAt);
-    map.set(key, [...(map.get(key) || []), item]);
-    return map;
-  }, new Map<string, OnlineWindowItem[]>());
 }
 
 function dateOptions(days = 28) {
@@ -145,19 +124,15 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   ]);
 
   const busyStartSet = new Set(busyBookings.map((booking) => booking.startAt.toISOString()));
-  const freeWindows = onlineWindows.filter((window) => !busyStartSet.has(window.startAt.toISOString()));
-  const allWindowsByDate = groupByDate(onlineWindows);
-  const freeByDate = groupByDate(freeWindows);
-  const firstAvailableDate = Array.from(freeByDate.keys()).sort()[0] || dayKey(new Date());
-  const selectedDateKey = searchParams.date && allWindowsByDate.has(searchParams.date) ? searchParams.date : firstAvailableDate;
-  const selectedDate = new Date(`${selectedDateKey}T00:00:00`);
-  const selectedWindows = allWindowsByDate.get(selectedDateKey) || [];
-  const selectedFreeCount = selectedWindows.filter((window) => !busyStartSet.has(window.startAt.toISOString())).length;
-  const selectedBusyCount = selectedWindows.length - selectedFreeCount;
-  const selectedTime = searchParams.time || "";
-  const selectedWindow = selectedWindows.find((window) => window.startAt.toISOString() === selectedTime && !busyStartSet.has(window.startAt.toISOString()));
-  const monthBase = selectedWindows[0]?.startAt || selectedDate;
-  const monthDays = Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1);
+  const windows = onlineWindows.map((window) => ({
+    id: window.id,
+    startAt: window.startAt.toISOString(),
+    busy: busyStartSet.has(window.startAt.toISOString())
+  }));
+  const firstFreeWindow = windows.find((window) => !window.busy);
+  const firstAvailableDate = firstFreeWindow ? dayKey(new Date(firstFreeWindow.startAt)) : dayKey(new Date());
+  const initialDate = searchParams.date || firstAvailableDate;
+  const initialTime = searchParams.time || firstFreeWindow?.startAt || "";
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
@@ -175,107 +150,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <section className="info-cards instruction-cards">
         <article className="info-card"><h3>1. Дата</h3><p>Даты с точкой — дни, где есть свободные окна.</p></article>
-        <article className="info-card"><h3>2. Время</h3><p>Занятые окна видно, но нажать на них нельзя.</p></article>
+        <article className="info-card"><h3>2. Время</h3><p>Список свободных окон меняется справа без перезагрузки страницы.</p></article>
         <article className="info-card"><h3>3. Заявка</h3><p>Выберите одну основную услугу и отправьте запись мастеру.</p></article>
       </section>
 
-      <section className="calendar-layout" id="windows">
-        <article className="calendar-card">
-          <h2>Ближайшие свободные даты</h2>
-          <div className="actions" style={{ justifyContent: "space-between", marginTop: 12 }}>
-            <span className="button secondary" aria-disabled="true">‹</span>
-            <b>{fmtMonth(monthBase)}</b>
-            <span className="button secondary" aria-disabled="true">›</span>
-          </div>
-          <div className="calendar-head">{["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"].map((day) => <span key={day}>{day}</span>)}</div>
-          <div className="calendar-grid">
-            {Array.from({ length: monthOffset(monthBase) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
-            {monthDays.map((day) => {
-              const date = new Date(monthBase.getFullYear(), monthBase.getMonth(), day);
-              const key = dayKey(date);
-              const hasFree = (freeByDate.get(key) || []).length > 0;
-              const active = key === selectedDateKey;
-              return hasFree ? (
-                <a key={key} className={active ? "day-btn active" : "day-btn"} href={`/my?client=${token}&date=${key}#windows`}>
-                  <span>{day}</span><i className="dot" />
-                </a>
-              ) : (
-                <span key={key} className="day-btn muted" aria-disabled="true"><span>{day}</span></span>
-              );
-            })}
-          </div>
-        </article>
-
-        <article className="selected-day-card card" id="selected-day">
-          <p className="muted">Выбранная дата</p>
-          <h2>{fmtDate(selectedDate)}</h2>
-          <p>{selectedBusyCount} занято · {selectedFreeCount} свободно</p>
-          <div className="time-grid">
-            {selectedWindows.map((window) => {
-              const isBusy = busyStartSet.has(window.startAt.toISOString());
-              const active = selectedTime === window.startAt.toISOString();
-              return isBusy ? (
-                <span key={window.id} className="time-btn busy" aria-disabled="true"><b>{fmtTime(window.startAt)}</b><span>Занято</span></span>
-              ) : (
-                <a key={window.id} className={active ? "time-btn free active" : "time-btn free"} href={`/my?client=${token}&date=${selectedDateKey}&time=${encodeURIComponent(window.startAt.toISOString())}#booking-builder`}><b>{fmtTime(window.startAt)}</b><span>Свободно</span></a>
-              );
-            })}
-            {selectedWindows.length === 0 ? <div className="empty-state"><p>На эту дату открытых окон нет.</p></div> : null}
-          </div>
-        </article>
-      </section>
-
-      <section className="card booking-builder" id="booking-builder">
-        <div className="section-head">
-          <div>
-            <p className="muted">Сборка записи</p>
-            <h2>Дата, время, услуга и отправка</h2>
-            <p>Здесь показываются только основные услуги. Френч, дизайн и другие допы остаются в прайсе.</p>
-          </div>
-          {selectedWindow ? <span className="status ok">{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)}</span> : <span className="status">Время не выбрано</span>}
-        </div>
-
-        {selectedWindow ? (
-          <form action={createBooking} className="booking-builder-form">
-            <input type="hidden" name="clientToken" value={token} />
-            <input type="hidden" name="startAt" value={selectedWindow.startAt.toISOString()} />
-            <input type="hidden" name="returnDate" value={selectedDateKey} />
-            <input type="hidden" name="returnTime" value={selectedWindow.startAt.toISOString()} />
-
-            <div className="booking-summary-row">
-              <div><span>Дата</span><b>{fmtDate(selectedWindow.startAt)}</b></div>
-              <div><span>Время</span><b>{fmtTime(selectedWindow.startAt)}</b></div>
-              <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b></div>
-              <div><span>Телефон</span><b>{client.phone}</b></div>
-            </div>
-
-            <div>
-              <h3>Основная услуга</h3>
-              <p className="muted">Выберите одну услугу для этого времени. Если нужна вторая процедура — выберите отдельное окно после этой записи.</p>
-              <div className="service-check-grid">
-                {bookableServices.map((service, index) => (
-                  <label className="service-check" key={service.id}>
-                    <input type="radio" name="serviceId" value={service.id} defaultChecked={index === 0} />
-                    <span><b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small></span>
-                  </label>
-                ))}
-              </div>
-              {bookableServices.length === 0 ? <div className="notice">Нет услуг, доступных для записи. Проверьте настройки прайса у мастера.</div> : null}
-              <p className="muted">Допы вроде френча или дизайна можно посмотреть в прайсе и написать в комментарии.</p>
-            </div>
-
-            <label>Комментарий к записи<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
-
-            <div className="confirm-box">
-              <h3>Проверка</h3>
-              <p>После отправки окно закрепится за вами, а мастер увидит заявку. Статус появится ниже.</p>
-              <button type="submit" disabled={bookableServices.length === 0}>Отправить заявку</button>
-            </div>
-          </form>
-        ) : (
-          <div className="empty-state"><h3>Выберите время справа</h3><p>После выбора времени здесь появится форма записи.</p></div>
-        )}
-      </section>
+      <ClientBookingPicker
+        token={token}
+        client={{ firstName: client.firstName, lastName: client.lastName, phone: client.phone }}
+        windows={windows}
+        services={bookableServices.map((service) => ({ id: service.id, title: service.title, durationMinutes: service.durationMinutes, price: service.price }))}
+        initialDate={initialDate}
+        initialTime={initialTime}
+      />
 
       <section className="card current-booking-card" id="my-booking">
         <div className="section-head">
@@ -324,11 +210,15 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         ) : <div className="empty-state">Прайс пока пуст.</div>}
       </section>
 
-      <section className="card waitlist-big-card" id="waitlist">
-        <div className="section-head">
-          <div><h2>Лист ожидания</h2><p>Если подходящего времени нет, можно оставить заявку на ближайшее окно или выбрать удобные даты.</p></div>
-          {client.waitlist.length ? <span className="status wait">вы в списке</span> : <span className="status">не стоите</span>}
-        </div>
+      {client.waitlist.length ? (
+        <div className="waitlist-status-strip">Статус ожидания: вы в листе ожидания. Мастер видит вашу заявку.</div>
+      ) : null}
+
+      <details className="card waitlist-big-card collapsed-client-section" id="waitlist">
+        <summary className="collapsible-summary">
+          <div><h2>Лист ожидания</h2><p>Оставьте заявку, если подходящего времени нет.</p></div>
+          {client.waitlist.length ? <span className="status wait">вы в списке</span> : <span className="status">открыть</span>}
+        </summary>
 
         {client.waitlist.length ? (
           <div className="waitlist-current-list">
@@ -378,15 +268,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             </form>
           </article>
         </div>
-      </section>
+      </details>
 
       {pastBookings.length ? (
-        <section className="card">
-          <h2>История</h2>
+        <details className="card collapsed-client-section history-section">
+          <summary className="collapsible-summary">
+            <div><h2>История</h2><p>Прошлые и отменённые записи.</p></div>
+            <span className="status">открыть</span>
+          </summary>
           <div className="booking-status-list">
             {pastBookings.slice(0, 6).map((booking) => <article className="booking-status-card" key={booking.id}><b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p><span className={statusClass(booking.status)}>{statusText(booking.status)}</span></article>)}
           </div>
-        </section>
+        </details>
       ) : null}
     </main>
   );
