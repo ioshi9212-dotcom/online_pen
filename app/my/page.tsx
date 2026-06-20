@@ -217,7 +217,10 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <details className="card waitlist-big-card collapsed-client-section" id="waitlist">
         <summary className="collapsible-summary">
           <div><h2>Лист ожидания</h2><p>Оставьте заявку, если подходящего времени нет.</p></div>
-          {client.waitlist.length ? <span className="status wait">вы в списке</span> : <span className="status">открыть</span>}
+          <div className="collapse-actions">
+            {client.waitlist.length ? <span className="status wait">вы в списке</span> : null}
+            <span className="toggle-label"><span className="closed-label">Развернуть⌄</span><span className="open-label">Свернуть⌃</span></span>
+          </div>
         </summary>
 
         {client.waitlist.length ? (
@@ -274,7 +277,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         <details className="card collapsed-client-section history-section">
           <summary className="collapsible-summary">
             <div><h2>История</h2><p>Прошлые и отменённые записи.</p></div>
-            <span className="status">открыть</span>
+            <span className="toggle-label"><span className="closed-label">Развернуть⌄</span><span className="open-label">Свернуть⌃</span></span>
           </summary>
           <div className="booking-status-list">
             {pastBookings.slice(0, 6).map((booking) => <article className="booking-status-card" key={booking.id}><b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p><span className={statusClass(booking.status)}>{statusText(booking.status)}</span></article>)}
