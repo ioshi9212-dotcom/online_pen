@@ -57,10 +57,12 @@ model Service {
   durationMinutes Int
   price           Int
   isActive        Boolean   @default(true)
+  showInBooking   Boolean   @default(true)
   sortOrder       Int       @default(100)
   bookings        Booking[]
 
   @@index([isActive, sortOrder])
+  @@index([showInBooking, sortOrder])
 }
 
 model Booking {
