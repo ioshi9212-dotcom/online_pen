@@ -9,7 +9,6 @@ export default function SiteHeader() {
   if (pathname.startsWith("/admin")) return null;
 
   const clientToken = searchParams.get("client") || "";
-  const windowsHref = clientToken ? `/my?client=${clientToken}#windows` : "/login";
   const profileHref = clientToken ? `/profile?client=${clientToken}` : "/login";
   const homeHref = clientToken ? `/my?client=${clientToken}` : "/";
 
@@ -21,7 +20,6 @@ export default function SiteHeader() {
       </a>
 
       <nav className="menu-links compact-client-links" aria-label="Основное меню">
-        <a href={windowsHref}>Свободные окна</a>
         <a href={profileHref}>Профиль</a>
         <div className="master-menu-entry">
           <a className="primary-link" href="/admin">Кабинет мастера</a>
