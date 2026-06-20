@@ -1,4 +1,4 @@
-import { cancelClientBooking, createBooking, joinWaitlist } from "@/app/actions";
+import { cancelClientBooking, cancelWaitlistEntry, createBooking, joinWaitlist } from "@/app/actions";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -72,6 +72,7 @@ function dateOptions(days = 28) {
 
 function noticeText(searchParams: SearchParams) {
   if (searchParams.created) return "Заявка отправлена. Окно уже закреплено за вами.";
+  if (searchParams.waitlist === "cancelled") return "Вы отменили лист ожидания.";
   if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
   if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
   if (searchParams.cancelled) return "Запись отменена.";
@@ -337,6 +338,15 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
                 <p>{waitlistDescription(entry)}</p>
                 {waitlistDates(entry).length ? <div className="chosen-date-list">{waitlistDates(entry).map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}
                 {entry.note ? <small>Комментарий: {entry.note}</small> : null}
+                <details className="waitlist-cancel-box">
+                  <summary className="button secondary">Отменить ожидание</summary>
+                  <form action={cancelWaitlistEntry} className="grid" style={{ marginTop: 12 }}>
+                    <input type="hidden" name="clientToken" value={token} />
+                    <input type="hidden" name="waitlistId" value={entry.id} />
+                    <p className="muted">Если передумали — уберём вас из листа ожидания. Мастер больше не увидит эту заявку.</p>
+                    <button type="submit" className="danger">Да, убрать меня из ожидания</button>
+                  </form>
+                </details>
               </article>
             ))}
           </div>
