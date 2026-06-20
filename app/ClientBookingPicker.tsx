@@ -36,6 +36,10 @@ function dayKey(value: string | Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function monthKey(value: string | Date) {
+  return dayKey(value).slice(0, 7);
+}
+
 function fmtDate(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
@@ -64,18 +68,33 @@ function monthOffset(date: Date) {
   return (first.getDay() + 6) % 7;
 }
 
+function monthStart(key: string) {
+  return new Date(`${key}-01T00:00:00`);
+}
+
+function addMonths(key: string, offset: number) {
+  const date = monthStart(key);
+  date.setMonth(date.getMonth() + offset);
+  return monthKey(date);
+}
+
 export default function ClientBookingPicker({ token, client, windows, services, initialDate, initialTime = "" }: Props) {
   const freeDateKeys = useMemo(() => new Set(windows.filter((item) => !item.busy).map((item) => dayKey(item.startAt))), [windows]);
   const firstFreeDate = useMemo(() => Array.from(freeDateKeys).sort()[0] || initialDate || dayKey(new Date()), [freeDateKeys, initialDate]);
+  const currentMonthKey = monthKey(new Date());
+  const firstFreeMonthKey = monthKey(firstFreeDate);
+  const [visibleMonthKey, setVisibleMonthKey] = useState(monthKey(initialDate || firstFreeDate));
   const [selectedDateKey, setSelectedDateKey] = useState(initialDate || firstFreeDate);
   const [selectedTime, setSelectedTime] = useState(initialTime);
 
-  const monthBase = useMemo(() => {
-    const current = windows.find((item) => dayKey(item.startAt) === selectedDateKey)?.startAt;
-    return current ? new Date(current) : new Date(`${selectedDateKey}T00:00:00`);
-  }, [selectedDateKey, windows]);
+  const availableMonthKeys = useMemo(() => Array.from(new Set(windows.map((item) => monthKey(item.startAt)))).sort(), [windows]);
+  const minMonthKey = availableMonthKeys[0] || currentMonthKey;
+  const maxMonthKey = availableMonthKeys[availableMonthKeys.length - 1] || currentMonthKey;
+  const visibleMonth = monthStart(visibleMonthKey);
+  const showPrev = visibleMonthKey > currentMonthKey && visibleMonthKey > minMonthKey;
+  const showNext = visibleMonthKey < maxMonthKey;
 
-  const monthDays = useMemo(() => Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1), [monthBase]);
+  const monthDays = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonthKey]);
   const selectedWindows = useMemo(() => windows.filter((item) => dayKey(item.startAt) === selectedDateKey), [windows, selectedDateKey]);
   const selectedFreeCount = selectedWindows.filter((item) => !item.busy).length;
   const selectedBusyCount = selectedWindows.length - selectedFreeCount;
@@ -83,8 +102,20 @@ export default function ClientBookingPicker({ token, client, windows, services, 
 
   function chooseDate(key: string) {
     setSelectedDateKey(key);
+    setVisibleMonthKey(monthKey(key));
     const firstFreeTime = windows.find((item) => dayKey(item.startAt) === key && !item.busy)?.startAt || "";
     setSelectedTime(firstFreeTime);
+  }
+
+  function changeMonth(nextKey: string) {
+    setVisibleMonthKey(nextKey);
+    const firstFreeInMonth = windows.find((item) => monthKey(item.startAt) === nextKey && !item.busy);
+    if (firstFreeInMonth) {
+      chooseDate(dayKey(firstFreeInMonth.startAt));
+      return;
+    }
+    setSelectedDateKey(`${nextKey}-01`);
+    setSelectedTime("");
   }
 
   return (
@@ -92,16 +123,20 @@ export default function ClientBookingPicker({ token, client, windows, services, 
       <section className="calendar-layout" id="windows">
         <article className="calendar-card">
           <h2>Ближайшие свободные даты</h2>
-          <div className="actions" style={{ justifyContent: "space-between", marginTop: 12 }}>
-            <span className="button secondary" aria-disabled="true">‹</span>
-            <b>{fmtMonth(monthBase)}</b>
-            <span className="button secondary" aria-disabled="true">›</span>
+          <div className="calendar-month-switcher">
+            {showPrev ? (
+              <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, -1))} aria-label="Предыдущий месяц">‹</button>
+            ) : <span className="month-arrow-placeholder" />}
+            <b>{fmtMonth(visibleMonth)}</b>
+            {showNext ? (
+              <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, 1))} aria-label="Следующий месяц">›</button>
+            ) : <span className="month-arrow-placeholder" />}
           </div>
           <div className="calendar-head">{["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"].map((day) => <span key={day}>{day}</span>)}</div>
           <div className="calendar-grid">
-            {Array.from({ length: monthOffset(monthBase) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
+            {Array.from({ length: monthOffset(visibleMonth) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
             {monthDays.map((day) => {
-              const date = new Date(monthBase.getFullYear(), monthBase.getMonth(), day);
+              const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
               const key = dayKey(date);
               const hasFree = freeDateKeys.has(key);
               const active = key === selectedDateKey;
