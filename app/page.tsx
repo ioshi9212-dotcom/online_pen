@@ -1,104 +1,61 @@
 export default function HomePage() {
-  const days = Array.from({ length: 35 }, (_, i) => i + 1);
-  const slots = [
-    ["10:00", "Занято", "busy"],
-    ["11:00", "Занято", "busy"],
-    ["12:00", "Занято", "busy"],
-    ["13:00", "Занято", "busy"],
-    ["14:00", "Свободно", "free"],
-    ["15:00", "Занято", "busy"],
-    ["16:00", "Занято", "busy"],
-    ["17:00", "Занято", "busy"],
-    ["18:00", "Занято", "busy"]
-  ];
-
   return (
-    <main className="page">
+    <main className="page public-page">
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
-        <h1>Свободные окна и запись</h1>
-        <p className="lead">Выберите дату, время и отправьте заявку.</p>
+        <h1>Запись открывается после подтверждения</h1>
+        <p className="lead">Свободные окна видят только подтверждённые клиенты. Так расписание не превращается в витрину для любопытных прохожих.</p>
         <div className="actions">
-          <a className="button" href="/login">Я уже клиент — выбрать время</a>
-          <a className="button secondary" href="/register">Новый клиент — отправить заявку</a>
+          <a className="button" href="/login">Я уже клиент</a>
+          <a className="button secondary" href="/register">Отправить заявку</a>
         </div>
       </section>
 
       <section className="info-cards">
         <article className="info-card">
-          <h3>Свободные окна</h3>
-          <p>Время выбирают только подтверждённые клиенты.</p>
-          <a className="button" href="/login">Войти и выбрать время</a>
+          <h3>Новый клиент</h3>
+          <p>Сначала отправьте короткую заявку. После подтверждения мастера откроется личный кабинет.</p>
+          <a className="button secondary" href="/register">Отправить заявку</a>
         </article>
+
         <article className="info-card">
-          <h3>Как записаться</h3>
-          <p>Новый клиент сначала отправляет заявку, мастер подтверждает доступ.</p>
-          <a className="button secondary" href="#how">Подробнее</a>
+          <h3>Подтверждённый клиент</h3>
+          <p>Войдите по телефону и дате рождения. В кабинете будут реальные свободные окна, запись и лист ожидания.</p>
+          <a className="button" href="/login">Войти</a>
         </article>
+
         <article className="info-card">
-          <h3>Лист ожидания</h3>
-          <p>Если всё занято — можно оставить пожелания в кабинете.</p>
-          <a className="button secondary" href="/login">Войти</a>
+          <h3>Почему окон не видно?</h3>
+          <p>Потому что это рабочее расписание мастера, а не сериал с открытым финалом. Доступ — только своим.</p>
         </article>
       </section>
 
-      <section className="calendar-layout">
-        <article className="calendar-card">
-          <h2>Ближайшие свободные даты</h2>
-          <div className="actions" style={{ justifyContent: "space-between", marginTop: 12 }}>
-            <button className="secondary" type="button">‹</button>
-            <b>Июнь 2026</b>
-            <button className="secondary" type="button">›</button>
-          </div>
-          <div className="calendar-head">{["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"].map(d => <span key={d}>{d}</span>)}</div>
-          <div className="calendar-grid">
-            {days.map((day) => (
-              <a key={day} className={day === 17 ? "day-btn active" : "day-btn"} href="/login">
-                <span>{day}</span>
-                {[17,18,19,21,24,27].includes(day) ? <i className="dot" /> : null}
-              </a>
-            ))}
-          </div>
-        </article>
-
-        <article className="selected-day-card card">
-          <p className="muted">Выбранная дата</p>
-          <h2>17 июня, вторник</h2>
-          <p>3 занято · 1 свободно</p>
-          <div className="time-grid">
-            {slots.map(([time, label, kind]) => (
-              kind === "free" ? (
-                <a key={time} className="time-btn free" href="/login"><b>{time}</b><span>{label}</span></a>
-              ) : (
-                <span key={time} className="time-btn busy" aria-disabled="true"><b>{time}</b><span>{label}</span></span>
-              )
-            ))}
-          </div>
-        </article>
+      <section className="card public-closed-card">
+        <div>
+          <h2>Свободные окна скрыты</h2>
+          <p>После входа подтверждённого клиента здесь будет личный кабинет: календарь, время, запись, статус заявки и лист ожидания.</p>
+        </div>
+        <div className="actions">
+          <a className="button" href="/login">Войти и выбрать время</a>
+          <a className="button secondary" href="/register">Стать клиентом</a>
+        </div>
       </section>
 
       <section className="top-split" id="how">
         <article className="card">
-          <h2>Пошагово</h2>
+          <h2>Как это работает</h2>
           <div className="steps">
-            <div className="step"><span className="step-number">1</span><b>Новый клиент</b><p>Отправляет заявку на доступ.</p></div>
-            <div className="step"><span className="step-number">2</span><b>Мастер подтверждает</b><p>После этого открываются реальные свободные окна.</p></div>
-            <div className="step"><span className="step-number">3</span><b>Клиент выбирает время</b><p>Заявка на запись закрепляет окно.</p></div>
+            <div className="step"><span className="step-number">1</span><b>Заявка</b><p>Новый клиент оставляет имя, телефон и дату рождения.</p></div>
+            <div className="step"><span className="step-number">2</span><b>Подтверждение</b><p>Мастер проверяет заявку и открывает доступ.</p></div>
+            <div className="step"><span className="step-number">3</span><b>Запись</b><p>После входа клиент выбирает свободное окно и отправляет заявку на запись.</p></div>
           </div>
         </article>
+
         <article className="card">
           <h2>Прайс</h2>
-          <p>Маникюр — 1500 ₽</p>
-          <p>Маникюр + покрытие — 2000 ₽</p>
-          <a className="button secondary" href="/price">Весь прайс</a>
+          <p>Прайс можно посмотреть без входа, а выбрать время — только после подтверждения.</p>
+          <a className="button secondary" href="/price">Открыть прайс</a>
         </article>
-      </section>
-
-      <section className="card">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
-          <div><h2>Нет подходящего времени?</h2><p>Войдите в кабинет и встаньте в лист ожидания.</p></div>
-          <a className="button" href="/login">Войти</a>
-        </div>
       </section>
     </main>
   );
