@@ -18,17 +18,8 @@ type SearchParams = {
   bookingError?: string;
 };
 
-type OnlineWindowItem = {
-  id: string;
-  startAt: Date;
-};
-
-type WaitlistItem = {
-  id: string;
-  mode: string;
-  desiredDates: string;
-  note: string | null;
-};
+type OnlineWindowItem = { id: string; startAt: Date };
+type WaitlistItem = { id: string; mode: string; desiredDates: string; note: string | null };
 
 function fmtDate(date: Date) {
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
@@ -50,16 +41,13 @@ function dayKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
 function daysInMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
 function monthOffset(date: Date) {
-  return (startOfMonth(date).getDay() + 6) % 7;
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  return (first.getDay() + 6) % 7;
 }
 
 function groupByDate(items: OnlineWindowItem[]) {
@@ -68,6 +56,30 @@ function groupByDate(items: OnlineWindowItem[]) {
     map.set(key, [...(map.get(key) || []), item]);
     return map;
   }, new Map<string, OnlineWindowItem[]>());
+}
+
+function dateOptions(days = 28) {
+  const result: { value: string; label: string }[] = [];
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  for (let index = 0; index < days; index++) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    result.push({ value: dayKey(date), label: fmtShortDate(date) });
+  }
+  return result;
+}
+
+function noticeText(searchParams: SearchParams) {
+  if (searchParams.created) return "Заявка отправлена. Окно уже закреплено за вами.";
+  if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
+  if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
+  if (searchParams.cancelled) return "Запись отменена.";
+  if (searchParams.login) return "Вход выполнен.";
+  if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
+  if (searchParams.busy) return "Это окно уже заняли или оно не подходит по длительности. Выберите другое.";
+  if (searchParams.bookingError === "service") return "Выберите основную услугу, доступную для записи.";
+  return "";
 }
 
 function statusText(status: string) {
@@ -87,36 +99,10 @@ function statusClass(status: string) {
   return "status";
 }
 
-function dateOptions(days = 21) {
-  const result: { value: string; label: string }[] = [];
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  for (let index = 0; index < days; index++) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    result.push({ value: dayKey(date), label: fmtShortDate(date) });
-  }
-  return result;
-}
-
-function noticeText(searchParams: SearchParams) {
-  if (searchParams.created) return "Заявка отправлена. Окно уже закреплено за вами.";
-  if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
-  if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
-  if (searchParams.waitlist) return "Вы в листе ожидания. Мастер увидит пожелания.";
-  if (searchParams.cancelled) return "Запись отменена.";
-  if (searchParams.login) return "Вход выполнен.";
-  if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
-  if (searchParams.busy) return "Это окно уже заняли или оно не подходит по длительности. Выберите другое.";
-  if (searchParams.bookingError === "service") return "Выберите услугу.";
-  return "";
-}
-
 function waitlistDates(entry: WaitlistItem) {
   if (entry.mode !== "DATES") return [];
   try {
-    const dates = JSON.parse(entry.desiredDates || "[]") as string[];
-    return dates.filter(Boolean);
+    return (JSON.parse(entry.desiredDates || "[]") as string[]).filter(Boolean);
   } catch {
     return [];
   }
@@ -150,13 +136,11 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   if (!client) redirect("/login");
   if (client.status !== "APPROVED") redirect("/unavailable");
 
-  const [services, onlineWindows, busyBookings] = await Promise.all([
+  const [bookableServices, priceServices, onlineWindows, busyBookings] = await Promise.all([
+    prisma.service.findMany({ where: { isActive: true, showInBooking: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
     prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 120 }),
-    prisma.booking.findMany({
-      where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } },
-      select: { startAt: true, endAt: true }
-    })
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, select: { startAt: true, endAt: true } })
   ]);
 
   const busyStartSet = new Set(busyBookings.map((booking) => booking.startAt.toISOString()));
@@ -172,10 +156,10 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const selectedTime = searchParams.time || "";
   const selectedWindow = selectedWindows.find((window) => window.startAt.toISOString() === selectedTime && !busyStartSet.has(window.startAt.toISOString()));
   const monthBase = selectedWindows[0]?.startAt || selectedDate;
+  const monthDays = Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1);
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
-  const monthDays = Array.from({ length: daysInMonth(monthBase) }, (_, index) => index + 1);
   const dates = dateOptions(28);
 
   return (
@@ -185,22 +169,13 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
         <h1>Свободные окна и запись</h1>
-        <p className="lead">{client.firstName}, всё собирается на этой странице: дата, время, услуга и отправка заявки.</p>
+        <p className="lead">{client.firstName}, выберите дату, время и одну основную услугу. Допы смотрите в прайсе.</p>
       </section>
 
       <section className="info-cards instruction-cards">
-        <article className="info-card">
-          <h3>1. Выберите дату</h3>
-          <p>Календарь остаётся на месте. Даты с точкой — это дни, где есть свободные окна.</p>
-        </article>
-        <article className="info-card">
-          <h3>2. Выберите время</h3>
-          <p>Справа появится список времени. Занятые окна видно, но нажать на них нельзя.</p>
-        </article>
-        <article className="info-card">
-          <h3>3. Отправьте заявку</h3>
-          <p>Ниже выберите одну услугу, проверьте данные и отправьте запись мастеру.</p>
-        </article>
+        <article className="info-card"><h3>1. Дата</h3><p>Даты с точкой — дни, где есть свободные окна.</p></article>
+        <article className="info-card"><h3>2. Время</h3><p>Занятые окна видно, но нажать на них нельзя.</p></article>
+        <article className="info-card"><h3>3. Заявка</h3><p>Выберите одну основную услугу и отправьте запись мастеру.</p></article>
       </section>
 
       <section className="calendar-layout" id="windows">
@@ -254,7 +229,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
           <div>
             <p className="muted">Сборка записи</p>
             <h2>Дата, время, услуга и отправка</h2>
-            <p>Выберите время выше — здесь появится форма записи. На одно окно можно выбрать только одну услугу.</p>
+            <p>Здесь показываются только основные услуги. Френч, дизайн и другие допы остаются в прайсе.</p>
           </div>
           {selectedWindow ? <span className="status ok">{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)}</span> : <span className="status">Время не выбрано</span>}
         </div>
@@ -274,42 +249,36 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             </div>
 
             <div>
-              <h3>Услуга</h3>
-              <p className="muted">Выберите одну процедуру для этого времени. Если нужна ещё одна услуга — запишитесь на отдельное свободное окно после этой записи.</p>
+              <h3>Основная услуга</h3>
+              <p className="muted">Выберите одну услугу для этого времени. Если нужна вторая процедура — выберите отдельное окно после этой записи.</p>
               <div className="service-check-grid">
-                {services.map((service, index) => (
+                {bookableServices.map((service, index) => (
                   <label className="service-check" key={service.id}>
                     <input type="radio" name="serviceId" value={service.id} defaultChecked={index === 0} />
                     <span><b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small></span>
                   </label>
                 ))}
               </div>
-              {services.length === 0 ? <div className="notice">Прайс пока пуст. Записаться нельзя.</div> : null}
-              {services.length > 1 ? <p className="muted">Для второй процедуры выберите следующее свободное время отдельной заявкой.</p> : null}
+              {bookableServices.length === 0 ? <div className="notice">Нет услуг, доступных для записи. Проверьте настройки прайса у мастера.</div> : null}
+              <p className="muted">Допы вроде френча или дизайна можно посмотреть в прайсе и написать в комментарии.</p>
             </div>
 
             <label>Комментарий к записи<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
 
             <div className="confirm-box">
               <h3>Проверка</h3>
-              <p>После отправки окно закрепится за вами, а мастер увидит заявку. Статус появится ниже в блоке “Ваши записи”.</p>
-              <button type="submit">Отправить заявку</button>
+              <p>После отправки окно закрепится за вами, а мастер увидит заявку. Статус появится ниже.</p>
+              <button type="submit" disabled={bookableServices.length === 0}>Отправить заявку</button>
             </div>
           </form>
         ) : (
-          <div className="empty-state">
-            <h3>Выберите время справа</h3>
-            <p>После выбора времени здесь появится список услуг, комментарий и кнопка отправки.</p>
-          </div>
+          <div className="empty-state"><h3>Выберите время справа</h3><p>После выбора времени здесь появится форма записи.</p></div>
         )}
       </section>
 
       <section className="card current-booking-card" id="my-booking">
         <div className="section-head">
-          <div>
-            <h2>Ваши записи</h2>
-            <p>Здесь появится отправленная заявка и её статус: ожидает, подтверждена или отклонена.</p>
-          </div>
+          <div><h2>Ваши записи</h2><p>Здесь появится отправленная заявка и её статус.</p></div>
           <a className="button secondary" href="#windows">Выбрать ещё окно</a>
         </div>
         {activeBookings.length ? (
@@ -334,42 +303,29 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
               </article>
             ))}
           </div>
-        ) : (
-          <p>Активной записи нет. Выберите дату и время выше.</p>
-        )}
+        ) : <p>Активной записи нет. Выберите дату и время выше.</p>}
       </section>
 
       <section className="card price-preview-card" id="price">
         <div className="section-head">
-          <div>
-            <h2>Прайс</h2>
-            <p>Коротко по услугам. Полный список можно открыть отдельно.</p>
-          </div>
+          <div><h2>Прайс</h2><p>Основные услуги и допы. Допы не выбираются как отдельная запись.</p></div>
           <a className="button secondary" href={`/price?client=${token}`}>Весь прайс</a>
         </div>
-        {services.length ? (
+        {priceServices.length ? (
           <div className="price-preview-grid">
-            {services.slice(0, 6).map((service) => (
+            {priceServices.slice(0, 6).map((service) => (
               <article className="price-preview-item" key={service.id}>
-                <div>
-                  <h3>{service.title}</h3>
-                  <p>{service.durationMinutes} мин</p>
-                </div>
+                <div><h3>{service.title}</h3><p>{service.showInBooking ? "можно выбрать при записи" : "только в прайсе"}</p></div>
                 <b>{rub(service.price)}</b>
               </article>
             ))}
           </div>
-        ) : (
-          <div className="empty-state">Прайс пока пуст.</div>
-        )}
+        ) : <div className="empty-state">Прайс пока пуст.</div>}
       </section>
 
       <section className="card waitlist-big-card" id="waitlist">
         <div className="section-head">
-          <div>
-            <h2>Лист ожидания</h2>
-            <p>Если подходящего времени нет, можно оставить заявку на ближайшее окно или выбрать удобные даты.</p>
-          </div>
+          <div><h2>Лист ожидания</h2><p>Если подходящего времени нет, можно оставить заявку на ближайшее окно или выбрать удобные даты.</p></div>
           {client.waitlist.length ? <span className="status wait">вы в списке</span> : <span className="status">не стоите</span>}
         </div>
 
@@ -379,28 +335,19 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
               <article className="waitlist-current-card" key={entry.id}>
                 <h3>{waitlistTitle(entry)}</h3>
                 <p>{waitlistDescription(entry)}</p>
-                {waitlistDates(entry).length ? (
-                  <div className="chosen-date-list">
-                    {waitlistDates(entry).map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}
-                  </div>
-                ) : null}
+                {waitlistDates(entry).length ? <div className="chosen-date-list">{waitlistDates(entry).map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}
                 {entry.note ? <small>Комментарий: {entry.note}</small> : null}
               </article>
             ))}
           </div>
         ) : (
-          <div className="waitlist-empty-state">
-            <h3>В листе ожидания вы не стоите</h3>
-            <p>Выберите вариант ниже. Мастер увидит заявку и сможет предложить время, если появится свободное окно.</p>
-          </div>
+          <div className="waitlist-empty-state"><h3>В листе ожидания вы не стоите</h3><p>Выберите вариант ниже. Мастер увидит заявку и сможет предложить время.</p></div>
         )}
 
         <div className="waitlist-choice-grid">
           <article className="waitlist-choice-card">
-            <div>
-              <h3>Ближайшее окно</h3>
-              <p>Подойдёт, если вы готовы прийти в любое ближайшее свободное время. Мастер получит уведомление, что вы ждёте окно.</p>
-            </div>
+            <h3>Ближайшее окно</h3>
+            <p>Подойдёт, если вы готовы прийти в любое ближайшее свободное время.</p>
             <form action={joinWaitlist} className="grid">
               <input type="hidden" name="clientToken" value={token} />
               <input type="hidden" name="waitMode" value="NEAREST" />
@@ -410,16 +357,12 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
           </article>
 
           <article className="waitlist-choice-card">
-            <div>
-              <h3>Конкретные даты</h3>
-              <p>Выберите несколько дат. Нажатые даты подсветятся. Повторное нажатие убирает дату из выбора.</p>
-            </div>
+            <h3>Конкретные даты</h3>
+            <p>Можно выбрать несколько дат. Нажатые даты подсветятся.</p>
             <form action={joinWaitlist} className="grid">
               <input type="hidden" name="clientToken" value={token} />
               <input type="hidden" name="waitMode" value="DATES" />
-              <div className="waitlist-date-grid">
-                {dates.map((date) => <label key={date.value} className="date-chip wait-date-chip"><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}
-              </div>
+              <div className="waitlist-date-grid">{dates.map((date) => <label key={date.value} className="date-chip wait-date-chip"><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}</div>
               <label>Комментарий<textarea name="note" placeholder="Например: лучше вечером / эти даты свободна до 14:00" /></label>
               <button type="submit">Готово — отправить даты</button>
             </form>
