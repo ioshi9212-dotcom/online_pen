@@ -17,6 +17,10 @@ function numberValue(formData: FormData, key: string, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function checkbox(formData: FormData, key: string, fallback = false) {
+  return formData.has(key) ? formData.get(key) === "on" : fallback;
+}
+
 function servicesUrl(params: Record<string, string | number | boolean | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -49,6 +53,7 @@ export async function createService(formData: FormData) {
   }
 
   const maxSort = await prisma.service.aggregate({ _max: { sortOrder: true } });
+  const isActive = checkbox(formData, "isActive", true);
 
   const service = await prisma.service.create({
     data: {
@@ -57,7 +62,8 @@ export async function createService(formData: FormData) {
       durationMinutes: Math.max(1, numberValue(formData, "durationMinutes", 120)),
       price: Math.max(0, numberValue(formData, "price", 0)),
       sortOrder: (maxSort._max.sortOrder ?? 0) + 10,
-      isActive: true
+      isActive,
+      showInBooking: isActive ? checkbox(formData, "showInBooking", true) : false
     },
     select: { id: true }
   });
@@ -78,6 +84,8 @@ export async function updateService(formData: FormData) {
     redirect(servicesUrl({ duplicate: duplicate.id, title, edit: id }));
   }
 
+  const isActive = formData.get("isActive") === "on";
+
   await prisma.service.update({
     where: { id },
     data: {
@@ -85,7 +93,8 @@ export async function updateService(formData: FormData) {
       description: text(formData, "description"),
       durationMinutes: Math.max(1, numberValue(formData, "durationMinutes", 120)),
       price: Math.max(0, numberValue(formData, "price", 0)),
-      isActive: formData.get("isActive") === "on"
+      isActive,
+      showInBooking: isActive ? formData.get("showInBooking") === "on" : false
     }
   });
 
@@ -97,9 +106,19 @@ export async function toggleService(formData: FormData) {
 
   const id = text(formData, "id");
   const next = text(formData, "next") === "true";
-  await prisma.service.update({ where: { id }, data: { isActive: next } });
+  await prisma.service.update({ where: { id }, data: { isActive: next, ...(next ? {} : { showInBooking: false }) } });
 
   redirect(servicesUrl({ toggled: id, visible: next }));
+}
+
+export async function toggleBookingService(formData: FormData) {
+  guard();
+
+  const id = text(formData, "id");
+  const next = text(formData, "next") === "true";
+  await prisma.service.update({ where: { id }, data: { showInBooking: next, isActive: true } });
+
+  redirect(servicesUrl({ booking: id, visible: next }));
 }
 
 export async function deleteService(formData: FormData) {
@@ -109,7 +128,7 @@ export async function deleteService(formData: FormData) {
   const bookings = await prisma.booking.count({ where: { serviceId: id } });
 
   if (bookings > 0) {
-    await prisma.service.update({ where: { id }, data: { isActive: false } });
+    await prisma.service.update({ where: { id }, data: { isActive: false, showInBooking: false } });
     redirect(servicesUrl({ archived: id }));
   }
 
