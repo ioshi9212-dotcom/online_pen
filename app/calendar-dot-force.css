@@ -1,0 +1,48 @@
+.calendar-grid button.day-btn {
+  background: #fff !important;
+  color: var(--text) !important;
+  border-color: var(--line) !important;
+}
+
+.calendar-grid button.day-btn.active {
+  background: #e8f1ff !important;
+  color: var(--text) !important;
+  border-color: var(--blue) !important;
+  outline: 3px solid rgba(47, 128, 237, .18);
+}
+
+.calendar-grid .day-btn .day-dots {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  min-height: 9px !important;
+  margin-top: 4px !important;
+}
+
+.calendar-grid .day-btn .day-dots .dot,
+.calendar-legend .legend-dot {
+  display: inline-block !important;
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  min-height: 7px !important;
+  border-radius: 999px !important;
+  margin: 0 !important;
+}
+
+.calendar-grid .day-btn .day-dots .blue-dot,
+.calendar-legend .blue-dot {
+  background: var(--blue) !important;
+}
+
+.calendar-grid .day-btn .day-dots .gray-dot,
+.calendar-legend .gray-dot {
+  background: #9ca3af !important;
+}
+
+.calendar-grid .day-btn.muted {
+  color: #a8afb8 !important;
+  background: #f2f4f7 !important;
+  border-color: #e7eaf0 !important;
+}
