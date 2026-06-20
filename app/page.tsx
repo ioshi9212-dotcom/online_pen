@@ -1,4 +1,13 @@
-export default function HomePage() {
+import { prisma } from "@/lib/prisma";
+import { rub } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
+  const mainServices = services.filter((service) => service.showInBooking);
+  const addOns = services.filter((service) => !service.showInBooking);
+
   return (
     <main className="page public-page">
       <section className="hero">
@@ -11,52 +20,67 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="info-cards">
-        <article className="info-card">
-          <h3>Новый клиент</h3>
-          <p>Сначала отправьте короткую заявку. После подтверждения мастера откроется личный кабинет.</p>
-          <a className="button secondary" href="/register">Отправить заявку</a>
-        </article>
-
-        <article className="info-card">
-          <h3>Уже зарегистрирован</h3>
-          <p>Введите телефон и дату рождения. Если мастер уже подтвердил — откроется кабинет. Если заявка ещё ждёт — покажем статус ожидания.</p>
-          <a className="button" href="/login">Войти / проверить статус</a>
-        </article>
-
-        <article className="info-card">
-          <h3>Заявка уже отправлена?</h3>
-          <p>Не заполняйте регистрацию заново. Нажмите “Я уже зарегистрирован” и войдите по тем же данным.</p>
-          <a className="button secondary" href="/login">Проверить заявку</a>
-        </article>
-      </section>
-
-      <section className="card public-closed-card">
-        <div>
-          <h2>Свободные окна скрыты</h2>
-          <p>После входа подтверждённого клиента здесь будет личный кабинет: календарь, время, запись, статус заявки и лист ожидания.</p>
-        </div>
-        <div className="actions">
-          <a className="button" href="/login">Я уже зарегистрирован</a>
-          <a className="button secondary" href="/register">Отправить заявку</a>
-        </div>
-      </section>
-
-      <section className="top-split" id="how">
-        <article className="card">
-          <h2>Как это работает</h2>
-          <div className="steps">
-            <div className="step"><span className="step-number">1</span><b>Заявка</b><p>Новый клиент оставляет имя, телефон и дату рождения.</p></div>
-            <div className="step"><span className="step-number">2</span><b>Ожидание</b><p>Если заявка уже отправлена, повторно регистрироваться не нужно.</p></div>
-            <div className="step"><span className="step-number">3</span><b>Подтверждение</b><p>После одобрения мастера открываются реальные свободные окна.</p></div>
+      <section className="card public-text-steps">
+        <h2>Как получить доступ</h2>
+        <div className="public-text-step-list">
+          <div>
+            <b>Новый клиент</b>
+            <p>Отправьте короткую заявку. После подтверждения мастера откроется личный кабинет.</p>
           </div>
-        </article>
+          <div>
+            <b>Уже зарегистрирован</b>
+            <p>Введите телефон и дату рождения. Если доступ открыт — попадёте в кабинет. Если заявка ждёт — увидите статус ожидания.</p>
+          </div>
+          <div>
+            <b>Заявка уже отправлена</b>
+            <p>Повторно регистрироваться не нужно. Войдите через “Я уже зарегистрирован” и проверьте статус.</p>
+          </div>
+        </div>
+      </section>
 
-        <article className="card">
-          <h2>Прайс</h2>
-          <p>Прайс можно посмотреть без входа, а выбрать время — только после подтверждения.</p>
-          <a className="button secondary" href="/price">Открыть прайс</a>
-        </article>
+      <section className="card public-price-info" id="price">
+        <div className="section-head">
+          <div>
+            <h2>Прайс</h2>
+            <p>Информация по услугам. Запись по времени доступна только после подтверждения клиента.</p>
+          </div>
+        </div>
+
+        {mainServices.length ? (
+          <div className="public-price-group">
+            <h3>Основные услуги</h3>
+            <div className="public-price-list">
+              {mainServices.map((service) => (
+                <article className="public-price-row" key={service.id}>
+                  <div>
+                    <b>{service.title}</b>
+                    {service.description ? <p>{service.description}</p> : <p>{service.durationMinutes} мин</p>}
+                  </div>
+                  <strong>{rub(service.price)}</strong>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {addOns.length ? (
+          <div className="public-price-group">
+            <h3>Дополнительно</h3>
+            <div className="public-price-list compact">
+              {addOns.map((service) => (
+                <article className="public-price-row" key={service.id}>
+                  <div>
+                    <b>{service.title}</b>
+                    {service.description ? <p>{service.description}</p> : <p>Дополнительная позиция к основной услуге</p>}
+                  </div>
+                  <strong>{rub(service.price)}</strong>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {services.length === 0 ? <div className="empty-state">Прайс пока пуст.</div> : null}
       </section>
     </main>
   );
