@@ -11,6 +11,7 @@ import "./header-menu-fix.css";
 import "./admin-home-clean.css";
 import "./price-service-polish.css";
 import "./public-cleanup.css";
+import "./client-collapse.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
