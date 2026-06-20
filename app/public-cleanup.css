@@ -1,0 +1,75 @@
+.public-text-steps {
+  display: grid;
+  gap: 16px;
+}
+
+.public-text-step-list {
+  display: grid;
+  gap: 12px;
+}
+
+.public-text-step-list > div {
+  border-left: 4px solid var(--blue);
+  padding: 4px 0 4px 14px;
+}
+
+.public-text-step-list b,
+.public-text-step-list p {
+  margin: 0;
+}
+
+.public-text-step-list p {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.public-price-info {
+  display: grid;
+  gap: 18px;
+}
+
+.public-price-group {
+  display: grid;
+  gap: 10px;
+}
+
+.public-price-group h3 {
+  margin: 0;
+}
+
+.public-price-list {
+  display: grid;
+  gap: 8px;
+}
+
+.public-price-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 12px 14px;
+}
+
+.public-price-row b,
+.public-price-row p {
+  margin: 0;
+}
+
+.public-price-row p {
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.public-price-row strong {
+  white-space: nowrap;
+  font-size: 18px;
+}
+
+@media (max-width: 760px) {
+  .public-price-row {
+    grid-template-columns: 1fr;
+  }
+}
