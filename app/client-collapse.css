@@ -36,6 +36,51 @@
   border-color: var(--blue);
 }
 
+.calendar-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 10px 0 4px;
+}
+
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot,
+.day-dots .dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.day-dots {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  min-height: 8px;
+  margin-top: 3px;
+}
+
+.blue-dot {
+  background: var(--blue);
+}
+
+.gray-dot {
+  background: #9ca3af;
+}
+
+.calendar-grid .day-btn.muted {
+  color: #a8afb8;
+  background: #f2f4f7;
+  border-color: #e7eaf0;
+}
+
 .instruction-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
