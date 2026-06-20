@@ -9,6 +9,7 @@ import "./button-fix.css";
 import "./inline-booking.css";
 import "./header-menu-fix.css";
 import "./admin-home-clean.css";
+import "./price-service-polish.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
