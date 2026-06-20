@@ -6,7 +6,7 @@ export default function HomePage() {
         <h1>Запись открывается после подтверждения</h1>
         <p className="lead">Свободные окна видят только подтверждённые клиенты. Так расписание не превращается в витрину для любопытных прохожих.</p>
         <div className="actions">
-          <a className="button" href="/login">Я уже клиент</a>
+          <a className="button" href="/login">Я уже зарегистрирован</a>
           <a className="button secondary" href="/register">Отправить заявку</a>
         </div>
       </section>
@@ -19,14 +19,15 @@ export default function HomePage() {
         </article>
 
         <article className="info-card">
-          <h3>Подтверждённый клиент</h3>
-          <p>Войдите по телефону и дате рождения. В кабинете будут реальные свободные окна, запись и лист ожидания.</p>
-          <a className="button" href="/login">Войти</a>
+          <h3>Уже зарегистрирован</h3>
+          <p>Введите телефон и дату рождения. Если мастер уже подтвердил — откроется кабинет. Если заявка ещё ждёт — покажем статус ожидания.</p>
+          <a className="button" href="/login">Войти / проверить статус</a>
         </article>
 
         <article className="info-card">
-          <h3>Почему окон не видно?</h3>
-          <p>Потому что это рабочее расписание мастера, а не сериал с открытым финалом. Доступ — только своим.</p>
+          <h3>Заявка уже отправлена?</h3>
+          <p>Не заполняйте регистрацию заново. Нажмите “Я уже зарегистрирован” и войдите по тем же данным.</p>
+          <a className="button secondary" href="/login">Проверить заявку</a>
         </article>
       </section>
 
@@ -36,8 +37,8 @@ export default function HomePage() {
           <p>После входа подтверждённого клиента здесь будет личный кабинет: календарь, время, запись, статус заявки и лист ожидания.</p>
         </div>
         <div className="actions">
-          <a className="button" href="/login">Войти и выбрать время</a>
-          <a className="button secondary" href="/register">Стать клиентом</a>
+          <a className="button" href="/login">Я уже зарегистрирован</a>
+          <a className="button secondary" href="/register">Отправить заявку</a>
         </div>
       </section>
 
@@ -46,8 +47,8 @@ export default function HomePage() {
           <h2>Как это работает</h2>
           <div className="steps">
             <div className="step"><span className="step-number">1</span><b>Заявка</b><p>Новый клиент оставляет имя, телефон и дату рождения.</p></div>
-            <div className="step"><span className="step-number">2</span><b>Подтверждение</b><p>Мастер проверяет заявку и открывает доступ.</p></div>
-            <div className="step"><span className="step-number">3</span><b>Запись</b><p>После входа клиент выбирает свободное окно и отправляет заявку на запись.</p></div>
+            <div className="step"><span className="step-number">2</span><b>Ожидание</b><p>Если заявка уже отправлена, повторно регистрироваться не нужно.</p></div>
+            <div className="step"><span className="step-number">3</span><b>Подтверждение</b><p>После одобрения мастера открываются реальные свободные окна.</p></div>
           </div>
         </article>
 
