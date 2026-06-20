@@ -79,10 +79,19 @@ function addMonths(key: string, offset: number) {
 }
 
 export default function ClientBookingPicker({ token, client, windows, services, initialDate, initialTime = "" }: Props) {
+  const windowsByDate = useMemo(() => {
+    const map = new Map<string, WindowItem[]>();
+    for (const item of windows) {
+      const key = dayKey(item.startAt);
+      map.set(key, [...(map.get(key) || []), item]);
+    }
+    return map;
+  }, [windows]);
+
   const freeDateKeys = useMemo(() => new Set(windows.filter((item) => !item.busy).map((item) => dayKey(item.startAt))), [windows]);
+  const activeDateKeys = useMemo(() => new Set(windows.map((item) => dayKey(item.startAt))), [windows]);
   const firstFreeDate = useMemo(() => Array.from(freeDateKeys).sort()[0] || initialDate || dayKey(new Date()), [freeDateKeys, initialDate]);
   const currentMonthKey = monthKey(new Date());
-  const firstFreeMonthKey = monthKey(firstFreeDate);
   const [visibleMonthKey, setVisibleMonthKey] = useState(monthKey(initialDate || firstFreeDate));
   const [selectedDateKey, setSelectedDateKey] = useState(initialDate || firstFreeDate);
   const [selectedTime, setSelectedTime] = useState(initialTime);
@@ -95,7 +104,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const showNext = visibleMonthKey < maxMonthKey;
 
   const monthDays = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonthKey]);
-  const selectedWindows = useMemo(() => windows.filter((item) => dayKey(item.startAt) === selectedDateKey), [windows, selectedDateKey]);
+  const selectedWindows = useMemo(() => windowsByDate.get(selectedDateKey) || [], [windowsByDate, selectedDateKey]);
   const selectedFreeCount = selectedWindows.filter((item) => !item.busy).length;
   const selectedBusyCount = selectedWindows.length - selectedFreeCount;
   const selectedWindow = selectedWindows.find((item) => item.startAt === selectedTime && !item.busy);
@@ -112,6 +121,11 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     const firstFreeInMonth = windows.find((item) => monthKey(item.startAt) === nextKey && !item.busy);
     if (firstFreeInMonth) {
       chooseDate(dayKey(firstFreeInMonth.startAt));
+      return;
+    }
+    const firstWindowInMonth = windows.find((item) => monthKey(item.startAt) === nextKey);
+    if (firstWindowInMonth) {
+      chooseDate(dayKey(firstWindowInMonth.startAt));
       return;
     }
     setSelectedDateKey(`${nextKey}-01`);
@@ -132,17 +146,28 @@ export default function ClientBookingPicker({ token, client, windows, services, 
               <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, 1))} aria-label="Следующий месяц">›</button>
             ) : <span className="month-arrow-placeholder" />}
           </div>
+          <div className="calendar-legend">
+            <span><i className="legend-dot blue-dot" /> свободно</span>
+            <span><i className="legend-dot gray-dot" /> занято</span>
+          </div>
           <div className="calendar-head">{["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"].map((day) => <span key={day}>{day}</span>)}</div>
           <div className="calendar-grid">
             {Array.from({ length: monthOffset(visibleMonth) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
             {monthDays.map((day) => {
               const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
               const key = dayKey(date);
-              const hasFree = freeDateKeys.has(key);
+              const dayWindows = windowsByDate.get(key) || [];
+              const freeCount = dayWindows.filter((item) => !item.busy).length;
+              const busyCount = dayWindows.length - freeCount;
+              const isWorkDay = activeDateKeys.has(key);
               const active = key === selectedDateKey;
-              return hasFree ? (
+              return isWorkDay ? (
                 <button key={key} type="button" className={active ? "day-btn active" : "day-btn"} onClick={() => chooseDate(key)}>
-                  <span>{day}</span><i className="dot" />
+                  <span>{day}</span>
+                  <span className="day-dots">
+                    {freeCount > 0 ? <i className="dot blue-dot" title="Есть свободное окно" /> : null}
+                    {busyCount > 0 ? <i className="dot gray-dot" title="Есть занятое окно" /> : null}
+                  </span>
                 </button>
               ) : (
                 <span key={key} className="day-btn muted" aria-disabled="true"><span>{day}</span></span>
@@ -219,7 +244,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
             </div>
           </form>
         ) : (
-          <div className="empty-state"><h3>Выберите время справа</h3><p>После выбора времени здесь появится форма записи.</p></div>
+          <div className="empty-state"><h3>Свободного времени на эту дату нет</h3><p>Можно посмотреть другой день или оставить лист ожидания. Расписание, к сожалению, не резиновое. Кто бы сомневался.</p></div>
         )}
       </section>
     </>
