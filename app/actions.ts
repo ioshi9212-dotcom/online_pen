@@ -163,6 +163,21 @@ export async function joinWaitlist(formData: FormData) {
   redirect(`/my?client=${token}&waitlist=${waitMode === "DATES" ? "dates" : "nearest"}#waitlist`);
 }
 
+export async function cancelWaitlistEntry(formData: FormData) {
+  const token = required(formData.get("clientToken"), "Клиент");
+  const waitlistId = required(formData.get("waitlistId"), "Лист ожидания");
+
+  const client = await prisma.client.findUnique({ where: { publicToken: token } });
+  if (!client) redirect("/login");
+
+  await prisma.waitlistEntry.updateMany({
+    where: { id: waitlistId, clientId: client.id, status: "ACTIVE" },
+    data: { status: "CANCELLED_BY_CLIENT", closedAt: new Date() }
+  });
+
+  redirect(`/my?client=${token}&waitlist=cancelled#waitlist`);
+}
+
 export async function cancelClientBooking(formData: FormData) {
   const token = required(formData.get("clientToken"), "Клиент");
   const bookingId = required(formData.get("bookingId"), "Запись");
