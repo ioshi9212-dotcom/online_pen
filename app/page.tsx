@@ -20,7 +20,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="card public-text-steps">
+      <section className="public-text-steps">
         <h2>Как получить доступ</h2>
         <div className="public-text-step-list">
           <div>
