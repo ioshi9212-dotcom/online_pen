@@ -3,6 +3,39 @@
   font: inherit;
 }
 
+.calendar-month-switcher {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.calendar-month-switcher b {
+  text-align: center;
+}
+
+.month-arrow,
+.month-arrow-placeholder {
+  width: 42px;
+  height: 38px;
+}
+
+.month-arrow {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  cursor: pointer;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.month-arrow:hover {
+  background: #e8f1ff;
+  border-color: var(--blue);
+}
+
 .instruction-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -71,13 +104,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 118px;
+  min-width: 124px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel-soft);
   padding: 8px 10px;
   font-weight: 800;
   color: var(--text);
+}
+
+.toggle-label .triangle {
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 6px;
 }
 
 .open-label {
