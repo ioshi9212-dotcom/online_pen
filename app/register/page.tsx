@@ -15,7 +15,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
           </div>
         ) : (
           <div className="notice">
-            Уже отправляли заявку? Не заполняйте заново — нажмите “Я уже зарегистрирован” и проверьте статус.
+            Уже отправляли заявку? Не заполняйте заново — нажмите “Я уже зарегистрирована” и проверьте статус.
           </div>
         )}
         <form action={registerClient} className="grid">
@@ -30,7 +30,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
           <label>Комментарий<textarea name="comment" /></label>
           <div className="actions">
             <button type="submit">Отправить заявку</button>
-            <a className="button secondary" href="/login">Я уже зарегистрирован</a>
+            <a className="button secondary" href="/login">Я уже зарегистрирована</a>
           </div>
         </form>
       </section>
