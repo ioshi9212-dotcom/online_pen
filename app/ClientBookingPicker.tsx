@@ -12,6 +12,7 @@ type WindowItem = {
 type ServiceItem = {
   id: string;
   title: string;
+  description?: string | null;
   durationMinutes: number;
   price: number;
 };
@@ -226,7 +227,11 @@ export default function ClientBookingPicker({ token, client, windows, services, 
                 {services.map((service, index) => (
                   <label className="service-check" key={service.id}>
                     <input type="radio" name="serviceId" value={service.id} defaultChecked={index === 0} />
-                    <span><b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small></span>
+                    <span>
+                      <b>{service.title}</b>
+                      {service.description ? <small className="service-description">{service.description}</small> : null}
+                      <small>{service.durationMinutes} мин · {rub(service.price)}</small>
+                    </span>
                   </label>
                 ))}
               </div>
