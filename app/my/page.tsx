@@ -149,9 +149,9 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       </section>
 
       <section className="info-cards instruction-cards">
-        <article className="info-card"><h3>1. Дата</h3><p>Даты с точкой — дни, где есть свободные окна.</p></article>
-        <article className="info-card"><h3>2. Время</h3><p>Список свободных окон меняется справа без перезагрузки страницы.</p></article>
-        <article className="info-card"><h3>3. Заявка</h3><p>Выберите одну основную услугу и отправьте запись мастеру.</p></article>
+        <article className="info-card"><h3>1. Календарь</h3><p>Серые числа — день недоступен. Белые — можно открыть. Синяя точка — есть свободное место, серая — часть времени уже занята.</p></article>
+        <article className="info-card"><h3>2. Время</h3><p>Нажмите дату — справа поменяется список времени без перезагрузки и прыжков страницы. Почти магия, но дешевле.</p></article>
+        <article className="info-card"><h3>3. Заявка</h3><p>Выберите свободное время и одну основную услугу. Занятое время уже забронировано и не ждёт героев.</p></article>
       </section>
 
       <ClientBookingPicker
