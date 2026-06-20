@@ -22,7 +22,7 @@ function birthDateFrom(value: string) {
 function myUrl(token: string, params: Record<string, string | undefined> = {}) {
   const search = new URLSearchParams({ client: token });
   Object.entries(params).forEach(([key, value]) => {
-    if (value) search.set(key, value);
+    if (value) search.set(key, String(value));
   });
   return `/my?${search.toString()}`;
 }
@@ -95,7 +95,7 @@ export async function createBooking(formData: FormData) {
   if (!client || client.status !== "APPROVED") redirect("/unavailable");
 
   const service = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!service || !service.isActive) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
+  if (!service || !service.isActive || !service.showInBooking) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
 
   const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
   if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
