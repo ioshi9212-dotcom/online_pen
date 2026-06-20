@@ -3,7 +3,7 @@ import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { createService, deleteService, moveService, toggleService, updateService } from "./actions";
+import { createService, deleteService, moveService, toggleBookingService, toggleService, updateService } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ type ServiceLite = {
   durationMinutes: number;
   price: number;
   isActive: boolean;
+  showInBooking: boolean;
 };
 
 function param(searchParams: SearchParams, key: string) {
@@ -30,6 +31,7 @@ function AdminToast({ searchParams, serviceTitle }: { searchParams: SearchParams
   const archived = param(searchParams, "archived");
   const duplicate = param(searchParams, "duplicate");
   const toggled = param(searchParams, "toggled");
+  const booking = param(searchParams, "booking");
   const moved = param(searchParams, "moved");
   const error = param(searchParams, "error");
 
@@ -41,14 +43,15 @@ function AdminToast({ searchParams, serviceTitle }: { searchParams: SearchParams
   if (deleted) text = "Удалила услугу.";
   if (archived) text = `У услуги ${serviceTitle(archived)} уже есть записи, поэтому я не удалила её, а скрыла.`;
   if (toggled) text = param(searchParams, "visible") === "true" ? `Вернула в прайс: ${serviceTitle(toggled)}.` : `Скрыла из прайса: ${serviceTitle(toggled)}.`;
+  if (booking) text = param(searchParams, "visible") === "true" ? `Теперь можно выбирать при записи: ${serviceTitle(booking)}.` : `Убрала из выбора при записи: ${serviceTitle(booking)}.`;
   if (moved) text = `Передвинула: ${serviceTitle(moved)}.`;
   if (duplicate) {
     tone = "notice";
-    text = `Такая услуга уже есть: ${serviceTitle(duplicate)}. Второй раз не добавляю.`;
+    text = `Такая позиция уже есть: ${serviceTitle(duplicate)}. Второй раз не добавляю.`;
   }
   if (error === "empty-title") {
     tone = "danger-notice";
-    text = "Название пустое. В прайс услугу без имени не ставим.";
+    text = "Название пустое. В прайс позицию без имени не ставим.";
   }
   if (error && !text) {
     tone = "danger-notice";
@@ -84,30 +87,36 @@ function ServiceForm({ mode, service }: { mode: "create" | "edit"; service?: Ser
       <div className="grid-3">
         <label>
           Название
-          <input name="title" required placeholder="Маникюр + покрытие" defaultValue={service?.title ?? ""} autoFocus />
+          <input name="title" required placeholder="Маникюр" defaultValue={service?.title ?? ""} autoFocus />
         </label>
         <label>
           Длительность
-          <DurationSelect defaultValue={service?.durationMinutes ?? 150} />
+          <DurationSelect defaultValue={service?.durationMinutes ?? 120} />
         </label>
         <label>
           Цена
-          <input name="price" type="number" defaultValue={service?.price ?? 2200} min="0" required />
+          <input name="price" type="number" defaultValue={service?.price ?? 2000} min="0" required />
         </label>
       </div>
       <label>
         Описание
-        <textarea name="description" defaultValue={service?.description ?? ""} placeholder="Например: снятие, маникюр, покрытие. Можно оставить пустым." />
+        <textarea name="description" defaultValue={service?.description ?? ""} placeholder="Например: снятие, маникюр, покрытие. Для допов можно написать: добавляется к основной услуге." />
       </label>
-      {isEdit ? (
+      <div className="service-visibility-box">
         <label className="inline-check service-visible-check">
           <input name="isActive" type="checkbox" defaultChecked={service?.isActive ?? true} />
-          Показывать клиентам в прайсе и записи
+          Показывать в прайсе
         </label>
-      ) : null}
+        <p>Это видит клиент в разделе “Прайс”: основные услуги, допы, дизайн, френч, ремонт.</p>
+        <label className="inline-check service-visible-check">
+          <input name="showInBooking" type="checkbox" defaultChecked={service?.showInBooking ?? true} />
+          Можно выбрать при записи
+        </label>
+        <p>Включайте только для основных услуг, под которые реально бронируется отдельное окно. Френч/дизайн можно оставить только в прайсе.</p>
+      </div>
       <div className="modal-actions">
         <a className="button secondary" href="/admin/services">Отмена</a>
-        <button>{isEdit ? "Сохранить" : "Добавить услугу"}</button>
+        <button>{isEdit ? "Сохранить" : "Добавить позицию"}</button>
       </div>
     </form>
   );
@@ -119,9 +128,12 @@ function ServiceRow({ service }: { service: ServiceLite }) {
       <div className="service-main-info">
         <div className="service-title-line">
           <h3>{service.title}</h3>
-          <span className={service.isActive ? "status ok-status" : "status"}>{service.isActive ? "В прайсе" : "Скрыта"}</span>
+          <div className="service-statuses">
+            <span className={service.isActive ? "status ok-status" : "status"}>{service.isActive ? "В прайсе" : "Скрыта"}</span>
+            {service.isActive ? <span className={service.showInBooking ? "status ok-status" : "status wait"}>{service.showInBooking ? "Можно записаться" : "Только прайс"}</span> : null}
+          </div>
         </div>
-        {service.description ? <p>{service.description}</p> : <p className="small">Описание не заполнено. Клиент увидит только название, цену и длительность.</p>}
+        {service.description ? <p>{service.description}</p> : <p className="small">Описание не заполнено. Клиент увидит название, цену и длительность.</p>}
         <div className="service-meta-row">
           <span className="pill">{durationLabel(service.durationMinutes)}</span>
           <span className="pill strong-pill">{rub(service.price)}</span>
@@ -130,10 +142,15 @@ function ServiceRow({ service }: { service: ServiceLite }) {
 
       <div className="service-actions-panel">
         <a className="button secondary" href={`/admin/services?edit=${service.id}`}>Редактировать</a>
+        <form action={toggleBookingService}>
+          <input type="hidden" name="id" value={service.id} />
+          <input type="hidden" name="next" value={service.showInBooking ? "false" : "true"} />
+          <button className="secondary" disabled={!service.isActive}>{service.showInBooking ? "Убрать из записи" : "Включить в запись"}</button>
+        </form>
         <form action={toggleService}>
           <input type="hidden" name="id" value={service.id} />
           <input type="hidden" name="next" value={service.isActive ? "false" : "true"} />
-          <button className="secondary">{service.isActive ? "Скрыть" : "Показать"}</button>
+          <button className="secondary">{service.isActive ? "Скрыть из прайса" : "Показать в прайсе"}</button>
         </form>
         <div className="service-move-actions">
           <form action={moveService}>
@@ -151,7 +168,7 @@ function ServiceRow({ service }: { service: ServiceLite }) {
           <summary>Удалить</summary>
           <form action={deleteService}>
             <input type="hidden" name="id" value={service.id} />
-            <p className="small">Если по услуге уже были записи, я просто скрою её, чтобы история не сломалась.</p>
+            <p className="small">Если по позиции уже были записи, я просто скрою её, чтобы история не сломалась.</p>
             <button className="danger">Да, удалить</button>
           </form>
         </details>
@@ -164,13 +181,15 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
   if (!isAdmin()) redirect("/admin/login");
 
   const services = await prisma.service.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
-  const active = services.filter((service) => service.isActive);
+  const priceVisible = services.filter((service) => service.isActive);
+  const bookingVisible = services.filter((service) => service.isActive && service.showInBooking);
+  const priceOnly = services.filter((service) => service.isActive && !service.showInBooking);
   const hidden = services.filter((service) => !service.isActive);
   const editId = param(searchParams, "edit");
   const showAddModal = param(searchParams, "add") === "1";
   const editService = editId ? services.find((service) => service.id === editId) : undefined;
   const byId = new Map(services.map((service) => [service.id, service.title]));
-  const serviceTitle = (id?: string) => (id ? byId.get(id) ?? "услуга" : "услуга");
+  const serviceTitle = (id?: string) => (id ? byId.get(id) ?? "позиция" : "позиция");
 
   return (
     <section className="admin-services-page grid">
@@ -179,48 +198,62 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
       <div className="card service-hero-card">
         <div>
           <p className="eyebrow">Админка · прайс</p>
-          <h1>Услуги без каши</h1>
-          <p className="lead">Длительность выбирается из готового списка, чтобы потом запись не жила своей странной жизнью.</p>
+          <h1>Прайс и услуги для записи</h1>
+          <p className="lead">Прайс может содержать всё: маникюр, френч, дизайн, ремонт. А при записи показываем только основные услуги, под которые нужно отдельное окно.</p>
         </div>
         <div className="service-stats">
-          <div><strong>{active.length}</strong><span>видно клиентам</span></div>
-          <div><strong>{hidden.length}</strong><span>скрыто</span></div>
-          <div><strong>{services.length}</strong><span>всего услуг</span></div>
+          <div><strong>{priceVisible.length}</strong><span>в прайсе</span></div>
+          <div><strong>{bookingVisible.length}</strong><span>можно выбрать</span></div>
+          <div><strong>{priceOnly.length}</strong><span>только прайс</span></div>
         </div>
       </div>
 
       <div className="services-toolbar card compact-card">
         <div>
-          <h2>Прайс</h2>
-          <p>Основной порядок услуг меняется стрелками. Редактирование — в отдельном окне.</p>
+          <h2>Позиции прайса</h2>
+          <p>Например: “Маникюр — 2000 ₽” включаем в запись, а “Френч — 200 ₽” оставляем только в прайсе.</p>
         </div>
         <div className="actions">
           <a className="button secondary" href="/admin">Админка</a>
-          <a className="button" href="/admin/services?add=1">+ Добавить услугу</a>
+          <a className="button" href="/admin/services?add=1">+ Добавить позицию</a>
         </div>
       </div>
 
       {services.length === 0 ? (
         <div className="empty-state">
           <h3>Прайс пустой</h3>
-          <p>Добавь первую услугу.</p>
+          <p>Добавь первую позицию.</p>
           <div className="actions">
             <a className="button secondary" href="/admin">Админка</a>
-            <a className="button" href="/admin/services?add=1">Добавить услугу</a>
+            <a className="button" href="/admin/services?add=1">Добавить позицию</a>
           </div>
         </div>
       ) : null}
 
-      {active.length > 0 ? (
+      {bookingVisible.length > 0 ? (
         <div className="service-list-panel card">
           <div className="section-head">
             <div>
-              <h2>Активные услуги</h2>
-              <p>Их видят клиентки в прайсе и при записи.</p>
+              <h2>Можно выбрать при записи</h2>
+              <p>Только эти услуги клиент видит в форме записи.</p>
             </div>
           </div>
           <div className="service-row-list">
-            {active.map((service) => <ServiceRow service={service} key={service.id} />)}
+            {bookingVisible.map((service) => <ServiceRow service={service} key={service.id} />)}
+          </div>
+        </div>
+      ) : null}
+
+      {priceOnly.length > 0 ? (
+        <div className="service-list-panel card">
+          <div className="section-head">
+            <div>
+              <h2>Только в прайсе</h2>
+              <p>Клиенты видят эти позиции в прайсе, но не могут выбрать их как отдельную запись.</p>
+            </div>
+          </div>
+          <div className="service-row-list">
+            {priceOnly.map((service) => <ServiceRow service={service} key={service.id} />)}
           </div>
         </div>
       ) : null}
@@ -229,8 +262,8 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
         <details className="card soft-details services-hidden-box">
           <summary>
             <div>
-              <h2>Скрытые услуги</h2>
-              <p>{hidden.length} шт. Клиентки их не видят.</p>
+              <h2>Скрытые позиции</h2>
+              <p>{hidden.length} шт. Клиенты их не видят.</p>
             </div>
             <span className="button secondary">Открыть</span>
           </summary>
@@ -245,7 +278,7 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
           <div className="modal-card">
             <div className="modal-head">
               <div>
-                <p className="eyebrow">Новая услуга</p>
+                <p className="eyebrow">Новая позиция</p>
                 <h2 id="add-service-title">Добавить в прайс</h2>
               </div>
               <a href="/admin/services" className="modal-close" aria-label="Закрыть">×</a>
@@ -273,7 +306,7 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
       {editId && !editService ? (
         <div className="toast danger-notice" role="status">
           <strong>Не нашла</strong>
-          <span>Этой услуги уже нет. Возможно, она была удалена.</span>
+          <span>Этой позиции уже нет. Возможно, она была удалена.</span>
           <a href="/admin/services" aria-label="Закрыть сообщение">×</a>
         </div>
       ) : null}
