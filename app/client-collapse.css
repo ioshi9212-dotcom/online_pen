@@ -3,6 +3,30 @@
   font: inherit;
 }
 
+.instruction-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding: 0 4px;
+}
+
+.instruction-cards .info-card {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.instruction-cards .info-card h3,
+.instruction-cards .info-card p {
+  margin: 0;
+}
+
+.instruction-cards .info-card p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
 .collapsed-client-section {
   display: block;
 }
@@ -35,6 +59,39 @@
   margin-top: 4px;
 }
 
+.collapse-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 118px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-soft);
+  padding: 8px 10px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.open-label {
+  display: none;
+}
+
+.collapsed-client-section[open] .closed-label {
+  display: none;
+}
+
+.collapsed-client-section[open] .open-label {
+  display: inline;
+}
+
 .waitlist-status-strip {
   border: 1px solid #ead391;
   background: #fff9e8;
@@ -52,8 +109,16 @@
 }
 
 @media (max-width: 760px) {
+  .instruction-cards {
+    grid-template-columns: 1fr;
+  }
+
   .collapsible-summary {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .collapse-actions {
+    justify-content: flex-start;
   }
 }
