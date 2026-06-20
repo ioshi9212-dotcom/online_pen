@@ -4,8 +4,12 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
   return (
     <main className="auth-page">
       <section className="auth-card">
+        <p className="muted">Новая заявка</p>
         <h1>Регистрация</h1>
-        <p>После подтверждения откроется личный кабинет со свободными окнами.</p>
+        <p>После подтверждения мастера откроется личный кабинет со свободными окнами.</p>
+        <div className="notice">
+          Уже отправляли заявку? Не заполняйте заново — нажмите “Я уже зарегистрирован” и проверьте статус.
+        </div>
         <form action={registerClient} className="grid">
           <div className="grid-2">
             <label>Имя<input name="firstName" required /></label>
@@ -16,7 +20,10 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
             <label>Дата рождения<input name="birthDate" required type="date" /></label>
           </div>
           <label>Комментарий<textarea name="comment" /></label>
-          <div className="actions"><button type="submit">Отправить заявку</button><a className="button secondary" href="/login">Я уже клиент</a></div>
+          <div className="actions">
+            <button type="submit">Отправить заявку</button>
+            <a className="button secondary" href="/login">Я уже зарегистрирован</a>
+          </div>
         </form>
       </section>
     </main>
