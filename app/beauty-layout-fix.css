@@ -1,0 +1,407 @@
+/* Final layout corrections for the beauty reference mockup */
+
+/* Top block: smaller title, buttons on the left, reserved visual area on the right */
+.beauty-top-card {
+  grid-template-columns: minmax(0, 1fr) clamp(100px, 24vw, 220px) !important;
+  min-height: 154px !important;
+  padding: 22px 24px 16px !important;
+  gap: 12px 22px !important;
+}
+
+.beauty-brand {
+  gap: 14px !important;
+  font-size: clamp(22px, 4.6vw, 34px) !important;
+  line-height: 1.08 !important;
+}
+
+.beauty-brand-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 14px !important;
+  font-size: 20px !important;
+}
+
+.beauty-menu-links {
+  width: min(100%, 520px) !important;
+  gap: 10px !important;
+}
+
+.beauty-menu-row {
+  min-height: 48px !important;
+  grid-template-columns: 26px minmax(0, 1fr) 16px !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+.beauty-menu-icon {
+  font-size: 18px !important;
+}
+
+.beauty-menu-arrow {
+  font-size: 23px !important;
+}
+
+.beauty-master-entry small {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+.beauty-top-card::before {
+  right: 42px !important;
+  top: 28px !important;
+  width: 82px !important;
+  height: 104px !important;
+}
+
+.beauty-top-card::after {
+  right: 0 !important;
+  bottom: -20px !important;
+  width: 190px !important;
+  height: 112px !important;
+}
+
+/* Hero: title smaller, closer to screenshot */
+.client-page .hero,
+.public-page .hero {
+  min-height: 176px !important;
+  padding: 24px 28px !important;
+}
+
+.client-page .hero h1,
+.public-page .hero h1 {
+  font-size: clamp(24px, 5vw, 34px) !important;
+  line-height: 1.06 !important;
+  max-width: 360px !important;
+}
+
+.client-page .hero .lead,
+.public-page .hero .lead {
+  max-width: 360px !important;
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+}
+
+.client-page .hero::before,
+.public-page .hero::before {
+  right: 56px !important;
+  top: 34px !important;
+  width: 108px !important;
+  height: 94px !important;
+}
+
+.client-page .hero::after,
+.public-page .hero::after {
+  right: 18px !important;
+  bottom: 4px !important;
+  width: 168px !important;
+  height: 102px !important;
+}
+
+/* Instruction block: rows, not columns */
+.instruction-cards {
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  padding: 18px 22px !important;
+}
+
+.instruction-cards .info-card {
+  display: grid !important;
+  grid-template-columns: 118px minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 16px !important;
+  padding: 13px 0 !important;
+}
+
+.instruction-cards .info-card + .info-card {
+  border-left: 0 !important;
+  border-top: 1px solid var(--beauty-line) !important;
+}
+
+.instruction-cards h3 {
+  margin: 0 !important;
+  font-size: 17px !important;
+  white-space: nowrap;
+}
+
+.instruction-cards p {
+  margin: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+}
+
+.instruction-cards h3::before {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+/* Calendar month and arrows */
+.calendar-month-switcher {
+  grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+  gap: 10px !important;
+}
+
+.calendar-month-switcher b {
+  text-transform: capitalize !important;
+  font-size: 19px !important;
+}
+
+.month-arrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  height: 38px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.month-arrow-placeholder {
+  display: block !important;
+  width: 42px !important;
+  height: 38px !important;
+}
+
+.calendar-grid {
+  gap: 8px !important;
+}
+
+.calendar-grid .day-btn,
+.calendar-grid button.day-btn,
+.calendar-grid span.day-btn {
+  width: 100% !important;
+  aspect-ratio: 1 / .84 !important;
+  min-height: 46px !important;
+  border-radius: 10px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 6px !important;
+}
+
+.calendar-grid button.day-btn.active {
+  border-radius: 10px !important;
+}
+
+.day-dots {
+  margin-top: 2px !important;
+}
+
+/* Booking lower block: like screenshot, label on left, date card on right */
+.booking-builder {
+  padding: 24px 28px !important;
+}
+
+.booking-builder .section-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: start !important;
+  gap: 18px !important;
+}
+
+.booking-builder .section-head h2 {
+  font-size: clamp(26px, 5vw, 38px) !important;
+  line-height: 1 !important;
+  max-width: 280px !important;
+}
+
+.booking-builder .section-head > span.status {
+  min-width: 210px !important;
+  min-height: 70px !important;
+  border-radius: 18px !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  background: rgba(255,255,255,.72) !important;
+  border: 1px solid var(--beauty-line) !important;
+  color: var(--beauty-text) !important;
+}
+
+.booking-builder-form {
+  gap: 16px !important;
+}
+
+.booking-summary-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.booking-summary-row > div {
+  min-height: 58px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 4px !important;
+  padding: 12px 14px !important;
+}
+
+.booking-summary-row > div span {
+  font-size: 12px !important;
+  color: var(--beauty-muted) !important;
+}
+
+.service-check-grid {
+  gap: 10px !important;
+}
+
+.service-check {
+  min-height: 64px !important;
+  padding: 13px 14px !important;
+}
+
+.confirm-box {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  padding: 18px !important;
+}
+
+.confirm-box h3,
+.confirm-box p {
+  margin: 0 !important;
+}
+
+.confirm-box button {
+  min-width: 210px !important;
+}
+
+@media (max-width: 760px) {
+  .beauty-top-card {
+    grid-template-columns: minmax(0, 1fr) 96px !important;
+    min-height: 170px !important;
+    padding: 18px 18px 14px !important;
+    gap: 10px 14px !important;
+  }
+
+  .beauty-brand {
+    font-size: 26px !important;
+    gap: 12px !important;
+    padding-right: 0 !important;
+  }
+
+  .beauty-brand-icon {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .beauty-menu-links {
+    grid-column: 1 / 2 !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .beauty-menu-row {
+    min-height: 44px !important;
+    padding: 9px 12px !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+  }
+
+  .beauty-top-card::before {
+    right: 26px !important;
+    top: 28px !important;
+    width: 58px !important;
+    height: 82px !important;
+  }
+
+  .beauty-top-card::after {
+    right: -16px !important;
+    bottom: -22px !important;
+    width: 128px !important;
+    height: 92px !important;
+  }
+
+  .beauty-master-entry small {
+    font-size: 12px !important;
+  }
+
+  .client-page .hero,
+  .public-page .hero {
+    min-height: 150px !important;
+    padding: 20px 18px !important;
+  }
+
+  .client-page .hero h1,
+  .public-page .hero h1 {
+    font-size: 28px !important;
+    max-width: 220px !important;
+  }
+
+  .client-page .hero .lead,
+  .public-page .hero .lead {
+    max-width: 240px !important;
+    font-size: 14px !important;
+  }
+
+  .client-page .hero::before,
+  .public-page .hero::before {
+    right: 22px !important;
+    top: 26px !important;
+    width: 76px !important;
+    height: 70px !important;
+  }
+
+  .client-page .hero::after,
+  .public-page .hero::after {
+    width: 116px !important;
+    height: 76px !important;
+  }
+
+  .instruction-cards {
+    grid-template-columns: 1fr !important;
+    padding: 15px 18px !important;
+  }
+
+  .instruction-cards .info-card {
+    grid-template-columns: 92px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    padding: 11px 0 !important;
+  }
+
+  .instruction-cards h3 {
+    font-size: 15px !important;
+  }
+
+  .instruction-cards p {
+    font-size: 13px !important;
+  }
+
+  .calendar-grid {
+    gap: 7px !important;
+  }
+
+  .calendar-grid .day-btn,
+  .calendar-grid button.day-btn,
+  .calendar-grid span.day-btn {
+    min-height: 44px !important;
+    border-radius: 9px !important;
+    aspect-ratio: 1 / .86 !important;
+  }
+
+  .booking-builder {
+    padding: 20px 18px !important;
+  }
+
+  .booking-builder .section-head,
+  .confirm-box {
+    grid-template-columns: 1fr !important;
+  }
+
+  .booking-builder .section-head h2 {
+    font-size: 28px !important;
+    max-width: 240px !important;
+  }
+
+  .booking-builder .section-head > span.status {
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 56px !important;
+  }
+
+  .booking-summary-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .confirm-box button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
