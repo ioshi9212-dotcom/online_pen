@@ -1,77 +1,650 @@
-/* Soft beauty theme for client-facing booking pages. */
+/* Beauty reference theme: soft salon cards, vertical menu rows, large serif titles, CSS illustrations. */
 :root {
-  --beauty-bg: #f6f3ef;
+  --beauty-bg: #f5f1ee;
+  --beauty-panel: rgba(255, 252, 249, .92);
+  --beauty-paper: #fffdfb;
   --beauty-line: #eadfe2;
   --beauty-rose: #be6386;
-  --beauty-rose-dark: #8f405f;
-  --beauty-rose-soft: #f7e6ec;
-  --beauty-text: #27232a;
-  --beauty-muted: #706771;
-  --beauty-shadow: 0 14px 40px rgba(86, 54, 67, .08);
+  --beauty-rose-2: #cf7896;
+  --beauty-rose-dark: #803b58;
+  --beauty-rose-soft: #f8e8ee;
+  --beauty-text: #262128;
+  --beauty-muted: #6f6570;
+  --beauty-soft-shadow: 0 18px 48px rgba(81, 50, 63, .09);
+  --beauty-hard-shadow: 0 8px 22px rgba(81, 50, 63, .07);
+  --radius: 22px;
+  --blue: #be6386;
+  --blue-dark: #803b58;
 }
+
+html,
 body {
   background:
-    radial-gradient(circle at 92% 3%, rgba(218, 164, 181, .22), transparent 26%),
-    radial-gradient(circle at 7% 28%, rgba(255, 235, 226, .9), transparent 22%),
-    linear-gradient(180deg, #fbfaf7 0%, var(--beauty-bg) 100%);
+    radial-gradient(circle at 95% 2%, rgba(219, 169, 184, .25), transparent 28%),
+    radial-gradient(circle at 2% 26%, rgba(255, 234, 226, .82), transparent 22%),
+    linear-gradient(180deg, #fbfaf8 0%, var(--beauty-bg) 100%) !important;
+  color: var(--beauty-text) !important;
 }
-.client-page, .public-page, .auth-page { color: var(--beauty-text); }
-.client-page .card, .public-page .card, .auth-card, .client-page .calendar-card, .client-page .selected-day-card, .compact-client-menu {
-  position: relative; overflow: hidden;
+
+.app-shell {
+  background: transparent !important;
+}
+
+.client-page,
+.public-page,
+.auth-page {
+  gap: 18px !important;
+  color: var(--beauty-text) !important;
+}
+
+.client-page .hero,
+.public-page .hero,
+.auth-card,
+.client-page .card,
+.public-page .card,
+.client-page .calendar-card,
+.client-page .selected-day-card,
+.beauty-top-card {
+  position: relative !important;
+  overflow: hidden !important;
   border: 1px solid var(--beauty-line) !important;
   border-radius: 24px !important;
-  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,250,247,.88)) !important;
-  box-shadow: var(--beauty-shadow) !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,249,246,.90)) !important;
+  box-shadow: var(--beauty-soft-shadow) !important;
+  color: var(--beauty-text) !important;
 }
-.client-page .card::after, .public-page .card::after, .client-page .calendar-card::after, .client-page .selected-day-card::after, .auth-card::after, .compact-client-menu::after {
-  content: ""; position: absolute; right: -28px; top: -28px; width: 190px; height: 170px; opacity: .42; pointer-events: none;
-  background: radial-gradient(circle at 45% 45%, rgba(190, 99, 134, .20) 0 18%, transparent 19%), radial-gradient(circle at 65% 62%, rgba(235, 194, 204, .35) 0 15%, transparent 16%), radial-gradient(circle at 34% 73%, rgba(244, 217, 223, .45) 0 13%, transparent 14%), linear-gradient(135deg, rgba(255,255,255,0), rgba(190,99,134,.08));
-  border-radius: 42% 58% 50% 50%; transform: rotate(-12deg);
+
+.client-page .hero > *,
+.public-page .hero > *,
+.auth-card > *,
+.client-page .card > *,
+.public-page .card > *,
+.client-page .calendar-card > *,
+.client-page .selected-day-card > *,
+.beauty-top-card > * {
+  position: relative;
+  z-index: 2;
 }
-.client-page .hero, .public-page .hero {
-  position: relative; overflow: hidden; border: 1px solid var(--beauty-line); border-radius: 26px; padding: 28px;
-  background: radial-gradient(circle at 82% 50%, rgba(190, 99, 134, .13), transparent 22%), radial-gradient(circle at 92% 20%, rgba(244, 207, 216, .34), transparent 19%), linear-gradient(135deg, #fffdfb 0%, #fff8f6 100%);
-  box-shadow: var(--beauty-shadow);
+
+.client-page h1,
+.public-page h1,
+.auth-card h1,
+.client-page h2,
+.public-page h2,
+.client-page .calendar-card h2,
+.client-page .selected-day-card h2,
+.calendar-month-switcher b,
+.beauty-brand b {
+  font-family: Georgia, "Times New Roman", serif !important;
+  color: var(--beauty-text) !important;
+  letter-spacing: -.025em !important;
 }
-.client-page .hero::after, .public-page .hero::after {
-  content: ""; position: absolute; right: 32px; top: 28px; width: 142px; height: 142px; border-radius: 32px;
-  background: linear-gradient(135deg, rgba(190, 99, 134, .70), rgba(234, 187, 201, .45)), radial-gradient(circle at 55% 20%, rgba(255,255,255,.8), transparent 16%);
-  opacity: .18; transform: rotate(10deg); pointer-events: none;
+
+.client-page h1,
+.public-page h1 {
+  font-size: clamp(42px, 8vw, 66px) !important;
+  line-height: .93 !important;
+  max-width: 560px;
 }
-.client-page .hero h1, .public-page .hero h1, .auth-card h1, .client-page h2, .public-page h2, .calendar-month-switcher b, .client-page .calendar-card h2, .client-page .selected-day-card h2 {
-  font-family: Georgia, "Times New Roman", serif; letter-spacing: -.02em; color: var(--beauty-text);
+
+.client-page h2,
+.public-page h2 {
+  font-size: clamp(28px, 5vw, 42px) !important;
+  line-height: .98 !important;
 }
-.client-page .muted, .public-page .muted, .client-page .lead, .public-page .lead, .auth-card p, .client-page p, .public-page p { color: var(--beauty-muted); }
-button, .button, .client-page button, .client-page .button, .public-page button, .public-page .button, .auth-page button, .auth-page .button { border-radius: 14px !important; }
-.client-page button:not(.secondary):not(.month-arrow):not(.day-btn):not(.time-btn), .client-page .button:not(.secondary), .public-page button:not(.secondary), .public-page .button:not(.secondary), .auth-page button:not(.secondary), .auth-page .button:not(.secondary) {
-  border-color: var(--beauty-rose) !important; background: linear-gradient(135deg, var(--beauty-rose), #cf7896) !important; color: #fff !important; box-shadow: 0 10px 24px rgba(190, 99, 134, .20);
+
+.client-page h3,
+.public-page h3 {
+  color: var(--beauty-rose-dark) !important;
 }
-.client-page .button.secondary, .public-page .button.secondary, .auth-page .button.secondary, .client-page button.secondary, .public-page button.secondary, .auth-page button.secondary {
-  border-color: var(--beauty-line) !important; background: rgba(255, 255, 255, .74) !important; color: var(--beauty-rose-dark) !important;
+
+.client-page p,
+.public-page p,
+.auth-card p,
+.client-page small,
+.public-page small,
+.muted,
+.lead {
+  color: var(--beauty-muted) !important;
 }
-.compact-client-menu { padding: 18px 24px !important; margin-top: 18px; }
-.compact-client-menu .brand-icon { background: var(--beauty-rose) !important; color: #fff !important; border-radius: 12px !important; }
-.compact-client-links a, .compact-client-links .primary-link { background: rgba(255,255,255,.82) !important; border: 1px solid var(--beauty-line) !important; color: var(--beauty-rose-dark) !important; box-shadow: 0 8px 22px rgba(86, 54, 67, .05); }
-.instruction-cards { border: 1px solid var(--beauty-line); border-radius: 24px; background: rgba(255, 255, 255, .62); box-shadow: var(--beauty-shadow); padding: 20px !important; }
-.calendar-layout { align-items: stretch; }
-.client-page .calendar-card, .client-page .selected-day-card { padding: 24px !important; }
-.calendar-legend .blue-dot, .calendar-grid .day-btn .day-dots .blue-dot { background: var(--beauty-rose) !important; }
-.calendar-grid button.day-btn { border-radius: 12px !important; border-color: var(--beauty-line) !important; background: rgba(255,255,255,.86) !important; }
-.calendar-grid button.day-btn.active { border-color: var(--beauty-rose) !important; background: var(--beauty-rose-soft) !important; outline: 3px solid rgba(190, 99, 134, .16) !important; }
-.calendar-grid .day-btn.muted { background: rgba(238, 236, 235, .88) !important; color: #a49ca3 !important; border-color: rgba(222, 216, 219, .75) !important; }
-.time-grid .time-btn.free, .client-page .time-btn.free { border-color: var(--beauty-rose) !important; background: linear-gradient(135deg, var(--beauty-rose), #d17a98) !important; color: #fff !important; box-shadow: 0 10px 24px rgba(190, 99, 134, .18); }
-.time-grid .time-btn.busy, .client-page .time-btn.busy { background: rgba(239, 236, 235, .9) !important; color: #8f8890 !important; border-color: var(--beauty-line) !important; }
-.booking-summary-row > div, .service-check, .price-preview-item, .booking-status-card, .waitlist-current-card, .waitlist-choice-card, .confirm-box { border-color: var(--beauty-line) !important; background: rgba(255,255,255,.72) !important; border-radius: 18px !important; }
-.service-check:has(input:checked) { border-color: var(--beauty-rose) !important; background: var(--beauty-rose-soft) !important; }
-.service-description { color: var(--beauty-muted) !important; font-weight: 500 !important; line-height: 1.25; }
-input, textarea, select { border-color: var(--beauty-line) !important; border-radius: 14px !important; background: rgba(255,255,255,.78) !important; }
-input:focus, textarea:focus, select:focus { outline: 3px solid rgba(190, 99, 134, .16) !important; border-color: var(--beauty-rose) !important; }
-.notice.ok-status, .ok-status, .status.ok { background: #f7e6ec !important; color: var(--beauty-rose-dark) !important; border-color: #eccad5 !important; }
-.waitlist-status-strip { background: #fff7e8 !important; border-color: #ead5a7 !important; }
+
+/* Top menu like the reference card */
+.beauty-top-card {
+  height: auto !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 210px !important;
+  gap: 18px 26px !important;
+  align-items: start !important;
+  padding: 24px 26px !important;
+  margin: 18px auto 14px !important;
+  border-radius: 24px !important;
+  min-height: 184px;
+}
+
+.beauty-top-card::before {
+  content: "";
+  position: absolute;
+  right: 38px;
+  top: 32px;
+  width: 94px;
+  height: 116px;
+  border-radius: 22px 22px 16px 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.88) 0 22%, transparent 23%),
+    linear-gradient(135deg, rgba(190,99,134,.78), rgba(235,190,202,.58));
+  opacity: .42;
+  transform: rotate(13deg);
+  box-shadow: 18px 22px 36px rgba(117, 61, 80, .10);
+  pointer-events: none;
+}
+
+.beauty-top-card::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: -18px;
+  width: 210px;
+  height: 120px;
+  opacity: .35;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 76% 20%, rgba(190,99,134,.33) 0 5px, transparent 6px),
+    radial-gradient(circle at 88% 35%, rgba(219,169,184,.38) 0 4px, transparent 5px),
+    linear-gradient(68deg, transparent 0 48%, rgba(150,115,98,.18) 49% 51%, transparent 52% 100%),
+    linear-gradient(110deg, transparent 0 51%, rgba(150,115,98,.15) 52% 54%, transparent 55% 100%);
+}
+
+.beauty-brand {
+  grid-column: 1 / 2;
+  align-self: start;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 22px !important;
+  font-size: clamp(30px, 6vw, 44px) !important;
+  font-weight: 700 !important;
+}
+
+.beauty-brand-icon {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 16px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: linear-gradient(135deg, var(--beauty-rose), #d184a0) !important;
+  color: #fff !important;
+  font-size: 24px !important;
+  box-shadow: 0 12px 24px rgba(190,99,134,.20) !important;
+}
+
+.beauty-menu-links {
+  grid-column: 1 / 2;
+  width: min(100%, 610px);
+  display: grid !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+.beauty-menu-row {
+  min-height: 58px !important;
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) 18px !important;
+  justify-content: stretch !important;
+  align-items: center !important;
+  gap: 13px !important;
+  padding: 14px 18px !important;
+  border: 1px solid var(--beauty-line) !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.78) !important;
+  color: var(--beauty-rose-dark) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  box-shadow: var(--beauty-hard-shadow) !important;
+}
+
+.beauty-menu-icon {
+  color: var(--beauty-rose) !important;
+  font-size: 22px !important;
+  text-align: center;
+}
+
+.beauty-menu-arrow {
+  color: var(--beauty-rose-dark) !important;
+  font-size: 28px !important;
+  line-height: 1;
+}
+
+.beauty-master-entry {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.beauty-master-entry small {
+  padding-left: 4px;
+  color: var(--beauty-muted) !important;
+  font-size: 14px;
+}
+
+/* Hero and decorative illustrations */
+.client-page .hero,
+.public-page .hero {
+  min-height: 238px;
+  padding: 32px 34px !important;
+  display: grid !important;
+  align-content: center !important;
+}
+
+.client-page .hero::before,
+.public-page .hero::before {
+  content: "";
+  position: absolute;
+  right: 74px;
+  top: 46px;
+  width: 128px;
+  height: 114px;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(190,99,134,.33) 1px, transparent 1px) 0 0 / 26px 100%,
+    linear-gradient(180deg, rgba(190,99,134,.28) 1px, transparent 1px) 0 0 / 100% 25px,
+    linear-gradient(135deg, #fffefa, #f8e8ee);
+  border: 1px solid rgba(190,99,134,.12);
+  opacity: .55;
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+
+.client-page .hero::after,
+.public-page .hero::after {
+  content: "";
+  position: absolute;
+  right: 28px;
+  bottom: 12px;
+  width: 220px;
+  height: 130px;
+  opacity: .35;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 62%, rgba(190,99,134,.32) 0 19px, transparent 20px),
+    radial-gradient(circle at 44% 50%, rgba(240,201,210,.55) 0 24px, transparent 25px),
+    radial-gradient(circle at 63% 34%, rgba(190,99,134,.25) 0 6px, transparent 7px),
+    linear-gradient(118deg, transparent 0 47%, rgba(145,117,100,.18) 48% 50%, transparent 51% 100%);
+}
+
+/* Instruction strip */
+.instruction-cards {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  padding: 22px 24px !important;
+  border: 1px solid var(--beauty-line) !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.70) !important;
+  box-shadow: var(--beauty-soft-shadow) !important;
+}
+
+.instruction-cards .info-card {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 20px !important;
+}
+
+.instruction-cards .info-card + .info-card {
+  border-left: 1px solid var(--beauty-line) !important;
+}
+
+.instruction-cards h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 20px !important;
+  color: var(--beauty-rose-dark) !important;
+}
+
+.instruction-cards h3::first-letter {
+  color: #fff;
+}
+
+.instruction-cards h3::before {
+  content: "";
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--beauty-rose), #cf7896);
+  box-shadow: 0 8px 18px rgba(190,99,134,.18);
+  display: inline-block;
+}
+
+/* Calendar block */
+.calendar-layout {
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.client-page .calendar-card,
+.client-page .selected-day-card {
+  padding: 26px !important;
+}
+
+.client-page .calendar-card::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 28px;
+  width: 34px;
+  height: 82px;
+  opacity: .24;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12px 12px, var(--beauty-rose) 0 3px, transparent 4px),
+    linear-gradient(105deg, transparent 0 47%, rgba(130,112,98,.35) 48% 50%, transparent 51%);
+}
+
+.calendar-month-switcher {
+  margin-top: 12px !important;
+}
+
+.calendar-month-switcher b,
+.client-page .calendar-card h2,
+.client-page .selected-day-card h2 {
+  font-family: Georgia, "Times New Roman", serif !important;
+}
+
+.month-arrow {
+  border-radius: 14px !important;
+  border-color: var(--beauty-line) !important;
+  background: rgba(255,255,255,.76) !important;
+  color: var(--beauty-rose-dark) !important;
+  box-shadow: var(--beauty-hard-shadow) !important;
+}
+
+.calendar-legend .blue-dot,
+.calendar-grid .day-btn .day-dots .blue-dot {
+  background: var(--beauty-rose) !important;
+}
+
+.calendar-grid button.day-btn {
+  border-radius: 12px !important;
+  border-color: var(--beauty-line) !important;
+  background: rgba(255,255,255,.86) !important;
+}
+
+.calendar-grid button.day-btn.active {
+  background: linear-gradient(135deg, var(--beauty-rose), #d17896) !important;
+  border-color: var(--beauty-rose) !important;
+  color: #fff !important;
+  outline: none !important;
+  box-shadow: 0 10px 22px rgba(190,99,134,.20) !important;
+}
+
+.calendar-grid button.day-btn.active .gray-dot {
+  background: rgba(255,255,255,.72) !important;
+}
+
+.calendar-grid button.day-btn.active .blue-dot {
+  background: #fff !important;
+}
+
+.calendar-grid .day-btn.muted {
+  background: rgba(238,236,235,.86) !important;
+  color: #a29ba2 !important;
+  border-color: rgba(223,215,218,.85) !important;
+}
+
+.client-page .time-btn.free,
+.time-grid .time-btn.free {
+  border-color: var(--beauty-rose) !important;
+  background: linear-gradient(135deg, var(--beauty-rose), #d17896) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 24px rgba(190,99,134,.20) !important;
+}
+
+.client-page .time-btn.busy,
+.time-grid .time-btn.busy {
+  background: rgba(239,236,235,.94) !important;
+  color: #8f8790 !important;
+  border-color: var(--beauty-line) !important;
+}
+
+/* Booking form like reference */
+.booking-builder {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 18px !important;
+}
+
+.booking-builder .section-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.booking-builder-form {
+  gap: 18px !important;
+}
+
+.booking-summary-row {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.booking-summary-row > div {
+  display: grid !important;
+  grid-template-columns: 120px minmax(0, 1fr) !important;
+  align-items: center !important;
+  min-height: 64px;
+  border-color: var(--beauty-line) !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.70) !important;
+}
+
+.service-check,
+.price-preview-item,
+.booking-status-card,
+.waitlist-current-card,
+.waitlist-choice-card,
+.confirm-box {
+  border-color: var(--beauty-line) !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.72) !important;
+}
+
+.service-check {
+  align-items: flex-start !important;
+}
+
+.service-check:has(input:checked) {
+  border-color: var(--beauty-rose) !important;
+  background: var(--beauty-rose-soft) !important;
+}
+
+.service-description {
+  display: block !important;
+  margin: 3px 0 2px !important;
+  color: var(--beauty-muted) !important;
+  font-weight: 500 !important;
+  line-height: 1.28 !important;
+}
+
+.confirm-box {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+}
+
+.confirm-box button {
+  min-width: 230px !important;
+}
+
+input,
+textarea,
+select {
+  border-color: var(--beauty-line) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.78) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 3px solid rgba(190,99,134,.16) !important;
+  border-color: var(--beauty-rose) !important;
+}
+
+button:not(.secondary):not(.danger):not(.month-arrow):not(.day-btn):not(.time-btn),
+.button:not(.secondary):not(.danger),
+.primary-link {
+  border-color: var(--beauty-rose) !important;
+  background: linear-gradient(135deg, var(--beauty-rose), #cf7896) !important;
+  color: #fff !important;
+  border-radius: 15px !important;
+  box-shadow: 0 10px 24px rgba(190,99,134,.20) !important;
+}
+
+.button.secondary,
+button.secondary {
+  background: rgba(255,255,255,.76) !important;
+  color: var(--beauty-rose-dark) !important;
+  border-color: var(--beauty-line) !important;
+}
+
+.notice.ok-status,
+.ok-status,
+.status.ok,
+.waitlist-status-strip {
+  background: var(--beauty-rose-soft) !important;
+  color: var(--beauty-rose-dark) !important;
+  border-color: #eccad5 !important;
+}
+
 @media (max-width: 760px) {
-  .client-page .hero, .public-page .hero, .client-page .card, .public-page .card, .auth-card, .client-page .calendar-card, .client-page .selected-day-card { border-radius: 22px !important; }
-  .client-page .hero, .public-page .hero { padding: 22px; }
-  .client-page .hero::after, .public-page .hero::after { width: 92px; height: 92px; right: 16px; top: 16px; }
-  .instruction-cards { padding: 18px !important; }
-  .client-page .hero h1, .public-page .hero h1 { font-size: clamp(34px, 10vw, 48px); line-height: .96; }
+  .app-shell,
+  .container,
+  .site-frame {
+    width: min(100% - 28px, 760px) !important;
+  }
+
+  .client-page,
+  .public-page,
+  .auth-page {
+    gap: 12px !important;
+  }
+
+  .beauty-top-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0;
+    padding: 18px 20px 14px !important;
+    gap: 16px !important;
+  }
+
+  .beauty-top-card::before {
+    width: 74px;
+    height: 92px;
+    right: 26px;
+    top: 22px;
+  }
+
+  .beauty-brand {
+    font-size: clamp(30px, 9vw, 42px) !important;
+    gap: 16px !important;
+    padding-right: 84px;
+  }
+
+  .beauty-brand-icon {
+    width: 54px !important;
+    height: 54px !important;
+  }
+
+  .beauty-menu-links {
+    width: 100% !important;
+  }
+
+  .beauty-menu-row {
+    min-height: 56px !important;
+    font-size: 18px !important;
+  }
+
+  .client-page .hero,
+  .public-page .hero {
+    padding: 24px 22px !important;
+    min-height: 200px;
+  }
+
+  .client-page .hero h1,
+  .public-page .hero h1 {
+    font-size: clamp(38px, 12vw, 54px) !important;
+    max-width: 320px;
+  }
+
+  .client-page .hero::before,
+  .public-page .hero::before {
+    width: 94px;
+    height: 88px;
+    right: 22px;
+    top: 28px;
+    opacity: .42;
+  }
+
+  .client-page .hero::after,
+  .public-page .hero::after {
+    width: 150px;
+    height: 90px;
+    right: 8px;
+    bottom: 0;
+  }
+
+  .instruction-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    padding: 18px 12px !important;
+  }
+
+  .instruction-cards .info-card {
+    padding: 0 9px !important;
+  }
+
+  .instruction-cards h3 {
+    font-size: 16px !important;
+  }
+
+  .instruction-cards p {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  .instruction-cards h3::before {
+    width: 26px;
+    height: 26px;
+  }
+
+  .calendar-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .client-page .calendar-card,
+  .client-page .selected-day-card,
+  .client-page .card,
+  .public-page .card,
+  .auth-card {
+    border-radius: 22px !important;
+    padding: 20px !important;
+  }
+
+  .booking-builder .section-head,
+  .confirm-box {
+    grid-template-columns: 1fr !important;
+  }
+
+  .confirm-box button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .booking-summary-row > div {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
 }
