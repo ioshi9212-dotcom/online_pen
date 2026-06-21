@@ -1,13 +1,9 @@
-/* Final mobile cleanup based on user feedback */
+/* v3 mobile corrections: header buttons + instruction block */
 
 @media (max-width: 760px) {
-  .client-page,
-  .public-page {
-    gap: 8px !important;
-  }
-
-  /* Top client menu */
-  .beauty-top-card {
+  /* top block */
+  .beauty-top-card,
+  .top-menu.compact-client-menu.beauty-top-card {
     width: 100% !important;
     min-height: 96px !important;
     padding: 11px 12px 8px !important;
@@ -17,67 +13,67 @@
     gap: 7px 10px !important;
   }
 
-  .beauty-brand {
+  .beauty-brand,
+  .top-menu .brand.beauty-brand {
     white-space: nowrap !important;
     font-size: 18px !important;
     font-weight: 300 !important;
     gap: 8px !important;
     line-height: 1 !important;
+    align-items: center !important;
   }
 
-  .beauty-brand b {
+  .beauty-brand b,
+  .top-menu .brand.beauty-brand b {
     font-weight: 300 !important;
   }
 
-  .beauty-brand-icon {
-    width: 30px !important;
-    height: 30px !important;
-    min-width: 30px !important;
-    border-radius: 7px !important;
-    font-size: 13px !important;
-  }
-
-  .beauty-menu-links {
+  .beauty-menu-links,
+  .compact-client-links.beauty-menu-links {
     grid-column: 1 / 2 !important;
     width: 92% !important;
     gap: 5px !important;
+    justify-self: start !important;
   }
 
   .beauty-menu-row,
-  .beauty-menu-row.primary-link {
-    min-height: 33px !important;
+  .beauty-menu-row.primary-link,
+  .compact-client-links .beauty-menu-row,
+  .compact-client-links .primary-link.beauty-menu-row,
+  .compact-client-links a.beauty-menu-row {
+    display: grid !important;
     grid-template-columns: 18px minmax(0, 1fr) 14px !important;
-    justify-items: stretch !important;
+    align-items: center !important;
+    justify-items: start !important;
+    justify-content: start !important;
     text-align: left !important;
-    gap: 7px !important;
-    padding: 6px 9px !important;
-    border-radius: 7px !important;
+    min-height: 34px !important;
+    width: 100% !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(128, 59, 88, .20) !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
     font-size: 12.5px !important;
     font-weight: 300 !important;
+    background: rgba(255,255,255,.62) !important;
   }
 
-  .beauty-menu-row span:nth-child(1),
-  .beauty-menu-row span:nth-child(2) {
-    justify-self: start !important;
+  .compact-client-links a.beauty-menu-row span,
+  .beauty-menu-row span,
+  .beauty-menu-row.primary-link span {
     text-align: left !important;
+    justify-self: start !important;
     font-weight: 300 !important;
   }
 
-  .beauty-menu-row span:nth-child(3),
-  .beauty-menu-arrow {
+  .beauty-menu-row .beauty-menu-arrow,
+  .beauty-menu-row.primary-link .beauty-menu-arrow,
+  .compact-client-links .beauty-menu-arrow {
     justify-self: end !important;
-  }
-
-  .beauty-menu-icon {
-    font-size: 13px !important;
-  }
-
-  .beauty-menu-arrow {
+    text-align: right !important;
+    width: 100% !important;
     font-size: 16px !important;
-  }
-
-  .beauty-master-entry {
-    gap: 2px !important;
   }
 
   .beauty-master-entry small {
@@ -89,22 +85,10 @@
     opacity: .62 !important;
     padding-left: 1px !important;
     max-width: 100% !important;
+    display: block !important;
   }
 
-  .beauty-top-card::before {
-    right: 19px !important;
-    top: 18px !important;
-    width: 38px !important;
-    height: 54px !important;
-    border-radius: 10px !important;
-    opacity: .24 !important;
-  }
-
-  .beauty-top-card::after {
-    display: none !important;
-  }
-
-  /* Thin login notice */
+  /* entrance strip */
   .notice.ok-status {
     min-height: 0 !important;
     width: min(100%, 420px) !important;
@@ -121,68 +105,43 @@
     line-height: 1.05 !important;
   }
 
-  /* Hero */
-  .client-page .hero {
-    width: 100% !important;
-    min-height: 116px !important;
-    padding: 14px 16px !important;
-    border-radius: 12px !important;
-    grid-template-columns: minmax(0, 1fr) 72px !important;
-    gap: 6px !important;
-  }
-
-  .client-page .hero > p.muted:first-child {
-    color: rgba(128, 59, 88, .68) !important;
-    font-size: 11px !important;
-    margin: 0 0 3px !important;
-  }
-
-  .client-page .hero h1 {
-    font-size: 24px !important;
-    font-weight: 300 !important;
-    line-height: 1.04 !important;
-    max-width: 230px !important;
-    margin: 0 !important;
-  }
-
-  .client-page .hero .lead {
-    font-size: 11.5px !important;
-    line-height: 1.22 !important;
-    max-width: 245px !important;
-    margin: 5px 0 0 !important;
-  }
-
-  .client-page .hero::before {
-    right: 20px !important;
-    top: 25px !important;
-    width: 58px !important;
-    height: 54px !important;
-    opacity: .26 !important;
-  }
-
-  .client-page .hero::after {
-    display: none !important;
-  }
-
-  /* Instructions: remove decorative circles and fix overlap */
+  /* instruction block */
   .instruction-cards {
     width: 100% !important;
     padding: 10px 12px !important;
     border-radius: 12px !important;
+    display: grid !important;
+    gap: 2px !important;
   }
 
   .instruction-cards .info-card {
-    grid-template-columns: 72px minmax(0, 1fr) !important;
-    gap: 9px !important;
+    display: grid !important;
+    grid-template-columns: 62px minmax(0, 1fr) !important;
+    gap: 10px !important;
     padding: 7px 0 !important;
     min-width: 0 !important;
+    border: 0 !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .instruction-cards .info-card::before,
+  .instruction-cards .info-card::after,
+  .instruction-cards::before,
+  .instruction-cards::after {
+    display: none !important;
+    content: none !important;
   }
 
   .instruction-cards h3 {
-    font-size: 12px !important;
+    margin: 0 !important;
+    font-size: 11.5px !important;
+    line-height: 1.1 !important;
     font-weight: 300 !important;
     white-space: normal !important;
     min-width: 0 !important;
+    color: rgba(128, 59, 88, .88) !important;
   }
 
   .instruction-cards h3::before,
@@ -192,293 +151,11 @@
   }
 
   .instruction-cards p {
+    margin: 0 !important;
     font-size: 10.8px !important;
     line-height: 1.18 !important;
     overflow-wrap: anywhere !important;
     min-width: 0 !important;
-  }
-
-  /* Calendar */
-  .calendar-layout {
-    width: 100% !important;
-    grid-template-columns: 1fr !important;
-    gap: 8px !important;
-  }
-
-  .client-page .calendar-card,
-  .client-page .selected-day-card {
-    padding: 12px !important;
-    border-radius: 12px !important;
-    min-width: 0 !important;
-  }
-
-  .client-page .calendar-card h2 {
-    font-size: 15px !important;
-    font-weight: 300 !important;
-    margin-bottom: 6px !important;
-    text-align: center !important;
-  }
-
-  .calendar-month-switcher {
-    margin-top: 4px !important;
-    grid-template-columns: 32px minmax(0, 1fr) 32px !important;
-    gap: 7px !important;
-  }
-
-  .calendar-month-switcher b {
-    font-size: 15px !important;
-    font-weight: 300 !important;
-  }
-
-  .calendar-month-switcher b::first-letter {
-    text-transform: uppercase !important;
-  }
-
-  .month-arrow,
-  .month-arrow-placeholder {
-    width: 32px !important;
-    height: 30px !important;
-    border-radius: 7px !important;
-    display: inline-flex !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-
-  .calendar-legend {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: flex-start !important;
-    gap: 5px 8px !important;
-    font-size: 10px !important;
-    line-height: 1.15 !important;
-    margin: 6px 0 !important;
-  }
-
-  .calendar-head {
-    gap: 4px !important;
-    font-size: 9.5px !important;
-  }
-
-  .calendar-grid {
-    gap: 4px !important;
-  }
-
-  .calendar-grid .day-btn,
-  .calendar-grid button.day-btn,
-  .calendar-grid span.day-btn {
-    min-height: 36px !important;
-    height: 36px !important;
-    aspect-ratio: auto !important;
-    border-radius: 7px !important;
-    padding: 3px 3px 4px !important;
-    font-size: 12.5px !important;
-    line-height: 1 !important;
-    align-content: center !important;
-    justify-content: center !important;
-    overflow: hidden !important;
-  }
-
-  .calendar-grid button.day-btn.active {
-    border-radius: 7px !important;
-  }
-
-  .calendar-grid .day-btn > span:first-child {
-    display: block !important;
-    line-height: 1 !important;
-  }
-
-  .calendar-grid .day-btn .day-dots,
-  .day-dots {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 3px !important;
-    min-height: 5px !important;
-    height: 5px !important;
-    margin-top: 1px !important;
-    transform: translateY(-2px) !important;
-  }
-
-  .calendar-grid .day-btn .day-dots .dot,
-  .calendar-legend .legend-dot {
-    width: 5px !important;
-    height: 5px !important;
-    min-width: 5px !important;
-    min-height: 5px !important;
-  }
-
-  /* Selected date block */
-  .selected-day-card {
-    padding-top: 9px !important;
-  }
-
-  .selected-day-card > p.muted:first-child {
-    font-size: 13px !important;
-    margin: 0 0 3px !important;
-  }
-
-  .selected-day-card h2 {
-    font-size: 18px !important;
-    font-weight: 300 !important;
-    line-height: 1.08 !important;
-    margin: 0 0 4px !important;
-  }
-
-  .selected-day-card > p:not(.muted) {
-    font-size: 11.5px !important;
-    margin: 0 !important;
-  }
-
-  .booking-step-panel {
-    margin-top: 8px !important;
-  }
-
-  .flow-step-title h3 {
-    font-size: 15px !important;
-    font-weight: 300 !important;
-  }
-
-  .flow-step-title p {
-    font-size: 11px !important;
-  }
-
-  .time-btn {
-    border-radius: 7px !important;
-    min-height: 40px !important;
-  }
-
-  .time-btn b {
-    font-size: 13px !important;
-  }
-
-  .time-btn span {
-    font-size: 10.5px !important;
-  }
-
-  .comment-box,
-  .comment-box textarea,
-  .comment-box textarea::placeholder {
-    font-weight: 300 !important;
-  }
-
-  /* Current booking without expand button */
-  .current-booking-compact {
-    padding: 12px !important;
-    border-radius: 12px !important;
-  }
-
-  .current-booking-compact .section-head {
-    display: block !important;
-  }
-
-  .current-booking-compact h2 {
-    font-size: 18px !important;
-    font-weight: 300 !important;
-    margin: 0 !important;
-  }
-
-  .current-booking-compact p {
-    font-size: 11.5px !important;
-    margin: 4px 0 0 !important;
-  }
-
-  .active-booking-lines {
-    display: grid !important;
-    gap: 8px !important;
-    margin-top: 10px !important;
-  }
-
-  .active-booking-line {
-    display: grid !important;
-    grid-template-columns: auto minmax(0, 1fr) !important;
-    gap: 9px !important;
-    align-items: start !important;
-    padding: 9px 0 !important;
-    border-top: 1px solid rgba(128, 59, 88, .12) !important;
-  }
-
-  .active-booking-line b {
-    font-size: 13px !important;
-    font-weight: 400 !important;
-  }
-
-  .active-booking-line p,
-  .active-booking-line small {
-    font-size: 11px !important;
-    line-height: 1.25 !important;
-  }
-
-  .active-booking-line .status {
-    border-radius: 999px !important;
-    padding: 4px 7px !important;
-    font-size: 10px !important;
-  }
-
-  .empty-current-booking {
-    font-size: 11.5px !important;
-  }
-
-  /* Price as simple dotted list, not cards/buttons */
-  .compact-price-card {
-    padding: 12px !important;
-    border-radius: 12px !important;
-  }
-
-  .compact-price-card .section-head {
-    display: block !important;
-    margin-bottom: 6px !important;
-  }
-
-  .compact-price-card h2 {
-    font-size: 18px !important;
-    font-weight: 300 !important;
-    margin: 0 !important;
-  }
-
-  .compact-price-card .section-head p {
-    font-size: 11px !important;
-    margin-top: 3px !important;
-  }
-
-  .compact-price-list {
-    display: grid !important;
-    gap: 0 !important;
-  }
-
-  .compact-price-row {
-    display: grid !important;
-    grid-template-columns: minmax(0, auto) 1fr auto !important;
-    gap: 8px !important;
-    align-items: end !important;
-    padding: 8px 0 !important;
-    border-bottom: 1px solid rgba(128, 59, 88, .10) !important;
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  .compact-price-row h3 {
-    margin: 0 !important;
-    font-size: 13px !important;
-    font-weight: 400 !important;
-    color: var(--beauty-text, #262128) !important;
-  }
-
-  .compact-price-row p {
-    margin: 2px 0 0 !important;
-    font-size: 10.5px !important;
-    line-height: 1.18 !important;
-    color: rgba(111, 101, 112, .72) !important;
-  }
-
-  .compact-price-row > span {
-    border-bottom: 1px dotted rgba(128, 59, 88, .34) !important;
-    min-width: 24px !important;
-    transform: translateY(-4px) !important;
-  }
-
-  .compact-price-row > b {
-    font-size: 13px !important;
-    font-weight: 400 !important;
-    white-space: nowrap !important;
+    color: rgba(70, 67, 74, .78) !important;
   }
 }
