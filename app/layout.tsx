@@ -17,6 +17,7 @@ import "./admin-schedule-mobile.css";
 import "./beauty-theme.css";
 import "./beauty-layout-fix.css";
 import "./client-booking-flow-fix.css";
+import "./client-ui-mobile-fix.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
