@@ -41,6 +41,10 @@ function monthKey(value: string | Date) {
   return dayKey(value).slice(0, 7);
 }
 
+function upperFirst(text: string) {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
 function fmtDate(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
@@ -48,7 +52,7 @@ function fmtDate(value: string | Date) {
 
 function fmtMonth(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(date);
+  return upperFirst(new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(date));
 }
 
 function fmtTime(value: string | Date) {
