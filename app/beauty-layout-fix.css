@@ -49,17 +49,36 @@
 }
 
 .beauty-top-card::before {
+  content: "";
+  position: absolute;
   right: 42px !important;
   top: 28px !important;
   width: 82px !important;
   height: 104px !important;
+  border-radius: 22px 22px 16px 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.88) 0 22%, transparent 23%),
+    linear-gradient(135deg, rgba(190,99,134,.78), rgba(235,190,202,.58));
+  opacity: .42;
+  transform: rotate(13deg);
+  box-shadow: 18px 22px 36px rgba(117, 61, 80, .10);
+  pointer-events: none;
 }
 
 .beauty-top-card::after {
+  content: "";
+  position: absolute;
   right: 0 !important;
   bottom: -20px !important;
   width: 190px !important;
   height: 112px !important;
+  opacity: .35;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 76% 20%, rgba(190,99,134,.33) 0 5px, transparent 6px),
+    radial-gradient(circle at 88% 35%, rgba(219,169,184,.38) 0 4px, transparent 5px),
+    linear-gradient(68deg, transparent 0 48%, rgba(150,115,98,.18) 49% 51%, transparent 52% 100%),
+    linear-gradient(110deg, transparent 0 51%, rgba(150,115,98,.15) 52% 54%, transparent 55% 100%);
 }
 
 /* Hero: title smaller, closer to screenshot */
@@ -85,18 +104,38 @@
 
 .client-page .hero::before,
 .public-page .hero::before {
+  content: "";
+  position: absolute;
   right: 56px !important;
   top: 34px !important;
   width: 108px !important;
   height: 94px !important;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(190,99,134,.33) 1px, transparent 1px) 0 0 / 26px 100%,
+    linear-gradient(180deg, rgba(190,99,134,.28) 1px, transparent 1px) 0 0 / 100% 25px,
+    linear-gradient(135deg, #fffefa, #f8e8ee);
+  border: 1px solid rgba(190,99,134,.12);
+  opacity: .45;
+  transform: rotate(-6deg);
+  pointer-events: none;
 }
 
 .client-page .hero::after,
 .public-page .hero::after {
+  content: "";
+  position: absolute;
   right: 18px !important;
   bottom: 4px !important;
   width: 168px !important;
   height: 102px !important;
+  opacity: .35;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 62%, rgba(190,99,134,.32) 0 19px, transparent 20px),
+    radial-gradient(circle at 44% 50%, rgba(240,201,210,.55) 0 24px, transparent 25px),
+    radial-gradient(circle at 63% 34%, rgba(190,99,134,.25) 0 6px, transparent 7px),
+    linear-gradient(118deg, transparent 0 47%, rgba(145,117,100,.18) 48% 50%, transparent 51% 100%);
 }
 
 /* Instruction block: rows, not columns */
@@ -329,20 +368,6 @@
   .public-page .hero .lead {
     max-width: 240px !important;
     font-size: 14px !important;
-  }
-
-  .client-page .hero::before,
-  .public-page .hero::before {
-    right: 22px !important;
-    top: 26px !important;
-    width: 76px !important;
-    height: 70px !important;
-  }
-
-  .client-page .hero::after,
-  .public-page .hero::after {
-    width: 116px !important;
-    height: 76px !important;
   }
 
   .instruction-cards {
