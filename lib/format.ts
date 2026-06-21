@@ -1,31 +1,32 @@
 import { normalizePhone } from "@/lib/phone";
+import { formatInBusinessTime } from "@/lib/timezone";
 
 export function formatPhone(input: string) {
   return normalizePhone(input);
 }
 
 export function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", {
+  return formatInBusinessTime(date, {
     day: "2-digit",
     month: "long",
     hour: "2-digit",
     minute: "2-digit"
-  }).format(date);
+  });
 }
 
 export function formatDateOnly(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", {
+  return formatInBusinessTime(date, {
     weekday: "short",
     day: "2-digit",
     month: "long"
-  }).format(date);
+  });
 }
 
 export function formatTimeOnly(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", {
+  return formatInBusinessTime(date, {
     hour: "2-digit",
     minute: "2-digit"
-  }).format(date);
+  });
 }
 
 export function rub(value: number | null | undefined) {

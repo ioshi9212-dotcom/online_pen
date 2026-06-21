@@ -1,4 +1,5 @@
 import { Booking, BlockedSlot, DayOverride, ScheduleRule, Service, Setting } from "@prisma/client";
+import { businessDateFromKey, businessDateKey, businessDateTimeFromKeyAndTime } from "./timezone";
 
 type BusyBooking = Pick<Booking, "startAt" | "endAt">;
 type BusyBlock = Pick<BlockedSlot, "startAt" | "endAt">;
@@ -25,21 +26,19 @@ export function formatMinutes(total: number) {
 }
 
 export function dateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return businessDateKey(date);
 }
 
 export function dateFromKey(key: string) {
-  return new Date(`${key}T00:00:00.000Z`);
+  return businessDateFromKey(key);
 }
 
 export function withMinutes(base: Date, minutesFromStart: number) {
-  const date = new Date(base);
-  date.setHours(0, minutesFromStart, 0, 0);
-  return date;
+  return businessDateTimeFromKeyAndTime(dateKey(base), formatMinutes(minutesFromStart));
 }
 
 export function combineDateAndTime(date: Date, time: string) {
-  return withMinutes(date, parseMinutes(time));
+  return businessDateTimeFromKeyAndTime(dateKey(date), time);
 }
 
 export function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
