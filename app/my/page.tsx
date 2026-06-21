@@ -1,4 +1,4 @@
-import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
+import { cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
@@ -68,7 +68,7 @@ function noticeText(searchParams: SearchParams) {
 
 function statusText(status: string) {
   if (status === "PENDING") return "Ожидает подтверждения";
-  if (status === "CONFIRMED") return "Подтверждена";
+  if (status === "CONFIRMED") return "Подтверждено";
   if (status === "COMPLETED") return "Завершена";
   if (status === "CANCELLED_BY_CLIENT") return "Отменена вами";
   if (status === "CANCELLED_BY_ADMIN") return "Отменена мастером";
@@ -136,7 +136,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const firstFreeWindow = windows.find((window) => !window.busy);
   const firstAvailableDate = firstFreeWindow ? dayKey(new Date(firstFreeWindow.startAt)) : dayKey(new Date());
   const initialDate = searchParams.date || firstAvailableDate;
-  const initialTime = searchParams.time || "";
+  const initialTime = "";
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
@@ -167,49 +167,40 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         initialTime={initialTime}
       />
 
-      <details className="card current-booking-card collapsed-client-section" id="my-booking">
-        <summary className="collapsible-summary">
-          <div><h2>Ваши записи</h2><p>{activeBookings.length ? "Активные записи и статусы." : "Активной записи пока нет."}</p></div>
-          <div className="collapse-actions">
-            {activeBookings.length ? <span className="status wait">{activeBookings.length}</span> : null}
-            <span className="toggle-label"><span className="closed-label">Развернуть <span className="triangle">▾</span></span><span className="open-label">Свернуть <span className="triangle">▴</span></span></span>
-          </div>
-        </summary>
-
+      <section className="card current-booking-card current-booking-compact" id="my-booking">
+        <div className="section-head">
+          <div><h2>Ваши записи</h2><p>{activeBookings.length ? "Текущие заявки и подтверждённые записи." : "Активной записи пока нет."}</p></div>
+        </div>
         {activeBookings.length ? (
-          <div className="booking-status-list">
+          <div className="active-booking-lines">
             {activeBookings.map((booking) => (
-              <article className="booking-status-card" key={booking.id}>
+              <article className="active-booking-line" key={booking.id}>
+                <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
                 <div>
                   <b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b>
                   <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
-                  <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
-                  {booking.status === "PENDING" ? <p className="pending-booking-text">Окно уже занято за вами. Осталось дождаться подтверждения мастера.</p> : null}
-                  {booking.clientComment ? <small>{booking.clientComment}</small> : null}
+                  {booking.status === "PENDING" ? <small>Заявка отправлена. Ждите подтверждения мастера.</small> : null}
+                  {booking.status === "CONFIRMED" ? <small>Запись подтверждена. Просто приходите вовремя, героизм не требуется.</small> : null}
                 </div>
-                <details>
-                  <summary className="button secondary">Отменить</summary>
-                  <form action={cancelClientBooking} className="grid" style={{ marginTop: 12 }}>
-                    <input type="hidden" name="clientToken" value={token} />
-                    <input type="hidden" name="bookingId" value={booking.id} />
-                    <button type="submit" className="danger">Да, отменить</button>
-                  </form>
-                </details>
               </article>
             ))}
           </div>
-        ) : <p>Выберите дату, услугу и время выше.</p>}
-      </details>
+        ) : <p className="empty-current-booking">Когда вы отправите заявку, здесь появится её статус.</p>}
+      </section>
 
-      <section className="card price-preview-card" id="price">
+      <section className="card price-preview-card compact-price-card" id="price">
         <div className="section-head">
-          <div><h2>Прайс</h2><p>Основные услуги и допы. Допы не выбираются как отдельная запись.</p></div>
+          <div><h2>Прайс</h2><p>Основные услуги и допы.</p></div>
         </div>
         {priceServices.length ? (
-          <div className="price-preview-grid">
+          <div className="compact-price-list">
             {priceServices.map((service) => (
-              <article className="price-preview-item" key={service.id}>
-                <div><h3>{service.title}</h3><p>{service.showInBooking ? "можно выбрать при записи" : "только в прайсе"}</p></div>
+              <article className="compact-price-row" key={service.id}>
+                <div>
+                  <h3>{service.title}</h3>
+                  {service.description ? <p>{service.description}</p> : null}
+                </div>
+                <span aria-hidden="true"></span>
                 <b>{rub(service.price)}</b>
               </article>
             ))}
