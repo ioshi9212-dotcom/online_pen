@@ -15,6 +15,7 @@ import "./client-collapse.css";
 import "./calendar-dot-force.css";
 import "./admin-schedule-mobile.css";
 import "./beauty-theme.css";
+import "./beauty-layout-fix.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
