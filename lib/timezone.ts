@@ -38,6 +38,22 @@ export function parseDateKey(key: string) {
   return { year, month, day };
 }
 
+export function businessWeekday(value: DateInput) {
+  const { year, month, day } = parseDateKey(businessDateKey(value));
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+export function todayBusinessDateKey() {
+  return businessDateKey(new Date());
+}
+
+export function addBusinessDays(key: string, days: number) {
+  const { year, month, day } = parseDateKey(key);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
 export function businessDateFromKey(key: string) {
   const { year, month, day } = parseDateKey(key);
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - BUSINESS_UTC_OFFSET_MINUTES * 60_000);

@@ -2,6 +2,7 @@ import { cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
+import { businessDateKey, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -26,31 +27,34 @@ function upperFirst(text: string) {
 }
 
 function fmtDate(date: Date) {
-  return upperFirst(new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date));
+  return upperFirst(formatInBusinessTime(date, { day: "numeric", month: "long", weekday: "long" }));
 }
 
 function fmtShortDate(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", weekday: "short" }).format(date);
+  return formatInBusinessTime(date, { day: "2-digit", month: "2-digit", weekday: "short" });
 }
 
 function fmtTime(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return formatInBusinessTime(date, { hour: "2-digit", minute: "2-digit" });
 }
 
 function dayKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return businessDateKey(date);
 }
 
 function dateOptions(days = 28) {
   const result: { value: string; label: string }[] = [];
   const start = new Date();
-  start.setHours(0, 0, 0, 0);
   for (let index = 0; index < days; index++) {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
     result.push({ value: dayKey(date), label: fmtShortDate(date) });
   }
   return result;
+}
+
+function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
+  return aStart < bEnd && aEnd > bStart;
 }
 
 function noticeText(searchParams: SearchParams) {
@@ -99,7 +103,7 @@ function waitlistTitle(entry: WaitlistItem) {
 function waitlistDescription(entry: WaitlistItem) {
   const dates = waitlistDates(entry);
   if (entry.mode === "DATES" && dates.length) {
-    return `Выбранные даты: ${dates.map((date) => new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")).join(", ")}`;
+    return `Выбранные даты: ${dates.map((date) => new Date(`${date}T00:00:00`)).map((date) => formatInBusinessTime(date, { day: "2-digit", month: "2-digit", year: "numeric" })).join(", ")}`;
   }
   if (entry.mode === "DATES") return "Конкретные даты пока не выбраны.";
   return "Мастер увидит, что вы готовы прийти в ближайшее освободившееся окно.";
@@ -124,15 +128,19 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
     prisma.service.findMany({ where: { isActive: true, showInBooking: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
     prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 120 }),
-    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, select: { startAt: true, endAt: true } })
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, include: { service: true } })
   ]);
 
-  const busyStartSet = new Set(busyBookings.map((booking) => booking.startAt.toISOString()));
-  const windows = onlineWindows.map((window) => ({
-    id: window.id,
-    startAt: window.startAt.toISOString(),
-    busy: busyStartSet.has(window.startAt.toISOString())
-  }));
+  const windows = onlineWindows.map((window) => {
+    const fallbackEndAt = new Date(window.startAt.getTime() + 30 * 60_000);
+    const busy = busyBookings.some((booking) => overlaps(window.startAt, fallbackEndAt, booking.startAt, booking.endAt));
+    return {
+      id: window.id,
+      startAt: window.startAt.toISOString(),
+      busy
+    };
+  });
+
   const firstFreeWindow = windows.find((window) => !window.busy);
   const firstAvailableDate = firstFreeWindow ? dayKey(new Date(firstFreeWindow.startAt)) : dayKey(new Date());
   const initialDate = searchParams.date || firstAvailableDate;
@@ -227,7 +235,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
               <article className="waitlist-current-card" key={entry.id}>
                 <h3>{waitlistTitle(entry)}</h3>
                 <p>{waitlistDescription(entry)}</p>
-                {waitlistDates(entry).length ? <div className="chosen-date-list">{waitlistDates(entry).map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}
+                {waitlistDates(entry).length ? <div className="chosen-date-list">{waitlistDates(entry).map((date) => <span key={date}>{formatInBusinessTime(new Date(`${date}T00:00:00`), { day: "2-digit", month: "2-digit", year: "numeric" })}</span>)}</div> : null}
                 {entry.note ? <small>Комментарий: {entry.note}</small> : null}
                 <details className="waitlist-cancel-box">
                   <summary className="button secondary">Отменить ожидание</summary>
