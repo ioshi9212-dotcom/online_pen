@@ -21,8 +21,12 @@ type SearchParams = {
 
 type WaitlistItem = { id: string; mode: string; desiredDates: string; note: string | null };
 
+function upperFirst(text: string) {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
 function fmtDate(date: Date) {
-  return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date);
+  return upperFirst(new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date));
 }
 
 function fmtShortDate(date: Date) {
@@ -50,7 +54,7 @@ function dateOptions(days = 28) {
 }
 
 function noticeText(searchParams: SearchParams) {
-  if (searchParams.created) return "Заявка отправлена. Окно уже закреплено за вами.";
+  if (searchParams.created) return "Заявка отправлена. Окно занято за вами, ждите подтверждения мастера.";
   if (searchParams.waitlist === "cancelled") return "Вы отменили лист ожидания.";
   if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
   if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
@@ -132,7 +136,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const firstFreeWindow = windows.find((window) => !window.busy);
   const firstAvailableDate = firstFreeWindow ? dayKey(new Date(firstFreeWindow.startAt)) : dayKey(new Date());
   const initialDate = searchParams.date || firstAvailableDate;
-  const initialTime = searchParams.time || firstFreeWindow?.startAt || "";
+  const initialTime = searchParams.time || "";
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
@@ -145,13 +149,13 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
         <h1>Свободные окна и запись</h1>
-        <p className="lead">{client.firstName}, выберите дату, время и одну основную услугу. Допы смотрите в прайсе.</p>
+        <p className="lead">{client.firstName}, выберите дату, одну основную услугу и время. Допы можно написать в комментарии.</p>
       </section>
 
       <section className="info-cards instruction-cards">
         <article className="info-card"><h3>1. Календарь</h3><p>Серые числа — день недоступен. Белые — можно открыть. Синяя точка — есть свободное место, серая — часть времени уже занята.</p></article>
-        <article className="info-card"><h3>2. Время</h3><p>Нажмите дату — справа поменяется список времени без перезагрузки и прыжков страницы. Почти магия, но дешевле.</p></article>
-        <article className="info-card"><h3>3. Заявка</h3><p>Выберите свободное время и одну основную услугу. Занятое время уже забронировано и не ждёт героев.</p></article>
+        <article className="info-card"><h3>2. Услуга</h3><p>Сначала выберите услугу. После кнопки «Выбрать услугу» появится свободное время для этой даты.</p></article>
+        <article className="info-card"><h3>3. Заявка</h3><p>Выберите время, проверьте свои данные и отправьте заявку. Окно займётся за вами до ответа мастера.</p></article>
       </section>
 
       <ClientBookingPicker
@@ -163,11 +167,15 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         initialTime={initialTime}
       />
 
-      <section className="card current-booking-card" id="my-booking">
-        <div className="section-head">
-          <div><h2>Ваши записи</h2><p>Здесь появится отправленная заявка и её статус.</p></div>
-          <a className="button secondary" href="#windows">Выбрать ещё окно</a>
-        </div>
+      <details className="card current-booking-card collapsed-client-section" id="my-booking">
+        <summary className="collapsible-summary">
+          <div><h2>Ваши записи</h2><p>{activeBookings.length ? "Активные записи и статусы." : "Активной записи пока нет."}</p></div>
+          <div className="collapse-actions">
+            {activeBookings.length ? <span className="status wait">{activeBookings.length}</span> : null}
+            <span className="toggle-label"><span className="closed-label">Развернуть <span className="triangle">▾</span></span><span className="open-label">Свернуть <span className="triangle">▴</span></span></span>
+          </div>
+        </summary>
+
         {activeBookings.length ? (
           <div className="booking-status-list">
             {activeBookings.map((booking) => (
@@ -176,7 +184,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
                   <b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b>
                   <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
                   <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
-                  {booking.status === "PENDING" ? <p className="pending-booking-text">Окно уже закреплено за вами. Осталось дождаться подтверждения мастера.</p> : null}
+                  {booking.status === "PENDING" ? <p className="pending-booking-text">Окно уже занято за вами. Осталось дождаться подтверждения мастера.</p> : null}
                   {booking.clientComment ? <small>{booking.clientComment}</small> : null}
                 </div>
                 <details>
@@ -190,17 +198,16 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
               </article>
             ))}
           </div>
-        ) : <p>Активной записи нет. Выберите дату и время выше.</p>}
-      </section>
+        ) : <p>Выберите дату, услугу и время выше.</p>}
+      </details>
 
       <section className="card price-preview-card" id="price">
         <div className="section-head">
           <div><h2>Прайс</h2><p>Основные услуги и допы. Допы не выбираются как отдельная запись.</p></div>
-          <a className="button secondary" href={`/price?client=${token}`}>Весь прайс</a>
         </div>
         {priceServices.length ? (
           <div className="price-preview-grid">
-            {priceServices.slice(0, 6).map((service) => (
+            {priceServices.map((service) => (
               <article className="price-preview-item" key={service.id}>
                 <div><h3>{service.title}</h3><p>{service.showInBooking ? "можно выбрать при записи" : "только в прайсе"}</p></div>
                 <b>{rub(service.price)}</b>
@@ -236,7 +243,6 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
                   <form action={cancelWaitlistEntry} className="grid" style={{ marginTop: 12 }}>
                     <input type="hidden" name="clientToken" value={token} />
                     <input type="hidden" name="waitlistId" value={entry.id} />
-                    <p className="muted">Если передумали — уберём вас из листа ожидания. Мастер больше не увидит эту заявку.</p>
                     <button type="submit" className="danger">Да, убрать меня из ожидания</button>
                   </form>
                 </details>

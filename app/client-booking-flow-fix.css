@@ -1,0 +1,564 @@
+/* Compact client UI + date -> service -> time booking flow */
+
+:root {
+  --beauty-rose: #be6386;
+  --beauty-rose-dark: #803b58;
+  --beauty-muted: #6f6570;
+  --beauty-line: #eadfe2;
+  --beauty-text: #262128;
+}
+
+.client-page,
+.public-page {
+  gap: 10px !important;
+}
+
+.beauty-top-card {
+  min-height: 104px !important;
+  width: min(100%, 720px) !important;
+  margin: 8px auto 6px !important;
+  padding: 14px 16px 10px !important;
+  border-radius: 14px !important;
+  grid-template-columns: minmax(0, 1fr) 88px !important;
+  gap: 8px 12px !important;
+}
+
+.beauty-brand {
+  white-space: nowrap !important;
+  font-size: clamp(18px, 4.6vw, 24px) !important;
+  font-weight: 400 !important;
+  gap: 9px !important;
+  line-height: 1 !important;
+}
+
+.beauty-brand b {
+  font-weight: 400 !important;
+}
+
+.beauty-brand-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+.beauty-menu-links {
+  grid-column: 1 / 2 !important;
+  width: min(100%, 330px) !important;
+  gap: 7px !important;
+}
+
+.beauty-menu-row {
+  min-height: 36px !important;
+  grid-template-columns: 22px minmax(0, 1fr) 14px !important;
+  justify-items: start !important;
+  text-align: left !important;
+  gap: 8px !important;
+  padding: 7px 10px !important;
+  border-radius: 9px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+
+.beauty-menu-row span:nth-child(2) {
+  justify-self: start !important;
+  font-weight: 400 !important;
+}
+
+.beauty-menu-icon {
+  font-size: 14px !important;
+  justify-self: start !important;
+}
+
+.beauty-menu-arrow {
+  font-size: 18px !important;
+  justify-self: end !important;
+}
+
+.beauty-master-entry {
+  gap: 3px !important;
+}
+
+.beauty-master-entry small {
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 10.5px !important;
+  line-height: 1.1 !important;
+  opacity: .64 !important;
+  padding-left: 2px !important;
+}
+
+.beauty-top-card::before {
+  right: 28px !important;
+  top: 20px !important;
+  width: 46px !important;
+  height: 66px !important;
+  border-radius: 12px !important;
+  opacity: .28 !important;
+}
+
+.beauty-top-card::after {
+  width: 96px !important;
+  height: 64px !important;
+  right: -12px !important;
+  bottom: -18px !important;
+  opacity: .22 !important;
+}
+
+.notice.ok-status {
+  min-height: 0 !important;
+  width: min(100%, 520px) !important;
+  margin: 0 auto 4px !important;
+  padding: 5px 12px !important;
+  border: 1px solid rgba(128, 59, 88, .16) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, .22) !important;
+  color: rgba(111, 101, 112, .72) !important;
+  box-shadow: none !important;
+  text-align: center !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.1 !important;
+}
+
+.client-page .hero {
+  width: min(100%, 720px) !important;
+  min-height: 126px !important;
+  padding: 16px 18px !important;
+  margin-top: 0 !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  align-content: center !important;
+  grid-template-columns: minmax(0, 1fr) 94px !important;
+  gap: 8px !important;
+}
+
+.client-page .hero > p.muted:first-child {
+  color: rgba(128, 59, 88, .66) !important;
+  font-size: 12px !important;
+  margin: 0 0 4px !important;
+  grid-column: 1 / 2 !important;
+}
+
+.client-page .hero h1 {
+  font-size: clamp(22px, 6vw, 29px) !important;
+  font-weight: 400 !important;
+  line-height: 1.04 !important;
+  max-width: 250px !important;
+  margin: 0 !important;
+  grid-column: 1 / 2 !important;
+}
+
+.client-page .hero .lead {
+  grid-column: 1 / 2 !important;
+  font-size: 12.5px !important;
+  line-height: 1.25 !important;
+  max-width: 260px !important;
+  margin: 6px 0 0 !important;
+  color: rgba(111, 101, 112, .76) !important;
+}
+
+.client-page .hero::before {
+  right: 28px !important;
+  top: 26px !important;
+  width: 72px !important;
+  height: 64px !important;
+  opacity: .36 !important;
+}
+
+.client-page .hero::after {
+  right: 10px !important;
+  bottom: 0 !important;
+  width: 98px !important;
+  height: 72px !important;
+  opacity: .24 !important;
+}
+
+.instruction-cards {
+  width: min(100%, 720px) !important;
+  margin-inline: auto !important;
+  padding: 12px 14px !important;
+  border-radius: 14px !important;
+  gap: 0 !important;
+}
+
+.instruction-cards .info-card {
+  grid-template-columns: 86px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  padding: 8px 0 !important;
+  min-width: 0 !important;
+}
+
+.instruction-cards h3 {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+}
+
+.instruction-cards h3::before {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+.instruction-cards p {
+  font-size: 11.5px !important;
+  line-height: 1.22 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.calendar-layout {
+  width: min(100%, 720px) !important;
+  margin-inline: auto !important;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, .75fr) !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+
+.client-page .calendar-card,
+.client-page .selected-day-card {
+  padding: 16px !important;
+  border-radius: 14px !important;
+  min-width: 0 !important;
+}
+
+.client-page .calendar-card h2 {
+  text-align: center !important;
+  font-size: 17px !important;
+  font-weight: 400 !important;
+  margin-bottom: 8px !important;
+}
+
+.calendar-month-switcher {
+  margin-top: 6px !important;
+  grid-template-columns: 34px minmax(0, 1fr) 34px !important;
+  gap: 8px !important;
+}
+
+.calendar-month-switcher b {
+  font-size: 16px !important;
+  font-weight: 400 !important;
+}
+
+.month-arrow,
+.month-arrow-placeholder {
+  width: 34px !important;
+  height: 32px !important;
+  border-radius: 9px !important;
+}
+
+.calendar-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px 10px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin: 8px 0 !important;
+}
+
+.calendar-head {
+  gap: 5px !important;
+  font-size: 10px !important;
+}
+
+.calendar-grid {
+  gap: 5px !important;
+}
+
+.calendar-grid .day-btn,
+.calendar-grid button.day-btn,
+.calendar-grid span.day-btn {
+  min-height: 38px !important;
+  aspect-ratio: 1 / .82 !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+.calendar-grid button.day-btn.active {
+  border-radius: 8px !important;
+}
+
+.day-dots {
+  margin-top: -1px !important;
+  transform: translateY(-1px) !important;
+}
+
+.selected-day-card h2 {
+  font-size: 20px !important;
+  font-weight: 400 !important;
+}
+
+.booking-step-panel {
+  display: grid !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+}
+
+.flow-step-title {
+  display: grid !important;
+  gap: 4px !important;
+}
+
+.flow-step-title > span {
+  font-size: 11px !important;
+  color: rgba(128, 59, 88, .62) !important;
+}
+
+.flow-step-title h3 {
+  margin: 0 !important;
+  font-size: 17px !important;
+  font-weight: 400 !important;
+  color: var(--beauty-rose-dark) !important;
+}
+
+.flow-step-title p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.28 !important;
+}
+
+.service-choice-grid,
+.service-check-grid {
+  gap: 7px !important;
+}
+
+.service-check {
+  border-radius: 10px !important;
+  min-height: 54px !important;
+  padding: 9px 10px !important;
+}
+
+.service-check b {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.service-check small {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+.service-choice-actions {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  gap: 9px !important;
+  align-items: center !important;
+}
+
+.service-choice-actions button {
+  min-height: 36px !important;
+  border-radius: 9px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+
+.service-choice-actions small {
+  font-size: 11px !important;
+  color: var(--beauty-muted) !important;
+}
+
+.time-grid {
+  gap: 7px !important;
+}
+
+.time-btn {
+  border-radius: 9px !important;
+  min-height: 46px !important;
+  padding: 8px 10px !important;
+}
+
+.time-btn b {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.time-btn span {
+  font-size: 11px !important;
+}
+
+.change-service-btn {
+  width: fit-content !important;
+  min-height: 34px !important;
+  padding: 7px 10px !important;
+  border-radius: 9px !important;
+  font-size: 12px !important;
+}
+
+.booking-final-card {
+  width: min(100%, 720px) !important;
+  margin-inline: auto !important;
+  padding: 18px !important;
+  border-radius: 14px !important;
+}
+
+.booking-final-card .section-head {
+  text-align: center !important;
+  grid-template-columns: 1fr !important;
+}
+
+.booking-final-card .section-head h2 {
+  max-width: none !important;
+  font-size: 24px !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+}
+
+.booking-final-card .section-head p {
+  max-width: 520px !important;
+  margin: 4px auto 0 !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+}
+
+.compact-booking-form {
+  gap: 11px !important;
+}
+
+.selected-summary-panel {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  border: 1px solid rgba(128, 59, 88, .18) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.34) !important;
+  padding: 10px !important;
+}
+
+.selected-summary-panel > div {
+  display: grid !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+}
+
+.selected-summary-panel span {
+  font-size: 11px !important;
+  color: var(--beauty-muted) !important;
+}
+
+.selected-summary-panel b {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.selected-summary-panel small,
+.owner-warning {
+  font-size: 11.5px !important;
+  line-height: 1.25 !important;
+  color: rgba(111, 101, 112, .78) !important;
+}
+
+.owner-warning {
+  margin: 0 !important;
+  text-align: center !important;
+}
+
+.comment-box {
+  gap: 5px !important;
+  font-size: 12px !important;
+}
+
+.comment-box textarea {
+  min-height: 74px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+}
+
+.final-confirm-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 12px !important;
+  align-items: center !important;
+  border: 1px solid rgba(128, 59, 88, .18) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.34) !important;
+  padding: 12px !important;
+}
+
+.final-confirm-card h3 {
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+}
+
+.final-confirm-card p {
+  margin: 3px 0 0 !important;
+  font-size: 11.5px !important;
+  line-height: 1.25 !important;
+}
+
+.final-confirm-card button {
+  min-height: 38px !important;
+  border-radius: 10px !important;
+  padding: 9px 12px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+}
+
+.current-booking-card {
+  width: min(100%, 720px) !important;
+  margin-inline: auto !important;
+}
+
+.price-preview-card {
+  width: min(100%, 720px) !important;
+  margin-inline: auto !important;
+}
+
+@media (max-width: 760px) {
+  .beauty-top-card,
+  .client-page .hero,
+  .instruction-cards,
+  .calendar-layout,
+  .booking-final-card,
+  .current-booking-card,
+  .price-preview-card {
+    width: 100% !important;
+  }
+
+  .beauty-top-card {
+    grid-template-columns: minmax(0, 1fr) 70px !important;
+  }
+
+  .beauty-brand {
+    font-size: 20px !important;
+  }
+
+  .beauty-menu-links {
+    width: 100% !important;
+  }
+
+  .client-page .hero {
+    grid-template-columns: minmax(0, 1fr) 82px !important;
+  }
+
+  .instruction-cards .info-card {
+    grid-template-columns: 74px minmax(0, 1fr) !important;
+  }
+
+  .calendar-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .calendar-legend {
+    justify-content: flex-start !important;
+  }
+
+  .selected-summary-panel,
+  .final-confirm-card,
+  .service-choice-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .final-confirm-card button {
+    width: 100% !important;
+  }
+}
