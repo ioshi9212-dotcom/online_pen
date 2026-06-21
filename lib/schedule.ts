@@ -1,5 +1,12 @@
 import { Booking, BlockedSlot, DayOverride, ScheduleRule, Service, Setting } from "@prisma/client";
-import { businessDateFromKey, businessDateKey, businessDateTimeFromKeyAndTime } from "./timezone";
+import {
+  addBusinessDays,
+  businessDateFromKey,
+  businessDateKey,
+  businessDateTimeFromKeyAndTime,
+  businessWeekday,
+  todayBusinessDateKey
+} from "./timezone";
 
 type BusyBooking = Pick<Booking, "startAt" | "endAt">;
 type BusyBlock = Pick<BlockedSlot, "startAt" | "endAt">;
@@ -52,7 +59,7 @@ export function getSettingInt(settings: Setting[], key: string, fallback: number
 }
 
 export function getEffectiveDay(date: Date, rules: ScheduleRule[], dayOverrides: DayOverrideLite[] = []): EffectiveDay {
-  const weekday = date.getDay();
+  const weekday = businessWeekday(date);
   const rule = rules.find((item) => item.weekday === weekday);
   const baseStart = rule?.startTime || "09:00";
   const baseEnd = rule?.endTime || "20:00";
@@ -129,11 +136,11 @@ export function generateSlots(params: {
   const { service, rules, bookings, blockedSlots, daysAhead, stepMinutes, dayOverrides = [] } = params;
   const now = new Date();
   const result: { startAt: Date; endAt: Date }[] = [];
+  const todayKey = todayBusinessDateKey();
 
   for (let i = 0; i < daysAhead; i += 1) {
-    const day = new Date(now);
-    day.setDate(now.getDate() + i);
-    day.setHours(0, 0, 0, 0);
+    const key = addBusinessDays(todayKey, i);
+    const day = dateFromKey(key);
 
     const effective = getEffectiveDay(day, rules, dayOverrides);
     if (!effective.isWorkingDay) continue;
@@ -142,7 +149,7 @@ export function generateSlots(params: {
     const workEnd = parseMinutes(effective.endTime);
 
     for (let minute = workStart; minute + service.durationMinutes <= workEnd; minute += stepMinutes) {
-      const startAt = withMinutes(day, minute);
+      const startAt = combineDateAndTime(day, formatMinutes(minute));
       const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
 
       if (startAt <= now) continue;

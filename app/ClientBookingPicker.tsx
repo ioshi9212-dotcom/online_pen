@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createBooking } from "@/app/actions";
+import { businessDateKey, businessMonthKey, formatInBusinessTime } from "@/lib/timezone";
 
 type WindowItem = {
   id: string;
@@ -37,27 +38,23 @@ function upperFirst(text: string) {
 }
 
 function dayKey(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return date.toISOString().slice(0, 10);
+  return businessDateKey(value);
 }
 
 function monthKey(value: string | Date) {
-  return dayKey(value).slice(0, 7);
+  return businessMonthKey(value);
 }
 
 function fmtDate(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return upperFirst(new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", weekday: "long" }).format(date));
+  return upperFirst(formatInBusinessTime(value, { day: "numeric", month: "long", weekday: "long" }));
 }
 
 function fmtMonth(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return upperFirst(new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(date));
+  return upperFirst(formatInBusinessTime(value, { month: "long", year: "numeric" }));
 }
 
 function fmtTime(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return formatInBusinessTime(value, { hour: "2-digit", minute: "2-digit" });
 }
 
 function rub(value: number) {
@@ -80,7 +77,7 @@ function monthStart(key: string) {
 function addMonths(key: string, offset: number) {
   const date = monthStart(key);
   date.setMonth(date.getMonth() + offset);
-  return monthKey(date);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export default function ClientBookingPicker({ token, client, windows, services, initialDate, initialTime = "" }: Props) {
@@ -176,7 +173,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
             {Array.from({ length: monthOffset(visibleMonth) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
             {monthDays.map((day) => {
               const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
-              const key = dayKey(date);
+              const key = `${visibleMonth.getFullYear()}-${String(visibleMonth.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const dayWindows = windowsByDate.get(key) || [];
               const freeCount = dayWindows.filter((item) => !item.busy).length;
               const busyCount = dayWindows.length - freeCount;
@@ -199,7 +196,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
 
         <article className="selected-day-card card booking-step-card" id="selected-day">
           <p className="muted">Выбранная дата</p>
-          <h2>{fmtDate(new Date(`${selectedDateKey}T00:00:00`))}</h2>
+          <h2>{fmtDate(`${selectedDateKey}T00:00:00`)}</h2>
           <p>{selectedBusyCount} занято · {selectedFreeCount} свободно</p>
 
           {!confirmedService ? (
