@@ -3,6 +3,7 @@ import { formatDateOnly, formatTimeOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { combineDateAndTime, dateFromKey, dateKey, generateTimeList, getEffectiveDay, getSettingInt, overlaps } from "@/lib/schedule";
 import { redirect } from "next/navigation";
+import { todayBusinessDateKey } from "@/lib/timezone";
 import { saveScheduleMode } from "./actions";
 import ScheduleClient from "./ScheduleClient";
 
@@ -155,10 +156,12 @@ function buildSelectedTimes(params: {
 export default async function SchedulePage({ searchParams }: { searchParams: SearchParams }) {
   if (!isAdmin()) redirect("/admin/login");
 
-  const month = monthInfo(one(searchParams.month));
-  const selectedDateKey = one(searchParams.date);
+  const todayKey = todayBusinessDateKey();
+  const month = monthInfo(one(searchParams.month, todayKey.slice(0, 7)));
   const requestedView = one(searchParams.view);
-  const view = requestedView === "mode" || requestedView === "calendar" ? requestedView : selectedDateKey ? "calendar" : "menu";
+  const view = requestedView === "mode" ? "mode" : "calendar";
+  const requestedDateKey = one(searchParams.date);
+  const selectedDateKey = view === "calendar" ? (requestedDateKey || (todayKey.startsWith(month.key) ? todayKey : `${month.key}-01`)) : requestedDateKey;
   const selectedDay = selectedDateKey ? dateFromKey(selectedDateKey) : null;
   const warning = one(searchParams.warning);
   const success = one(searchParams.success);
@@ -203,21 +206,19 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
   const selectedTimes = buildSelectedTimes({ selectedDay, rawTimes: selectedTimesRaw, selectedBookings, selectedBlocks, selectedOnlineWindows, stepMinutes });
 
   return (
-    <div className="grid">
-      <section className="card">
-        <h1>Расписание</h1>
-        <p>Открывай только нужный раздел: онлайн-окна, настройки записи или календарь.</p>
-        <div className="actions">
-          <a className={view === "menu" ? "button" : "button secondary"} href="/admin/schedule">Разделы расписания</a>
-          <a className="button secondary" href="/admin/schedule/free">Список онлайн-окон</a>
+    <div className="grid admin-schedule-page">
+      <section className="card schedule-top-card">
+        <p className="eyebrow">Кабинет мастера</p>
+        <h1>{view === "mode" ? "Настройки записи" : "Календарь"}</h1>
+        <p>{view === "mode" ? "Здесь задаётся базовый режим записи: шаг времени и обычный рабочий день." : "Нажми на день — ниже сразу откроются окна для клиентов и ручная запись."}</p>
+        <div className="actions schedule-tabs">
+          <a className={view === "calendar" ? "button" : "button secondary"} href={`/admin/schedule?view=calendar&month=${month.key}&date=${selectedDateKey || todayKey}`}>Календарь</a>
           <a className={view === "mode" ? "button" : "button secondary"} href="/admin/schedule?view=mode">Настройки записи</a>
-          <a className={view === "calendar" ? "button" : "button secondary"} href={`/admin/schedule?view=calendar&month=${month.key}`}>Календарь окон</a>
-          <a className="button secondary" href="/admin">Админка</a>
+          <a className="button secondary schedule-free-link" href="/admin/schedule/free">Онлайн-окна списком</a>
         </div>
       </section>
 
       <Toast text={done} />
-      {view === "menu" ? <ScheduleMenu /> : null}
 
       {view === "mode" ? (
         <section className="card" id="mode">

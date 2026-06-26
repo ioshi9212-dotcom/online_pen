@@ -130,7 +130,7 @@ export default function ScheduleClient(props: Props) {
   }
 
   return (
-    <div className="grid">
+    <div className="grid schedule-calendar-workspace">
       <style jsx global>{`
         .paint-selected { outline: 4px solid rgba(196, 93, 132, .45) !important; transform: translateY(-2px); }
         .paint-off { background: linear-gradient(135deg, #bd5f82, #f2c7d7) !important; color: white !important; border-color: #a94e71 !important; }
@@ -139,11 +139,11 @@ export default function ScheduleClient(props: Props) {
         .paint-special { background: linear-gradient(135deg, #f6bdd5, #f6e3ff) !important; border-color: #cf78a4 !important; }
       `}</style>
 
-      <section className="card" id="calendar">
+      <section className="card schedule-calendar-card" id="calendar">
         <div className="actions" style={{ justifyContent: "space-between" }}>
           <div>
-            <h2>Календарь окон</h2>
-            <p>Выбери режим сверху, потом нажимай даты. После выбора нажми “Готово”, чтобы сохранить.</p>
+            <h2>Календарь</h2>
+            <p>Обычный режим: нажми дату и ниже управляй записью. Кнопки ниже нужны только чтобы быстро отметить выходные или рабочие дни.</p>
           </div>
           <div className="actions">
             <a className="button secondary" href={`/admin/schedule?view=calendar&month=${props.prevKey}#calendar`}>← Пред. месяц</a>
@@ -152,7 +152,8 @@ export default function ScheduleClient(props: Props) {
           </div>
         </div>
 
-        <div className="actions" style={{ marginTop: 14 }}>
+        <div className="actions schedule-paint-actions" style={{ marginTop: 14 }}>
+          <span className="schedule-paint-label">Отметить дни:</span>
           {(["DAY_OFF", "WORKING", "SPECIAL"] as const).map((mode) => (
             <button type="button" key={mode} className={paintMode === mode ? "" : "secondary"} onClick={() => { setPaintMode((current) => current === mode ? "" : mode); setPaintDates([]); }}>
               {modeLabels[mode]}
@@ -198,7 +199,7 @@ export default function ScheduleClient(props: Props) {
       </section>
 
       {props.selectedDateKey ? (
-        <section className="card" id="selected-day">
+        <section className="card schedule-selected-card" id="selected-day">
           <h2>{props.selectedDateTitle}</h2>
           {props.warning ? <div className="notice danger-notice">Предупреждение: {props.warning}. Чтобы всё равно создать запись, поставь галочку подтверждения.</div> : null}
           {props.success ? <div className="notice ok-notice">{props.success}</div> : null}

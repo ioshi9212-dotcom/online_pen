@@ -371,14 +371,6 @@ export default async function AdminPage() {
             {freeWindows.length === 0 ? <div className="admin-empty">Ближайших свободных окон нет.</div> : null}
           </div>
         </section>
-
-        <nav className="master-bottom-nav" aria-label="Нижнее меню мастера">
-          <a className="active" href="/admin"><span>⌂</span><b>Главная</b></a>
-          <a href="/admin/schedule"><span>□</span><b>Календарь</b></a>
-          <a href="/admin/schedule?view=mode"><span>⚙</span><b>Запись</b></a>
-          <a href="/admin/my-clients"><span>◇</span><b>Клиенты</b></a>
-          <a href="/admin/profile"><span>◎</span><b>Профиль</b></a>
-        </nav>
       </section>
     </main>
   );
