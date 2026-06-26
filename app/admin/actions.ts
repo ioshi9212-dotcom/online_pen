@@ -2,6 +2,7 @@
 
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { markClientCancelSeen } from "@/lib/cancellationNotice";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -55,6 +56,23 @@ export async function setBookingStatus(formData: FormData) {
       cancelledAt: status === "CANCELLED_BY_ADMIN" || status === "REJECTED" ? new Date() : undefined
     }
   });
+  redirect(redirectTo);
+}
+
+
+export async function acknowledgeClientCancellation(formData: FormData) {
+  guard();
+  const id = getId(formData);
+  const redirectTo = redirectTarget(formData, "/admin");
+  const booking = await prisma.booking.findUnique({ where: { id }, select: { status: true, adminComment: true } });
+
+  if (booking?.status === "CANCELLED_BY_CLIENT") {
+    await prisma.booking.update({
+      where: { id },
+      data: { adminComment: markClientCancelSeen(booking.adminComment) }
+    });
+  }
+
   redirect(redirectTo);
 }
 
