@@ -1,4 +1,4 @@
-export const BUSINESS_TIME_ZONE = "Asia/Vladivostok";
+export const BUSINESS_TIME_ZONE = process.env.APP_TIMEZONE || "Asia/Vladivostok";
 export const BUSINESS_UTC_OFFSET_MINUTES = 10 * 60;
 
 type DateInput = Date | string;
