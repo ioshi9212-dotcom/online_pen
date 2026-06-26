@@ -1,10 +1,7 @@
 "use client";
 
-import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
-import { BOOKING_STATUS_OPTIONS, bookingStatusLabel } from "@/lib/statusLabels";
 import { useEffect, useMemo, useState } from "react";
-import { createScheduleBooking, saveBulkDayOverrides } from "./actions";
-import { cancelScheduleBooking, confirmScheduleBooking, updateScheduleBooking } from "./bookingActions";
+import { saveBulkDayOverrides } from "./actions";
 
 type DayItem = {
   key: string;
@@ -64,21 +61,23 @@ const modeLabels: Record<string, string> = {
   SPECIAL: "Особенный"
 };
 
+function freeWindowLabel(item: TimeItem) {
+  return item.endTime && item.endTime !== item.time ? `${item.time}–${item.endTime}` : item.time;
+}
+
 export default function ScheduleClient(props: Props) {
   const [paintMode, setPaintMode] = useState<"DAY_OFF" | "WORKING" | "SPECIAL" | "">("");
   const [paintDates, setPaintDates] = useState<string[]>([]);
   const [onlineTimes, setOnlineTimes] = useState<string[]>(props.currentOnlineTimes);
   const [onlineSaveState, setOnlineSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [onlineSaveText, setOnlineSaveText] = useState("");
-  const firstService = props.services[0];
-  const [selectedServiceId, setSelectedServiceId] = useState(firstService?.id ?? "");
-  const selectedService = props.services.find((service) => service.id === selectedServiceId) || firstService;
-  const [manualDuration, setManualDuration] = useState(selectedService?.durationMinutes ?? 150);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
   useEffect(() => {
     setOnlineTimes(props.currentOnlineTimes);
     setOnlineSaveState("idle");
     setOnlineSaveText("");
+    setCopyState("idle");
   }, [props.selectedDateKey, props.currentOnlineTimes]);
 
   const datesJson = JSON.stringify(paintDates);
@@ -120,13 +119,34 @@ export default function ScheduleClient(props: Props) {
   }
 
   const freeTimes = useMemo(() => props.selectedTimes.filter((item) => !item.isBusy), [props.selectedTimes]);
-  const busyTimes = useMemo(() => props.selectedTimes.filter((item) => item.isBusy), [props.selectedTimes]);
   const visibleTopTimes = useMemo(() => freeTimes.filter((item) => !onlineTimes.includes(item.time)), [freeTimes, onlineTimes]);
+  const freePlacesText = useMemo(() => {
+    if (freeTimes.length === 0) return `Свободных мест на ${props.selectedDateTitle} нет.`;
+    return [`Свободные места на ${props.selectedDateTitle}:`, ...freeTimes.map((item) => `• ${freeWindowLabel(item)}`)].join("\n");
+  }, [freeTimes, props.selectedDateTitle]);
 
-  function handleServiceChange(value: string) {
-    setSelectedServiceId(value);
-    const service = props.services.find((item) => item.id === value);
-    if (service) setManualDuration(service.durationMinutes);
+  async function copyFreePlaces() {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(freePlacesText);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = freePlacesText;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!copied) throw new Error("copy-failed");
+      }
+      setCopyState("copied");
+      window.setTimeout(() => setCopyState("idle"), 1800);
+    } catch {
+      setCopyState("error");
+    }
   }
 
   return (
@@ -137,6 +157,18 @@ export default function ScheduleClient(props: Props) {
         .paint-off .day-number, .paint-off small { color: white !important; }
         .paint-working { background: linear-gradient(135deg, #e5f3df, #ffffff) !important; border-color: #94bd8c !important; }
         .paint-special { background: linear-gradient(135deg, #f6bdd5, #f6e3ff) !important; border-color: #cf78a4 !important; }
+        .free-places-card { align-content: start; }
+        .free-places-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .free-places-head h3 { margin: 0 0 6px; }
+        .free-places-copy { white-space: nowrap; }
+        .free-places-list { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); }
+        .free-place-chip { min-height: 38px; display: grid; place-items: center; font-weight: 800; }
+        .free-places-text { width: 100%; min-height: 126px; resize: vertical; margin-top: 12px; font-size: 13px; line-height: 1.45; }
+        @media (max-width: 760px) {
+          .schedule-top-card { position: static !important; top: auto !important; z-index: auto !important; }
+          .free-places-head { display: grid; grid-template-columns: 1fr; }
+          .free-places-copy { width: 100%; }
+        }
       `}</style>
 
       <section className="card schedule-calendar-card" id="calendar">
@@ -204,7 +236,7 @@ export default function ScheduleClient(props: Props) {
           {props.warning ? <div className="notice danger-notice">Предупреждение: {props.warning}. Чтобы всё равно создать запись, поставь галочку подтверждения.</div> : null}
           {props.success ? <div className="notice ok-notice">{props.success}</div> : null}
 
-          <div className="grid-2">
+          <div className="grid-2 schedule-day-grid">
             <div className="mini-card">
               <h3>Открыть окна для онлайн-записи</h3>
               <p className="small">Нажимай свободное время сверху — оно исчезнет из списка и уйдёт вниз. Нижний список — то, что увидят клиенты онлайн.</p>
@@ -229,91 +261,28 @@ export default function ScheduleClient(props: Props) {
               </div>
             </div>
 
-            <div className="mini-card" id="manual-booking">
-              <h3>Записать самой</h3>
-              <p className="small">Занятые и ожидающие подтверждения окна теперь видны отдельно. Нажми на занятое окно, чтобы открыть управление записью.</p>
-
-              <div className="grid">
-                <b>Список времени</b>
-                <div className="grid" style={{ maxHeight: 310, overflow: "auto", paddingRight: 6 }}>
-                  {props.selectedTimes.map((item) => {
-                    const booking = item.booking;
-                    if (item.kind === "booking" && booking) {
-                      return (
-                        <details key={`${item.kind}-${item.time}`} className={`slot busy-slot ${booking.status === "PENDING" ? "pending" : "confirmed"}`} style={{ padding: "10px 12px", display: "block" }}>
-                          <summary><b>{item.time}</b> — {item.busyLabel}</summary>
-                          <div className="busy-slot-panel">
-                            <span className={booking.status === "PENDING" ? "status wait" : "status ok-status"}>{bookingStatusLabel(booking.status)}</span>
-                            <small>Клиент: {booking.clientName}. Услуга: {booking.serviceTitle}.</small>
-                            {booking.clientComment ? <small>Комментарий клиента: {booking.clientComment}</small> : null}
-
-                            {booking.status === "PENDING" ? (
-                              <form action={confirmScheduleBooking}>
-                                <input type="hidden" name="id" value={booking.id} />
-                                <input type="hidden" name="month" value={props.monthKey} />
-                                <input type="hidden" name="date" value={props.selectedDateKey} />
-                                <button className="ok">Подтвердить</button>
-                              </form>
-                            ) : null}
-
-                            <form action={updateScheduleBooking} className="grid">
-                              <input type="hidden" name="id" value={booking.id} />
-                              <input type="hidden" name="month" value={props.monthKey} />
-                              <input type="hidden" name="date" value={props.selectedDateKey} />
-                              <label>Клиент<select name="clientId" defaultValue={booking.clientId}>{props.clients.map((client) => <option key={client.id} value={client.id}>{client.name} — {client.phone}</option>)}</select></label>
-                              <label>Услуга<select name="serviceId" defaultValue={booking.serviceId}>{props.services.map((service) => <option key={service.id} value={service.id}>{service.title} — {service.price} ₽ · {durationLabel(service.durationMinutes)}</option>)}</select></label>
-                              <div className="grid-2">
-                                <label>Время начала<select name="startTime" defaultValue={item.time}>{props.selectedTimes.filter((time) => !time.isBusy || time.time === item.time).map((time) => <option key={time.time} value={time.time}>{time.time}</option>)}</select></label>
-                                <label>Длительность<select name="durationMinutes" defaultValue={booking.durationMinutes}>{DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-                              </div>
-                              <div className="grid-2">
-                                <label>Статус<select name="status" defaultValue={booking.status}>{BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
-                                <label>Итоговая цена<input name="finalPrice" type="number" min="0" defaultValue={booking.finalPrice ?? ""} /></label>
-                              </div>
-                              <label>Заметка<input name="adminComment" defaultValue={booking.adminComment} /></label>
-                              <button>Сохранить изменения</button>
-                            </form>
-
-                            <form action={cancelScheduleBooking}>
-                              <input type="hidden" name="id" value={booking.id} />
-                              <input type="hidden" name="month" value={props.monthKey} />
-                              <input type="hidden" name="date" value={props.selectedDateKey} />
-                              <button className="danger">Отменить запись</button>
-                            </form>
-                          </div>
-                        </details>
-                      );
-                    }
-
-                    return <div key={`${item.kind}-${item.time}`} className={item.isBusy ? "notice danger-notice" : "slot"} style={{ padding: "10px 12px", display: "block" }}><b>{item.time}</b>{item.busyLabel ? ` — ${item.busyLabel}` : " — свободно"}</div>;
-                  })}
+            <div className="mini-card free-places-card">
+              <div className="free-places-head">
+                <div>
+                  <h3>Свободные места</h3>
+                  <p className="small">Готовый текст со свободными окнами на выбранный день.</p>
                 </div>
+                <button type="button" className="secondary free-places-copy" onClick={copyFreePlaces}>
+                  {copyState === "copied" ? "Скопировано" : "Скопировать"}
+                </button>
               </div>
 
-              {props.clients.length === 0 || props.services.length === 0 ? <div className="notice">Нужен хотя бы один подтверждённый клиент и одна активная услуга.</div> : (
-                <form action={createScheduleBooking} className="grid" style={{ marginTop: 16 }}>
-                  <input type="hidden" name="date" value={props.selectedDateKey} />
-                  <input type="hidden" name="month" value={props.monthKey} />
-                  <label>Клиент<select name="clientId" required>{props.clients.map((client) => <option key={client.id} value={client.id}>{client.name} — {client.phone}</option>)}</select></label>
-                  <label>Услуга<select name="serviceId" required value={selectedServiceId} onChange={(event) => handleServiceChange(event.target.value)}>{props.services.map((service) => <option key={service.id} value={service.id}>{service.title} — {service.price} ₽ · {durationLabel(service.durationMinutes)}</option>)}</select></label>
-                  <div className="grid-2">
-                    <label>Время начала<select name="startTime" required>{freeTimes.map((item) => <option key={item.time} value={item.time}>{item.time}</option>)}</select></label>
-                    <label>Сколько времени займёт услуга<select name="durationMinutes" value={manualDuration} onChange={(event) => setManualDuration(Number(event.target.value))}>{DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-                  </div>
-                  <div className="grid-2">
-                    <label>Итоговая цена<input name="finalPrice" type="number" min="0" placeholder="если отличается" /></label>
-                    <label>Заметка<input name="adminComment" placeholder="например: дизайн / сложная коррекция" /></label>
-                  </div>
-                  {!props.selectedIsWorkingDay ? <div className="notice">Этот день отмечен как выходной. Система попросит подтверждение, если нажать запись без галочки.</div> : null}
-                  {freeTimes.length === 0 ? <div className="notice danger-notice">Свободного старта для записи в этот день нет.</div> : null}
-                  <label className="inline-check"><input type="checkbox" name="force" />Подтверждаю запись даже если это выходной, закрытое окно или есть наложение</label>
-                  <button disabled={freeTimes.length === 0}>Записать клиента</button>
-                </form>
-              )}
+              <div className="time-list free-places-list" style={{ marginTop: 12 }}>
+                {freeTimes.map((item) => <span key={item.time} className="slot free-place-chip">{freeWindowLabel(item)}</span>)}
+                {freeTimes.length === 0 ? <div className="notice danger-notice">Свободных мест на этот день нет.</div> : null}
+              </div>
+
+              <textarea className="free-places-text" readOnly value={freePlacesText} aria-label="Текст свободных мест для копирования" />
+              {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически. Можно выделить текст в поле и скопировать вручную.</div> : null}
             </div>
           </div>
         </section>
-      ) : <section className="card"><h2>Выбери день</h2><p>Нажми на дату в календаре, чтобы открыть список времени, ручную запись и выбор онлайн-окон.</p></section>}
+      ) : <section className="card"><h2>Выбери день</h2><p>Нажми на дату в календаре, чтобы открыть список времени и выбор онлайн-окон.</p></section>}
     </div>
   );
 }
