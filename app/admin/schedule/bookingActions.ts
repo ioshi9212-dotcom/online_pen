@@ -7,6 +7,8 @@ import { combineDateAndTime, dateFromKey } from "@/lib/schedule";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
+const BOOKING_STATUSES = new Set(["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"]);
+
 function guard() {
   if (!isAdmin()) redirect("/admin/login");
 }
@@ -50,6 +52,7 @@ export async function updateScheduleBooking(formData: FormData) {
   const durationMinutes = safeDuration(formData.get("durationMinutes"), service.durationMinutes || 150);
   const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
   const status = text(formData, "status") || "CONFIRMED";
+  if (!BOOKING_STATUSES.has(status)) redirect(back(formData, "&warning=Некорректный статус записи"));
 
   if (isActiveBookingStatus(status)) {
     const reasons = await getBookingConflictReasons({ startAt, endAt, ignoreBookingId: bookingId });

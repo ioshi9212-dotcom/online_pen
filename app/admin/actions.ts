@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
 import { redirect } from "next/navigation";
 
+const BOOKING_STATUSES = new Set(["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"]);
+
 function guard() {
   if (!isAdmin()) redirect("/admin/login");
 }
@@ -47,6 +49,7 @@ export async function setBookingStatus(formData: FormData) {
   const id = getId(formData);
   const status = String(formData.get("status"));
   const redirectTo = redirectTarget(formData, "/admin/bookings");
+  if (!BOOKING_STATUSES.has(status)) redirect(redirectTo);
 
   await prisma.booking.update({
     where: { id },

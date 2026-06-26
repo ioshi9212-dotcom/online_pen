@@ -2,6 +2,7 @@
 
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { changeAdminPassword } from "@/lib/adminPassword";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -27,13 +28,13 @@ export async function saveMasterProfile(formData: FormData) {
   await saveSetting("master_phone", clean(formData.get("masterPhone")));
   await saveSetting("master_photo_url", clean(formData.get("masterPhotoUrl")));
 
-  const code = clean(formData.get("newAccessCode"));
-  const repeat = clean(formData.get("repeatAccessCode"));
+  const password = clean(formData.get("newAdminPassword"));
+  const repeatPassword = clean(formData.get("repeatAdminPassword"));
 
-  if (code || repeat) {
-    if (code.length < 4) redirect("/admin/profile?error=short-code");
-    if (code !== repeat) redirect("/admin/profile?error=code-mismatch");
-    await saveSetting("master_access_code", code);
+  if (password || repeatPassword) {
+    if (password.length < 4) redirect("/admin/profile?error=short-password");
+    if (password !== repeatPassword) redirect("/admin/profile?error=password-mismatch");
+    await changeAdminPassword(password);
   }
 
   redirect("/admin/profile?saved=1");

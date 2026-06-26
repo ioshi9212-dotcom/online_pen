@@ -42,6 +42,8 @@ export default async function AdminProfilePage({ searchParams = {} }: { searchPa
       </div>
 
       {one(searchParams, "saved") ? <div className="notice ok-notice">Профиль мастера сохранён.</div> : null}
+      {one(searchParams, "error") === "short-password" ? <div className="notice danger-notice">Пароль должен быть минимум 4 символа.</div> : null}
+      {one(searchParams, "error") === "password-mismatch" ? <div className="notice danger-notice">Пароли не совпали.</div> : null}
 
       <form action={saveMasterProfile} className="card grid profile-form">
         <div className="grid-2">
@@ -52,6 +54,16 @@ export default async function AdminProfilePage({ searchParams = {} }: { searchPa
           <input name="masterPhotoUrl" defaultValue={masterPhotoUrl} placeholder="https://..." />
           <small>Загрузку файла можно сделать позже через отдельное хранилище. Сейчас фото работает как ссылка на изображение.</small>
         </label>
+        <div className="profile-password-box">
+          <div>
+            <h2>Пароль админки</h2>
+            <p>Заполняйте только если нужно поменять вход в кабинет мастера.</p>
+          </div>
+          <div className="grid-2">
+            <label>Новый пароль<input name="newAdminPassword" type="password" autoComplete="new-password" /></label>
+            <label>Повторить пароль<input name="repeatAdminPassword" type="password" autoComplete="new-password" /></label>
+          </div>
+        </div>
         <div className="actions">
           <button type="submit">Сохранить профиль</button>
           <a className="button secondary" href="/admin">Назад</a>

@@ -188,7 +188,7 @@ export default async function ServicesPage({ searchParams = {} }: { searchParams
   const editId = param(searchParams, "edit");
   const showAddModal = param(searchParams, "add") === "1";
   const editService = editId ? services.find((service) => service.id === editId) : undefined;
-  const byId = new Map(services.map((service) => [service.id, service.title]));
+  const byId = new Map<string, string>(services.map((service) => [service.id, service.title]));
   const serviceTitle = (id?: string) => (id ? byId.get(id) ?? "позиция" : "позиция");
 
   return (

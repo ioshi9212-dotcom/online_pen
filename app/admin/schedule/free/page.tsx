@@ -64,6 +64,7 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
         <p>Это только окна, которые вручную открыты и сейчас не заняты активными записями или закрытыми окнами.</p>
         <div className="actions">
           <a className="button secondary" href="/admin/schedule">Разделы расписания</a>
+          <a className="button secondary" href="/admin/schedule?view=mode">Настройки записи</a>
           <a className="button secondary" href="/admin/schedule?view=calendar">Календарь окон</a>
           <a className="button secondary" href="/admin">Админка</a>
         </div>
