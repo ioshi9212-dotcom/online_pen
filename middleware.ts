@@ -5,7 +5,7 @@ const LOGIN_PATH = "/admin/login";
 const LOGOUT_PATH = "/admin/logout";
 
 function secret() {
-  return process.env.ADMIN_SECRET || "dev-secret";
+  return process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || "dev-secret";
 }
 
 function toHex(buffer: ArrayBuffer) {

@@ -32,7 +32,7 @@ export async function saveMasterProfile(formData: FormData) {
   const repeatPassword = clean(formData.get("repeatAdminPassword"));
 
   if (password || repeatPassword) {
-    if (password.length < 4) redirect("/admin/profile?error=short-password");
+    if (password.length < 8) redirect("/admin/profile?error=short-password");
     if (password !== repeatPassword) redirect("/admin/profile?error=password-mismatch");
     await changeAdminPassword(password);
   }
