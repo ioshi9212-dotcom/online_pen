@@ -95,8 +95,8 @@ function Sidebar({ requestCount, waitlistCount }: { requestCount: number; waitli
     ["Записи", "/admin/bookings", "□", ""],
     ["Клиенты", "/admin/my-clients", "◇", ""],
     ["Расписание", "/admin/schedule", "▣", ""],
+    ["Настройки записи", "/admin/schedule?view=mode", "⚙", ""],
     ["Прайс", "/admin/services", "₽", ""],
-    ["Услуги", "/admin/services", "✎", ""],
     ["Заявки", "/admin/requests", "!", String(requestCount || "")],
     ["Ждуны", "/admin#waitlist", "◷", String(waitlistCount || "")],
     ["Профиль", "/admin/profile", "◎", ""]
@@ -227,7 +227,10 @@ export default async function AdminPage() {
             <b>Главная</b>
             <span>{fmtTopDate(today)}</span>
           </div>
-          <a className="master-new-booking" href="/admin/manage">Новая запись</a>
+          <div className="master-top-actions">
+            <a className="master-new-booking" href="/admin/manage">Новая запись</a>
+            <a className="master-settings-link" href="/admin/schedule?view=mode">Настройки записи</a>
+          </div>
         </header>
 
         <header className="admin-home-header master-desktop-header">
@@ -236,7 +239,10 @@ export default async function AdminPage() {
             <h1>Главная</h1>
             <p>Сегодня, завтра, заявки, ждуны и ближайшие свободные окна. Без лишней гирлянды.</p>
           </div>
-          <a className="button" href="/admin/manage">Новая запись</a>
+          <div className="actions">
+            <a className="button secondary" href="/admin/schedule?view=mode">Настройки записи</a>
+            <a className="button" href="/admin/manage">Новая запись</a>
+          </div>
         </header>
 
         <section className="admin-summary-grid master-desktop-summary" id="analytics">
@@ -369,9 +375,9 @@ export default async function AdminPage() {
         <nav className="master-bottom-nav" aria-label="Нижнее меню мастера">
           <a className="active" href="/admin"><span>⌂</span><b>Главная</b></a>
           <a href="/admin/schedule"><span>□</span><b>Календарь</b></a>
+          <a href="/admin/schedule?view=mode"><span>⚙</span><b>Запись</b></a>
           <a href="/admin/my-clients"><span>◇</span><b>Клиенты</b></a>
-          <a href="/admin/profile"><span>◎</span><b>Настройки</b></a>
-          <a href="/"><span>♡</span><b>Клиент</b></a>
+          <a href="/admin/profile"><span>◎</span><b>Профиль</b></a>
         </nav>
       </section>
     </main>

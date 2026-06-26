@@ -77,7 +77,7 @@ function ScheduleMenu() {
       <h2>Что открыть?</h2>
       <div className="admin-menu-grid">
         <a className="menu-card primary" href="/admin/schedule/free"><span className="menu-title">Список онлайн-окон</span><span className="menu-text">Только открытые окна для клиентов. Удобно скопировать или сделать скрин.</span></a>
-        <a className="menu-card" href="/admin/schedule?view=mode"><span className="menu-title">Редактор режима</span><span className="menu-text">Шаг времени и общий рабочий день с/до на каждый день.</span></a>
+        <a className="menu-card" href="/admin/schedule?view=mode"><span className="menu-title">Настройки записи</span><span className="menu-text">Шаг времени, рабочие часы и базовый режим на каждый день.</span></a>
         <a className="menu-card" href="/admin/schedule?view=calendar"><span className="menu-title">Календарь окон</span><span className="menu-text">Пометить выходные, открыть онлайн-окна и записать клиента вручную.</span></a>
       </div>
     </section>
@@ -206,11 +206,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
     <div className="grid">
       <section className="card">
         <h1>Расписание</h1>
-        <p>Открывай только нужный раздел: список онлайн-окон, редактор режима или календарь окон.</p>
+        <p>Открывай только нужный раздел: онлайн-окна, настройки записи или календарь.</p>
         <div className="actions">
           <a className={view === "menu" ? "button" : "button secondary"} href="/admin/schedule">Разделы расписания</a>
           <a className="button secondary" href="/admin/schedule/free">Список онлайн-окон</a>
-          <a className={view === "mode" ? "button" : "button secondary"} href="/admin/schedule?view=mode">Редактор режима</a>
+          <a className={view === "mode" ? "button" : "button secondary"} href="/admin/schedule?view=mode">Настройки записи</a>
           <a className={view === "calendar" ? "button" : "button secondary"} href={`/admin/schedule?view=calendar&month=${month.key}`}>Календарь окон</a>
           <a className="button secondary" href="/admin">Админка</a>
         </div>
@@ -221,15 +221,15 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
 
       {view === "mode" ? (
         <section className="card" id="mode">
-          <h2>Редактор режима</h2>
-          <p>Один общий режим на каждый день. Конкретные выходные и особенные дни отмечаются в календаре.</p>
+          <h2>Настройки записи</h2>
+          <p>Здесь задаётся базовый шаг времени и обычный рабочий день. Конкретные выходные, особенные дни и онлайн-окна отмечаются в календаре.</p>
           <form action={saveScheduleMode} className="grid">
             <div className="grid-3">
               <label>Шаг времени<select name="stepMinutes" defaultValue={String(stepMinutes)}><option value="15">15 минут</option><option value="30">30 минут</option><option value="45">45 минут</option><option value="60">1 час</option><option value="90">1,5 часа</option><option value="150">2,5 часа</option></select></label>
               <label>Рабочий день с<input name="defaultStartTime" type="time" defaultValue={defaultStartTime} /></label>
               <label>Рабочий день до<input name="defaultEndTime" type="time" defaultValue={defaultEndTime} /></label>
             </div>
-            <button>Сохранить режим на каждый день</button>
+            <button>Сохранить настройки записи</button>
           </form>
         </section>
       ) : null}
