@@ -3,8 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
-import { checkRateLimit, resetRateLimit } from "@/lib/rateLimit";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 function required(value: FormDataEntryValue | null, name: string) {
@@ -19,12 +17,6 @@ function optional(value: FormDataEntryValue | null) {
 
 function birthDateFrom(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
-}
-
-function requestIp() {
-  const h = headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || h.get("x-real-ip") || "unknown";
 }
 
 function myUrl(token: string, params: Record<string, string | undefined> = {}) {
@@ -60,22 +52,12 @@ export async function registerClient(formData: FormData) {
 export async function loginClient(formData: FormData) {
   const phone = formatPhone(required(formData.get("phone"), "Телефон"));
   const birthDate = new Date(required(formData.get("birthDate"), "Дата рождения"));
-  const limitKey = `client-login:${requestIp()}:${phone}`;
-  const limit = checkRateLimit(limitKey, {
-    limit: 8,
-    windowMs: 10 * 60 * 1000,
-    blockMs: 10 * 60 * 1000
-  });
-
-  if (!limit.ok) redirect("/login?limited=1");
 
   const client = await prisma.client.findUnique({ where: { phone } });
   if (!client) redirect(`/register?phone=${encodeURIComponent(phone)}`);
 
   const sameDate = client.birthDate.toISOString().slice(0, 10) === birthDate.toISOString().slice(0, 10);
   if (!sameDate) redirect(`/login?error=wrong_birthdate`);
-
-  resetRateLimit(limitKey);
 
   if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
   if (client.status === "BANNED") redirect(`/unavailable`);
@@ -110,55 +92,44 @@ export async function createBooking(formData: FormData) {
   const returnDate = optional(formData.get("returnDate")) || startAt.toISOString().slice(0, 10);
   const returnTime = optional(formData.get("returnTime")) || startAt.toISOString();
 
-  try {
-    const booking = await prisma.$transaction(async (tx) => {
-      const client = await tx.client.findUnique({ where: { publicToken: token } });
-      if (!client || client.status !== "APPROVED") throw new Error("client-unavailable");
+  const client = await prisma.client.findUnique({ where: { publicToken: token } });
+  if (!client || client.status !== "APPROVED") redirect("/unavailable");
 
-      const service = await tx.service.findUnique({ where: { id: serviceId } });
-      if (!service || !service.isActive || !service.showInBooking) throw new Error("service-unavailable");
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service || !service.isActive || !service.showInBooking) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
 
-      const onlineWindow = await tx.onlineWindow.findUnique({ where: { startAt } });
-      if (!onlineWindow) throw new Error("window-busy");
+  const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
+  if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
 
-      const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
 
-      const conflict = await tx.booking.findFirst({
-        where: {
-          status: { in: ["PENDING", "CONFIRMED"] },
-          startAt: { lt: endAt },
-          endAt: { gt: startAt }
-        }
-      });
+  const conflict = await prisma.booking.findFirst({
+    where: {
+      status: { in: ["PENDING", "CONFIRMED"] },
+      startAt: { lt: endAt },
+      endAt: { gt: startAt }
+    }
+  });
 
-      const blocked = await tx.blockedSlot.findFirst({
-        where: { startAt: { lt: endAt }, endAt: { gt: startAt } }
-      });
+  const blocked = await prisma.blockedSlot.findFirst({
+    where: { startAt: { lt: endAt }, endAt: { gt: startAt } }
+  });
 
-      if (conflict || blocked) throw new Error("window-busy");
+  if (conflict || blocked) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
 
-      await tx.onlineWindow.delete({ where: { startAt } });
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: client.id,
+      serviceId: service.id,
+      startAt,
+      endAt,
+      clientComment,
+      finalPrice: service.price,
+      status: "PENDING"
+    }
+  });
 
-      return tx.booking.create({
-        data: {
-          clientId: client.id,
-          serviceId: service.id,
-          startAt,
-          endAt,
-          clientComment,
-          finalPrice: service.price,
-          status: "PENDING"
-        }
-      });
-    });
-
-    redirect(myUrl(token, { created: booking.id }));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (message === "client-unavailable") redirect("/unavailable");
-    if (message === "service-unavailable") redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
-    redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
-  }
+  redirect(myUrl(token, { created: booking.id }));
 }
 
 export async function joinWaitlist(formData: FormData) {
