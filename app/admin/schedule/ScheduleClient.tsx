@@ -37,6 +37,7 @@ type TimeItem = {
 
 type ClientItem = { id: string; name: string; phone: string };
 type ServiceItem = { id: string; title: string; price: number; durationMinutes: number };
+type OnlineWindowGroup = { key: string; title: string; items: { id: string; time: string }[] };
 type PaintMode = "DAY_OFF" | "WORKING" | "SPECIAL";
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -52,6 +53,7 @@ type Props = {
   selectedIsWorkingDay: boolean;
   selectedTimes: TimeItem[];
   currentOnlineTimes: string[];
+  openOnlineGroups: OnlineWindowGroup[];
   clients: ClientItem[];
   services: ServiceItem[];
   warning: string;
@@ -180,6 +182,7 @@ export default function ScheduleClient(props: Props) {
       if (!response.ok) throw new Error("save-failed");
       setOnlineSaveState("saved");
       setOnlineSaveText(`Сохранила онлайн-окна: ${data?.saved ?? onlineTimes.length}${data?.skipped ? `. Пропущено занятых: ${data.skipped}` : ""}.`);
+      router.refresh();
     } catch {
       setOnlineSaveState("error");
       setOnlineSaveText("Не сохранилось. Обнови страницу и попробуй ещё раз.");
@@ -188,18 +191,20 @@ export default function ScheduleClient(props: Props) {
 
   const freeTimes = useMemo(() => props.selectedTimes.filter((item) => !item.isBusy), [props.selectedTimes]);
   const visibleTopTimes = useMemo(() => freeTimes.filter((item) => !onlineTimes.includes(item.time)), [freeTimes, onlineTimes]);
-  const freePlacesText = useMemo(() => {
-    if (freeTimes.length === 0) return `Свободных мест на ${props.selectedDateTitle} нет.`;
-    return [`Свободные места на ${props.selectedDateTitle}:`, ...freeTimes.map((item) => `• ${freeWindowLabel(item)}`)].join("\n");
-  }, [freeTimes, props.selectedDateTitle]);
+  const openOnlineText = useMemo(() => props.openOnlineGroups
+    .filter((group) => group.items.length > 0)
+    .map((group) => `${group.title} — ${group.items.map((item) => item.time).join(", ")}`)
+    .join("\n"), [props.openOnlineGroups]);
 
-  async function copyFreePlaces() {
+  async function copyOpenOnlineList() {
+    if (!openOnlineText) return;
+
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(freePlacesText);
+        await navigator.clipboard.writeText(openOnlineText);
       } else {
         const textarea = document.createElement("textarea");
-        textarea.value = freePlacesText;
+        textarea.value = openOnlineText;
         textarea.style.position = "fixed";
         textarea.style.left = "-9999px";
         textarea.style.opacity = "0";
@@ -230,17 +235,20 @@ export default function ScheduleClient(props: Props) {
         .schedule-floating-toast.ok-notice { background: #f1fff4; border: 1px solid rgba(71, 141, 84, .24); color: #245c31; }
         .schedule-floating-toast.danger-notice { background: #fff2f2; border: 1px solid rgba(187, 67, 67, .24); color: #8a2c2c; }
         @keyframes schedule-toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
-        .free-places-card { align-content: start; }
-        .free-places-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-        .free-places-head h3 { margin: 0 0 6px; }
-        .free-places-copy { white-space: nowrap; }
-        .free-places-list { grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); }
-        .free-place-chip { min-height: 38px; display: grid; place-items: center; font-weight: 800; }
-        .free-places-text { width: 100%; min-height: 126px; resize: vertical; margin-top: 12px; font-size: 13px; line-height: 1.45; }
+        .open-online-card { align-content: start; }
+        .open-online-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .open-online-head h3 { margin: 0 0 6px; }
+        .open-online-copy { white-space: nowrap; }
+        .open-online-list { display: grid; gap: 12px; margin-top: 12px; }
+        .open-online-row { padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255, 255, 255, .72); }
+        .open-online-row-title { display: block; margin-bottom: 8px; }
+        .open-online-times { display: flex; flex-wrap: wrap; gap: 8px; }
+        .open-online-time { min-height: 34px; padding: 8px 11px; display: grid; place-items: center; font-weight: 900; }
+        .open-online-text { width: 100%; min-height: 104px; resize: vertical; margin-top: 12px; font-size: 13px; line-height: 1.45; }
         @media (max-width: 760px) {
           .schedule-top-card { position: static !important; top: auto !important; z-index: auto !important; }
-          .free-places-head { display: grid; grid-template-columns: 1fr; }
-          .free-places-copy { width: 100%; }
+          .open-online-head { display: grid; grid-template-columns: 1fr; }
+          .open-online-copy { width: 100%; }
         }
       `}</style>
 
@@ -311,7 +319,7 @@ export default function ScheduleClient(props: Props) {
           {props.warning ? <div className="notice danger-notice">Предупреждение: {props.warning}. Чтобы всё равно создать запись, поставь галочку подтверждения.</div> : null}
           {props.success ? <div className="notice ok-notice">{props.success}</div> : null}
 
-          <div className="grid-2 schedule-day-grid">
+          <div className={props.openOnlineGroups.length ? "grid-2 schedule-day-grid" : "grid schedule-day-grid"}>
             <div className="mini-card">
               <h3>Открыть окна для онлайн-записи</h3>
               <p className="small">Нажимай свободное время сверху — оно исчезнет из списка и уйдёт вниз. Нижний список — то, что увидят клиенты онлайн.</p>
@@ -319,7 +327,7 @@ export default function ScheduleClient(props: Props) {
               <div className="grid">
                 <b>Свободное время дня</b>
                 <div className="time-list" style={{ maxHeight: 360 }}>
-                  {visibleTopTimes.map((item) => <button type="button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{item.time}</button>)}
+                  {visibleTopTimes.map((item) => <button type="button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
                   {visibleTopTimes.length === 0 ? <div className="notice">Свободных времён для переноса вниз нет.</div> : null}
                 </div>
               </div>
@@ -336,25 +344,33 @@ export default function ScheduleClient(props: Props) {
               </div>
             </div>
 
-            <div className="mini-card free-places-card">
-              <div className="free-places-head">
-                <div>
-                  <h3>Свободные места</h3>
-                  <p className="small">Готовый текст со свободными окнами на выбранный день.</p>
+            {props.openOnlineGroups.length ? (
+              <div className="mini-card open-online-card">
+                <div className="open-online-head">
+                  <div>
+                    <h3>Открытые онлайн-окна</h3>
+                    <p className="small">Только реально открытые окна, которые ещё не прошли и не заняты.</p>
+                  </div>
+                  <button type="button" className="secondary open-online-copy" onClick={copyOpenOnlineList}>
+                    {copyState === "copied" ? "Скопировано" : "Скопировать"}
+                  </button>
                 </div>
-                <button type="button" className="secondary free-places-copy" onClick={copyFreePlaces}>
-                  {copyState === "copied" ? "Скопировано" : "Скопировать"}
-                </button>
-              </div>
 
-              <div className="time-list free-places-list" style={{ marginTop: 12 }}>
-                {freeTimes.map((item) => <span key={item.time} className="slot free-place-chip">{freeWindowLabel(item)}</span>)}
-                {freeTimes.length === 0 ? <div className="notice danger-notice">Свободных мест на этот день нет.</div> : null}
-              </div>
+                <div className="open-online-list">
+                  {props.openOnlineGroups.map((group) => (
+                    <div key={group.key} className="open-online-row">
+                      <b className="open-online-row-title">{group.title}</b>
+                      <div className="open-online-times">
+                        {group.items.map((item) => <span key={item.id} className="slot open-online-time">{item.time}</span>)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-              <textarea className="free-places-text" readOnly value={freePlacesText} aria-label="Текст свободных мест для копирования" />
-              {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически. Можно выделить текст в поле и скопировать вручную.</div> : null}
-            </div>
+                <textarea className="open-online-text" readOnly value={openOnlineText} aria-label="Список открытых онлайн-окон для копирования" />
+                {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически. Можно выделить текст в поле и скопировать вручную.</div> : null}
+              </div>
+            ) : null}
           </div>
         </section>
       ) : <section className="card"><h2>Выбери день</h2><p>Нажми на дату в календаре, чтобы открыть список времени и выбор онлайн-окон.</p></section>}
