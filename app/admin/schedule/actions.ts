@@ -36,6 +36,49 @@ function dayRange(key: string) {
   return { day, start, end };
 }
 
+function bulkKindLabel(kind: string) {
+  if (kind === "DAY_OFF") return "выходные";
+  if (kind === "SPECIAL") return "особенные дни";
+  return "рабочие дни";
+}
+
+async function persistBulkDayOverrides(formData: FormData) {
+  guard();
+
+  const dates = safeJsonList(s(formData, "datesJson"));
+  const rawKind = s(formData, "kind") || "DAY_OFF";
+  const kind = ["DAY_OFF", "WORKING", "SPECIAL"].includes(rawKind) ? rawKind : "DAY_OFF";
+  const month = s(formData, "month");
+  const startTime = s(formData, "startTime") || null;
+  const endTime = s(formData, "endTime") || null;
+
+  for (const key of dates) {
+    const { day, start, end } = dayRange(key);
+    await prisma.dayOverride.upsert({
+      where: { date: day },
+      create: {
+        date: day,
+        kind: kind as any,
+        startTime,
+        endTime,
+        note: kind === "DAY_OFF" ? "Отмечено как выходной" : kind === "SPECIAL" ? "Особенный день" : ""
+      },
+      update: {
+        kind: kind as any,
+        startTime,
+        endTime,
+        note: kind === "DAY_OFF" ? "Отмечено как выходной" : kind === "SPECIAL" ? "Особенный день" : ""
+      }
+    });
+
+    if (kind === "DAY_OFF") {
+      await prisma.onlineWindow.deleteMany({ where: { startAt: { gte: start, lt: end } } });
+    }
+  }
+
+  return { saved: dates.length, kind, month };
+}
+
 export async function saveScheduleMode(formData: FormData) {
   guard();
   const stepMinutes = n(formData, "stepMinutes", 30);
@@ -66,39 +109,19 @@ export async function saveScheduleMode(formData: FormData) {
 }
 
 export async function saveBulkDayOverrides(formData: FormData) {
-  guard();
+  const result = await persistBulkDayOverrides(formData);
+  redirect(`/admin/schedule?view=calendar&month=${result.month}&done=Даты сохранены#calendar`);
+}
 
-  const dates = safeJsonList(s(formData, "datesJson"));
-  const kind = s(formData, "kind") || "DAY_OFF";
-  const month = s(formData, "month");
-  const startTime = s(formData, "startTime") || null;
-  const endTime = s(formData, "endTime") || null;
-
-  for (const key of dates) {
-    const { day, start, end } = dayRange(key);
-    await prisma.dayOverride.upsert({
-      where: { date: day },
-      create: {
-        date: day,
-        kind: kind as any,
-        startTime,
-        endTime,
-        note: kind === "DAY_OFF" ? "Отмечено как выходной" : kind === "SPECIAL" ? "Особенный день" : ""
-      },
-      update: {
-        kind: kind as any,
-        startTime,
-        endTime,
-        note: kind === "DAY_OFF" ? "Отмечено как выходной" : kind === "SPECIAL" ? "Особенный день" : ""
-      }
-    });
-
-    if (kind === "DAY_OFF") {
-      await prisma.onlineWindow.deleteMany({ where: { startAt: { gte: start, lt: end } } });
-    }
-  }
-
-  redirect(`/admin/schedule?view=calendar&month=${month}&done=Даты сохранены#calendar`);
+export async function saveBulkDayOverridesInline(formData: FormData) {
+  const result = await persistBulkDayOverrides(formData);
+  const label = bulkKindLabel(result.kind);
+  return {
+    ok: true,
+    saved: result.saved,
+    kind: result.kind,
+    message: result.saved === 1 ? "Сохранено: 1 день" : `Сохранено: ${result.saved} дней (${label})`
+  };
 }
 
 export async function saveOnlineWindows(formData: FormData) {
