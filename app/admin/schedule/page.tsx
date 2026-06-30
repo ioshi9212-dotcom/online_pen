@@ -32,6 +32,8 @@ type SelectedTime = {
   };
 };
 
+const shortWeekDays = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+
 function one(value: string | string[] | undefined, fallback = "") {
   return Array.isArray(value) ? value[0] || fallback : value || fallback;
 }
@@ -65,6 +67,15 @@ function dayLabel(kind: string, isWorkingDay: boolean) {
   if (kind === "DAY_OFF") return "выходной";
   if (kind === "WORKING") return "рабочий";
   return isWorkingDay ? "рабочий" : "выходной";
+}
+
+function onlineWindowDayTitle(date: Date) {
+  const month = new Intl.DateTimeFormat("ru-RU", { month: "long" }).format(date);
+  return `${date.getDate()} ${month}, ${shortWeekDays[date.getDay()]}`;
+}
+
+function pointBusy(point: Date, busyItems: { startAt: Date; endAt: Date }[]) {
+  return busyItems.some((item) => item.startAt <= point && item.endAt > point);
 }
 
 function Toast({ text }: { text: string }) {
@@ -169,8 +180,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
 
   const monthStart = new Date(month.year, month.monthIndex, 1);
   const monthEnd = new Date(month.year, month.monthIndex + 1, 1);
+  const now = new Date();
+  const onlineHorizon = new Date(now);
+  onlineHorizon.setDate(onlineHorizon.getDate() + 90);
 
-  const [rules, settings, overrides, monthBookings, monthBlocks, onlineWindows, clients, services] = await Promise.all([
+  const [rules, settings, overrides, monthBookings, monthBlocks, monthOnlineWindows, futureOnlineWindows, futureBookings, futureBlocks, clients, services] = await Promise.all([
     prisma.scheduleRule.findMany({ orderBy: { weekday: "asc" } }),
     prisma.setting.findMany(),
     prisma.dayOverride.findMany({ where: { date: { gte: monthStart, lt: monthEnd } }, orderBy: { date: "asc" } }),
@@ -181,6 +195,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
     }),
     prisma.blockedSlot.findMany({ where: { startAt: { lt: monthEnd }, endAt: { gt: monthStart } }, orderBy: { startAt: "asc" } }),
     prisma.onlineWindow.findMany({ where: { startAt: { gte: monthStart, lt: monthEnd } }, orderBy: { startAt: "asc" } }),
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: now, lt: onlineHorizon } }, orderBy: { startAt: "asc" } }),
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] as any }, startAt: { lt: onlineHorizon }, endAt: { gt: now } }, select: { startAt: true, endAt: true } }),
+    prisma.blockedSlot.findMany({ where: { startAt: { lt: onlineHorizon }, endAt: { gt: now } }, select: { startAt: true, endAt: true } }),
     prisma.client.findMany({ where: { status: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] })
   ]);
@@ -195,14 +212,27 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
     const day = new Date(month.year, month.monthIndex, dayNumber);
     const key = dateKey(day);
     const effective = getEffectiveDay(day, rules, overrides);
-    return { key, dayNumber, label: dayLabel(effective.kind, effective.isWorkingDay), kind: effective.kind, isWorkingDay: effective.isWorkingDay, bookingsCount: monthBookings.filter((item) => dateKey(item.startAt) === key).length, onlineCount: onlineWindows.filter((item) => dateKey(item.startAt) === key).length };
+    return { key, dayNumber, label: dayLabel(effective.kind, effective.isWorkingDay), kind: effective.kind, isWorkingDay: effective.isWorkingDay, bookingsCount: monthBookings.filter((item) => dateKey(item.startAt) === key).length, onlineCount: monthOnlineWindows.filter((item) => dateKey(item.startAt) === key).length };
   });
+
+  const visibleFutureOnlineWindows = futureOnlineWindows.filter((window) => !pointBusy(window.startAt, futureBookings) && !pointBusy(window.startAt, futureBlocks));
+  const groupedOnlineWindows = visibleFutureOnlineWindows.reduce<Record<string, typeof visibleFutureOnlineWindows>>((acc, item) => {
+    const key = dateKey(item.startAt);
+    acc[key] = acc[key] || [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+  const openOnlineGroups = Object.entries(groupedOnlineWindows).map(([key, items]) => ({
+    key,
+    title: onlineWindowDayTitle(items[0].startAt),
+    items: items.map((item) => ({ id: item.id, time: formatTimeOnly(item.startAt) }))
+  }));
 
   const selectedEffective = selectedDay ? getEffectiveDay(selectedDay, rules, overrides) : null;
   const selectedTimesRaw = selectedEffective ? generateTimeList(selectedEffective.startTime, selectedEffective.endTime, stepMinutes) : [];
   const selectedBookings = selectedDay ? monthBookings.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
   const selectedBlocks = selectedDay ? monthBlocks.filter((item) => dateKey(item.startAt) === dateKey(selectedDay) || dateKey(item.endAt) === dateKey(selectedDay)) : [];
-  const selectedOnlineWindows = selectedDay ? onlineWindows.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
+  const selectedOnlineWindows = selectedDay ? monthOnlineWindows.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
   const selectedTimes = buildSelectedTimes({ selectedDay, rawTimes: selectedTimesRaw, selectedBookings, selectedBlocks, selectedOnlineWindows, stepMinutes });
 
   return (
@@ -248,6 +278,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
           selectedIsWorkingDay={selectedEffective?.isWorkingDay ?? false}
           selectedTimes={selectedTimes}
           currentOnlineTimes={selectedOnlineWindows.map((item) => formatTimeOnly(item.startAt))}
+          openOnlineGroups={openOnlineGroups}
           clients={clients.map((client) => ({ id: client.id, name: `${client.firstName} ${client.lastName}`, phone: client.phone }))}
           services={services.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes }))}
           warning={warning}
