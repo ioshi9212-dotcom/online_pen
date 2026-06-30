@@ -2,6 +2,9 @@
   "name": "online-pen",
   "version": "0.1.3",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0 <21"
+  },
   "scripts": {
     "dev": "next dev",
     "prisma:generate": "node ./node_modules/prisma/build/index.js generate",
