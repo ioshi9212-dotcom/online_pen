@@ -64,3 +64,7 @@ cp .env.example .env
 - Все стили собраны в один `app/globals.css`, чтобы интерфейс не расползался из-за десятков CSS-патчей.
 - В меню мастера возвращена кнопка `Настройки записи`.
 - Лишний пункт `Услуги` в меню заменён на единый понятный пункт `Прайс`.
+
+## Railway fix 0.1.3
+
+Prisma запускается через `node ./node_modules/prisma/build/index.js`, чтобы Railway не падал на `prisma: Permission denied`. Build command в `railway.json`: `npm ci --include=dev && npm run build`.
