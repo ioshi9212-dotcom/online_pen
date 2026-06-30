@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { saveBulkDayOverrides } from "./actions";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { saveBulkDayOverridesInline } from "./actions";
 
 type DayItem = {
   key: string;
@@ -36,6 +37,8 @@ type TimeItem = {
 
 type ClientItem = { id: string; name: string; phone: string };
 type ServiceItem = { id: string; title: string; price: number; durationMinutes: number };
+type PaintMode = "DAY_OFF" | "WORKING" | "SPECIAL";
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 type Props = {
   monthKey: string;
@@ -55,7 +58,7 @@ type Props = {
   success: string;
 };
 
-const modeLabels: Record<string, string> = {
+const modeLabels: Record<PaintMode, string> = {
   DAY_OFF: "Выходной",
   WORKING: "Рабочий",
   SPECIAL: "Особенный"
@@ -65,9 +68,27 @@ function freeWindowLabel(item: TimeItem) {
   return item.endTime && item.endTime !== item.time ? `${item.time}–${item.endTime}` : item.time;
 }
 
+function optimisticIsWorkingDay(kind: string, fallback: boolean) {
+  if (kind === "DAY_OFF") return false;
+  if (kind === "WORKING" || kind === "SPECIAL") return true;
+  return fallback;
+}
+
+function optimisticDayLabel(kind: string, fallback: string) {
+  if (kind === "DAY_OFF") return "выходной";
+  if (kind === "WORKING") return "рабочий";
+  if (kind === "SPECIAL") return "особенный";
+  return fallback;
+}
+
 export default function ScheduleClient(props: Props) {
-  const [paintMode, setPaintMode] = useState<"DAY_OFF" | "WORKING" | "SPECIAL" | "">("");
+  const router = useRouter();
+  const [isPaintPending, startPaintTransition] = useTransition();
+  const [paintMode, setPaintMode] = useState<PaintMode | "">("");
   const [paintDates, setPaintDates] = useState<string[]>([]);
+  const [paintSaveState, setPaintSaveState] = useState<SaveState>("idle");
+  const [paintSaveText, setPaintSaveText] = useState("");
+  const [optimisticDayKinds, setOptimisticDayKinds] = useState<Record<string, PaintMode>>({});
   const [onlineTimes, setOnlineTimes] = useState<string[]>(props.currentOnlineTimes);
   const [onlineSaveState, setOnlineSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [onlineSaveText, setOnlineSaveText] = useState("");
@@ -80,7 +101,15 @@ export default function ScheduleClient(props: Props) {
     setCopyState("idle");
   }, [props.selectedDateKey, props.currentOnlineTimes]);
 
-  const datesJson = JSON.stringify(paintDates);
+  useEffect(() => {
+    setOptimisticDayKinds({});
+  }, [props.monthKey, props.days]);
+
+  useEffect(() => {
+    if (!paintSaveText) return;
+    const timer = window.setTimeout(() => setPaintSaveText(""), paintSaveState === "error" ? 3600 : 2400);
+    return () => window.clearTimeout(timer);
+  }, [paintSaveState, paintSaveText]);
 
   function toggleDate(key: string) {
     if (!paintMode) {
@@ -97,6 +126,45 @@ export default function ScheduleClient(props: Props) {
 
   function removeOnlineTime(time: string) {
     setOnlineTimes((current) => current.filter((item) => item !== time));
+  }
+
+  function savePaintDates() {
+    if (!paintMode || paintDates.length === 0 || isPaintPending) return;
+
+    const savedMode = paintMode;
+    const savedDates = [...paintDates];
+    const formData = new FormData();
+    formData.set("month", props.monthKey);
+    formData.set("kind", savedMode);
+    formData.set("datesJson", JSON.stringify(savedDates));
+    formData.set("startTime", "");
+    formData.set("endTime", "");
+
+    setPaintSaveState("saving");
+    setPaintSaveText("");
+
+    startPaintTransition(() => {
+      void (async () => {
+        try {
+          const result = await saveBulkDayOverridesInline(formData);
+          if (!result?.ok) throw new Error("save-failed");
+
+          setOptimisticDayKinds((current) => {
+            const next = { ...current };
+            for (const key of savedDates) next[key] = savedMode;
+            return next;
+          });
+          setPaintMode("");
+          setPaintDates([]);
+          setPaintSaveState("saved");
+          setPaintSaveText(result.message || "Сохранено");
+          router.refresh();
+        } catch {
+          setPaintSaveState("error");
+          setPaintSaveText("Не сохранилось. Обнови страницу и попробуй ещё раз.");
+        }
+      })();
+    });
   }
 
   async function saveOnlineTimes() {
@@ -157,6 +225,11 @@ export default function ScheduleClient(props: Props) {
         .paint-off .day-number, .paint-off small { color: white !important; }
         .paint-working { background: linear-gradient(135deg, #e5f3df, #ffffff) !important; border-color: #94bd8c !important; }
         .paint-special { background: linear-gradient(135deg, #f6bdd5, #f6e3ff) !important; border-color: #cf78a4 !important; }
+        .paint-save-box { border: 1px solid rgba(196, 93, 132, .24); background: rgba(255, 248, 251, .96); }
+        .schedule-floating-toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; width: min(92vw, 420px); padding: 14px 16px; border-radius: 20px; box-shadow: 0 18px 42px rgba(80, 48, 64, .24); text-align: center; font-weight: 900; animation: schedule-toast-in .18s ease-out; }
+        .schedule-floating-toast.ok-notice { background: #f1fff4; border: 1px solid rgba(71, 141, 84, .24); color: #245c31; }
+        .schedule-floating-toast.danger-notice { background: #fff2f2; border: 1px solid rgba(187, 67, 67, .24); color: #8a2c2c; }
+        @keyframes schedule-toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .free-places-card { align-content: start; }
         .free-places-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
         .free-places-head h3 { margin: 0 0 6px; }
@@ -170,6 +243,8 @@ export default function ScheduleClient(props: Props) {
           .free-places-copy { width: 100%; }
         }
       `}</style>
+
+      {paintSaveText ? <div className={`schedule-floating-toast ${paintSaveState === "error" ? "danger-notice" : "ok-notice"}`} role="status" aria-live="polite">{paintSaveText}</div> : null}
 
       <section className="card schedule-calendar-card" id="calendar">
         <div className="actions" style={{ justifyContent: "space-between" }}>
@@ -187,7 +262,7 @@ export default function ScheduleClient(props: Props) {
         <div className="actions schedule-paint-actions" style={{ marginTop: 14 }}>
           <span className="schedule-paint-label">Отметить дни:</span>
           {(["DAY_OFF", "WORKING", "SPECIAL"] as const).map((mode) => (
-            <button type="button" key={mode} className={paintMode === mode ? "" : "secondary"} onClick={() => { setPaintMode((current) => current === mode ? "" : mode); setPaintDates([]); }}>
+            <button type="button" key={mode} className={paintMode === mode ? "" : "secondary"} onClick={() => { setPaintMode((current) => current === mode ? "" : mode); setPaintDates([]); setPaintSaveText(""); }}>
               {modeLabels[mode]}
             </button>
           ))}
@@ -195,16 +270,13 @@ export default function ScheduleClient(props: Props) {
         </div>
 
         {paintMode ? (
-          <form action={saveBulkDayOverrides} className="notice" style={{ marginTop: 12 }}>
-            <input type="hidden" name="month" value={props.monthKey} />
-            <input type="hidden" name="kind" value={paintMode} />
-            <input type="hidden" name="datesJson" value={datesJson} />
-            <input type="hidden" name="startTime" value="" />
-            <input type="hidden" name="endTime" value="" />
+          <div className="notice paint-save-box" style={{ marginTop: 12 }}>
             <b>Режим: {modeLabels[paintMode]}</b>
             <p style={{ margin: "6px 0 12px" }}>Выбрано дат: {paintDates.length}. Нажми “Готово”, чтобы сохранить эти дни.</p>
-            <button disabled={paintDates.length === 0}>Готово — сохранить даты</button>
-          </form>
+            <button type="button" onClick={savePaintDates} disabled={paintDates.length === 0 || isPaintPending || paintSaveState === "saving"}>
+              {isPaintPending || paintSaveState === "saving" ? "Сохраняю…" : "Готово — сохранить даты"}
+            </button>
+          </div>
         ) : null}
 
         <div className="calendar-grid calendar-head">
@@ -216,12 +288,15 @@ export default function ScheduleClient(props: Props) {
           {props.days.map((day) => {
             const selectedForPaint = paintDates.includes(day.key);
             const selectedDate = props.selectedDateKey === day.key;
-            const classes = ["calendar-day", day.isWorkingDay ? "day-working" : "day-off", day.kind === "SPECIAL" ? "day-special" : "", selectedDate ? "selected" : "", selectedForPaint ? "paint-selected" : "", selectedForPaint && paintMode === "DAY_OFF" ? "paint-off" : "", selectedForPaint && paintMode === "WORKING" ? "paint-working" : "", selectedForPaint && paintMode === "SPECIAL" ? "paint-special" : ""].join(" ");
+            const effectiveKind = optimisticDayKinds[day.key] || day.kind;
+            const effectiveIsWorkingDay = optimisticIsWorkingDay(effectiveKind, day.isWorkingDay);
+            const label = optimisticDayLabel(effectiveKind, day.label);
+            const classes = ["calendar-day", effectiveIsWorkingDay ? "day-working" : "day-off", effectiveKind === "SPECIAL" ? "day-special" : "", selectedDate ? "selected" : "", selectedForPaint ? "paint-selected" : "", selectedForPaint && paintMode === "DAY_OFF" ? "paint-off" : "", selectedForPaint && paintMode === "WORKING" ? "paint-working" : "", selectedForPaint && paintMode === "SPECIAL" ? "paint-special" : ""].join(" ");
 
             return (
               <button type="button" className={classes} key={day.key} onClick={() => toggleDate(day.key)} style={{ textAlign: "left", cursor: "pointer" }}>
                 <span className="day-number">{day.dayNumber}</span>
-                <span>{day.label}</span>
+                <span>{label}</span>
                 <small>{day.bookingsCount ? `${day.bookingsCount} запис.` : "нет записей"}</small>
                 <small>{day.onlineCount ? `${day.onlineCount} онлайн-окон` : "онлайн-окон нет"}</small>
               </button>
