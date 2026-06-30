@@ -193,7 +193,7 @@ export default function ScheduleClient(props: Props) {
   const visibleTopTimes = useMemo(() => freeTimes.filter((item) => !onlineTimes.includes(item.time)), [freeTimes, onlineTimes]);
   const openOnlineText = useMemo(() => props.openOnlineGroups
     .filter((group) => group.items.length > 0)
-    .map((group) => `${group.title} — ${group.items.map((item) => item.time).join(", ")}`)
+    .map((group) => `${group.title} - ${group.items.map((item) => item.time).join(", ")}`)
     .join("\n"), [props.openOnlineGroups]);
 
   async function copyOpenOnlineList() {
@@ -241,9 +241,7 @@ export default function ScheduleClient(props: Props) {
         .open-online-copy { white-space: nowrap; }
         .open-online-list { display: grid; gap: 12px; margin-top: 12px; }
         .open-online-row { padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255, 255, 255, .72); }
-        .open-online-row-title { display: block; margin-bottom: 8px; }
-        .open-online-times { display: flex; flex-wrap: wrap; gap: 8px; }
-        .open-online-time { min-height: 34px; padding: 8px 11px; display: grid; place-items: center; font-weight: 900; }
+        .open-online-row-title { display: block; margin-bottom: 0; }
         .open-online-text { width: 100%; min-height: 104px; resize: vertical; margin-top: 12px; font-size: 13px; line-height: 1.45; }
         @media (max-width: 760px) {
           .schedule-top-card { position: static !important; top: auto !important; z-index: auto !important; }
@@ -319,16 +317,16 @@ export default function ScheduleClient(props: Props) {
           {props.warning ? <div className="notice danger-notice">Предупреждение: {props.warning}. Чтобы всё равно создать запись, поставь галочку подтверждения.</div> : null}
           {props.success ? <div className="notice ok-notice">{props.success}</div> : null}
 
-          <div className={props.openOnlineGroups.length ? "grid-2 schedule-day-grid" : "grid schedule-day-grid"}>
+          <div className="grid-2 schedule-day-grid">
             <div className="mini-card">
               <h3>Открыть окна для онлайн-записи</h3>
               <p className="small">Нажимай свободное время сверху — оно исчезнет из списка и уйдёт вниз. Нижний список — то, что увидят клиенты онлайн.</p>
 
               <div className="grid">
-                <b>Свободное время дня</b>
+                <b>Выбери время, чтобы открыть для записи</b>
                 <div className="time-list" style={{ maxHeight: 360 }}>
                   {visibleTopTimes.map((item) => <button type="button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
-                  {visibleTopTimes.length === 0 ? <div className="notice">Свободных времён для переноса вниз нет.</div> : null}
+                  {visibleTopTimes.length === 0 ? <div className="notice">Нет времени для выбора.</div> : null}
                 </div>
               </div>
 
@@ -344,33 +342,28 @@ export default function ScheduleClient(props: Props) {
               </div>
             </div>
 
-            {props.openOnlineGroups.length ? (
-              <div className="mini-card open-online-card">
-                <div className="open-online-head">
-                  <div>
-                    <h3>Открытые онлайн-окна</h3>
-                    <p className="small">Только реально открытые окна, которые ещё не прошли и не заняты.</p>
-                  </div>
-                  <button type="button" className="secondary open-online-copy" onClick={copyOpenOnlineList}>
-                    {copyState === "copied" ? "Скопировано" : "Скопировать"}
-                  </button>
+            <div className="mini-card open-online-card">
+              <div className="open-online-head">
+                <div>
+                  <h3>Открытые окна для записи</h3>
+                  <p className="small">Только даты и время, которые мастер уже открыл для клиентов. Занятые и прошедшие окна сюда не попадают.</p>
                 </div>
-
-                <div className="open-online-list">
-                  {props.openOnlineGroups.map((group) => (
-                    <div key={group.key} className="open-online-row">
-                      <b className="open-online-row-title">{group.title}</b>
-                      <div className="open-online-times">
-                        {group.items.map((item) => <span key={item.id} className="slot open-online-time">{item.time}</span>)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <textarea className="open-online-text" readOnly value={openOnlineText} aria-label="Список открытых онлайн-окон для копирования" />
-                {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически. Можно выделить текст в поле и скопировать вручную.</div> : null}
+                <button type="button" className="secondary open-online-copy" onClick={copyOpenOnlineList} disabled={!openOnlineText}>
+                  {copyState === "copied" ? "Скопировано" : "Скопировать"}
+                </button>
               </div>
-            ) : null}
+
+              <div className="open-online-list" aria-label="Открытые окна для записи">
+                {props.openOnlineGroups.map((group) => (
+                  <div key={group.key} className="open-online-row">
+                    <b className="open-online-row-title">{group.title} - {group.items.map((item) => item.time).join(", ")}</b>
+                  </div>
+                ))}
+              </div>
+
+              <textarea className="open-online-text" readOnly value={openOnlineText} placeholder="" aria-label="Список открытых онлайн-окон для копирования" />
+              {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически. Можно выделить текст в поле и скопировать вручную.</div> : null}
+            </div>
           </div>
         </section>
       ) : <section className="card"><h2>Выбери день</h2><p>Нажми на дату в календаре, чтобы открыть список времени и выбор онлайн-окон.</p></section>}
