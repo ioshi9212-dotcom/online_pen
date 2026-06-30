@@ -32,6 +32,11 @@ type SelectedTime = {
   };
 };
 
+type OpenOnlineWindow = {
+  id: string;
+  startAt: Date;
+};
+
 const shortWeekDays = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 
 function one(value: string | string[] | undefined, fallback = "") {
@@ -81,19 +86,6 @@ function pointBusy(point: Date, busyItems: { startAt: Date; endAt: Date }[]) {
 function Toast({ text }: { text: string }) {
   if (!text) return null;
   return <div className="notice ok-notice" style={{ position: "sticky", top: 12, zIndex: 20, boxShadow: "0 14px 32px rgba(126, 84, 100, .18)" }}>Готово: {text}</div>;
-}
-
-function ScheduleMenu() {
-  return (
-    <section className="card">
-      <h2>Что открыть?</h2>
-      <div className="admin-menu-grid">
-        <a className="menu-card primary" href="/admin/schedule/free"><span className="menu-title">Список онлайн-окон</span><span className="menu-text">Только открытые окна для клиентов. Удобно скопировать или сделать скрин.</span></a>
-        <a className="menu-card" href="/admin/schedule?view=mode"><span className="menu-title">Настройки записи</span><span className="menu-text">Шаг времени, рабочие часы и базовый режим на каждый день.</span></a>
-        <a className="menu-card" href="/admin/schedule?view=calendar"><span className="menu-title">Календарь окон</span><span className="menu-text">Пометить выходные, открыть онлайн-окна и записать клиента вручную.</span></a>
-      </div>
-    </section>
-  );
 }
 
 function buildSelectedTimes(params: {
@@ -215,8 +207,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
     return { key, dayNumber, label: dayLabel(effective.kind, effective.isWorkingDay), kind: effective.kind, isWorkingDay: effective.isWorkingDay, bookingsCount: monthBookings.filter((item) => dateKey(item.startAt) === key).length, onlineCount: monthOnlineWindows.filter((item) => dateKey(item.startAt) === key).length };
   });
 
-  const visibleFutureOnlineWindows = futureOnlineWindows.filter((window) => !pointBusy(window.startAt, futureBookings) && !pointBusy(window.startAt, futureBlocks));
-  const groupedOnlineWindows = visibleFutureOnlineWindows.reduce<Record<string, typeof visibleFutureOnlineWindows>>((acc, item) => {
+  const visibleFutureOnlineWindows: OpenOnlineWindow[] = futureOnlineWindows.filter((onlineWindow) => !pointBusy(onlineWindow.startAt, futureBookings) && !pointBusy(onlineWindow.startAt, futureBlocks));
+  const groupedOnlineWindows = visibleFutureOnlineWindows.reduce<Record<string, OpenOnlineWindow[]>>((acc, item) => {
     const key = dateKey(item.startAt);
     acc[key] = acc[key] || [];
     acc[key].push(item);
