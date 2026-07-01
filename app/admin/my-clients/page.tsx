@@ -1,8 +1,10 @@
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { CLIENT_STATUS_OPTIONS, clientStatusLabel, statusClass } from "@/lib/statusLabels";
+import type { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { archiveClient, createMyClient, saveMyClient } from "./actions";
+import styles from "./my-clients.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +63,7 @@ function AddClientForm() {
   );
 }
 
-function searchFilter(query: string) {
+function searchFilter(query: string): Prisma.ClientWhereInput {
   const terms = query.split(/\s+/).map((term) => term.trim()).filter(Boolean);
   if (terms.length === 0) return {};
 
@@ -97,93 +99,7 @@ export default async function MyClientsPage({ searchParams = {} }: { searchParam
   });
 
   return (
-    <div className="grid clients-page-clean">
-      <style jsx global>{`
-        .clients-page-clean { gap: 12px !important; padding-bottom: 96px !important; }
-        .clients-page-clean .card { border-radius: 18px !important; }
-        .clients-hero { padding: 20px !important; }
-        .clients-hero h1 { margin: 0 !important; font-size: clamp(30px, 7vw, 44px) !important; line-height: 1 !important; }
-        .clients-hero p { max-width: 520px !important; margin: 10px 0 0 !important; font-size: 15px !important; line-height: 1.35 !important; }
-
-        .client-add-details { padding: 0 !important; overflow: hidden !important; }
-        .client-details-summary { list-style: none !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 14px !important; padding: 16px 18px !important; }
-        .client-details-summary::-webkit-details-marker { display: none !important; }
-        .client-details-summary span { display: grid !important; gap: 4px !important; }
-        .client-details-summary small { text-transform: uppercase !important; letter-spacing: .16em !important; font-size: 11px !important; line-height: 1 !important; font-weight: 800 !important; color: #9a4c6b !important; }
-        .client-details-summary b { font-family: Georgia, "Times New Roman", serif !important; font-size: 25px !important; line-height: 1 !important; color: #262128 !important; }
-        .client-details-summary i { width: 34px !important; height: 34px !important; border-radius: 999px !important; display: grid !important; place-items: center !important; border: 1px solid rgba(128, 59, 88, .16) !important; color: #8a3e5e !important; background: rgba(255,255,255,.72) !important; font-style: normal !important; font-size: 22px !important; transition: transform .18s ease !important; }
-        .client-add-details[open] .client-details-summary i,
-        .clients-list-details[open] .client-details-summary i { transform: rotate(180deg) !important; }
-        .compact-client-form { padding: 0 18px 18px !important; gap: 12px !important; }
-        .compact-client-form .grid-3 { gap: 10px !important; }
-        .compact-client-form label { gap: 5px !important; font-size: 13px !important; }
-        .compact-client-form input,
-        .compact-client-form select { min-height: 40px !important; border-radius: 11px !important; padding: 9px 11px !important; font-size: 14px !important; }
-        .compact-form-actions button { min-height: 40px !important; border-radius: 12px !important; padding: 9px 14px !important; }
-
-        .clients-list-card-wrap { padding: 16px !important; }
-        .clients-list-head { display: grid !important; grid-template-columns: minmax(0, 1fr) auto !important; gap: 12px !important; align-items: start !important; }
-        .clients-list-head h2 { margin: 0 !important; font-size: clamp(27px, 6vw, 38px) !important; line-height: 1 !important; }
-        .clients-list-head p { margin: 7px 0 0 !important; font-size: 14px !important; line-height: 1.3 !important; }
-        .clients-list-count { min-height: 28px !important; padding: 6px 10px !important; font-size: 12px !important; line-height: 1 !important; }
-        .client-search-form { display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto !important; gap: 8px !important; margin-top: 14px !important; }
-        .client-search-form input { min-height: 40px !important; border-radius: 12px !important; padding: 9px 12px !important; font-size: 14px !important; }
-        .client-search-form button,
-        .client-search-form a { min-height: 40px !important; border-radius: 12px !important; padding: 9px 13px !important; font-size: 13px !important; white-space: nowrap !important; }
-
-        .clients-list-details { margin-top: 12px !important; border: 1px solid rgba(128, 59, 88, .13) !important; border-radius: 15px !important; background: rgba(255,255,255,.46) !important; overflow: hidden !important; }
-        .clients-list-details .client-details-summary { padding: 13px 14px !important; }
-        .clients-list-details .client-details-summary b { font-size: 20px !important; }
-        .clients-list-details .client-details-summary small { letter-spacing: .08em !important; }
-        .client-card-list.compact-client-list { display: grid !important; gap: 8px !important; padding: 0 12px 12px !important; }
-        .client-list-card.compact-client-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto !important; align-items: center !important; gap: 10px !important; padding: 10px !important; border-radius: 13px !important; border: 1px solid rgba(128, 59, 88, .12) !important; background: rgba(255,255,255,.74) !important; }
-        .client-card-main.compact-client-main { display: grid !important; grid-template-columns: 44px minmax(0, 1fr) !important; align-items: center !important; gap: 10px !important; min-width: 0 !important; }
-        .compact-client-main .avatar-preview,
-        .compact-client-main .small-avatar { width: 44px !important; height: 44px !important; min-width: 44px !important; border-radius: 12px !important; display: grid !important; place-items: center !important; overflow: hidden !important; }
-        .compact-client-main .avatar-preview span { font-size: 20px !important; line-height: 1 !important; }
-        .compact-client-text { display: grid !important; gap: 4px !important; min-width: 0 !important; }
-        .compact-client-title { display: flex !important; align-items: center !important; gap: 7px !important; min-width: 0 !important; flex-wrap: wrap !important; }
-        .compact-client-title h3 { margin: 0 !important; font-size: 15px !important; line-height: 1.15 !important; font-weight: 700 !important; overflow-wrap: anywhere !important; color: #262128 !important; }
-        .compact-client-title .status { min-height: 22px !important; padding: 4px 7px !important; font-size: 10.5px !important; line-height: 1 !important; }
-        .compact-client-meta { display: flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; color: rgba(72, 65, 72, .66) !important; font-size: 12px !important; line-height: 1.2 !important; }
-        .compact-client-meta p,
-        .compact-client-meta small { margin: 0 !important; font-size: inherit !important; line-height: inherit !important; color: inherit !important; }
-        .client-card-actions.compact-client-actions { display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 6px !important; flex-wrap: wrap !important; }
-        .compact-client-actions > a,
-        .compact-client-actions > details > summary { min-height: 34px !important; border-radius: 10px !important; padding: 7px 10px !important; font-size: 12px !important; line-height: 1.1 !important; white-space: nowrap !important; }
-        .compact-client-actions .soft-details { position: relative !important; }
-        .compact-client-actions .soft-details[open] { grid-column: 1 / -1 !important; width: 100% !important; }
-        .compact-client-actions .soft-details[open] .inline-edit-card,
-        .compact-client-actions .archive-details[open] form { position: absolute !important; right: 0 !important; top: calc(100% + 6px) !important; z-index: 10 !important; width: min(84vw, 360px) !important; padding: 12px !important; border-radius: 14px !important; border: 1px solid rgba(128, 59, 88, .16) !important; background: #fff !important; box-shadow: 0 18px 44px rgba(70, 50, 62, .18) !important; }
-        .compact-client-actions .inline-edit-card { gap: 8px !important; }
-        .compact-client-actions .inline-edit-card label { gap: 4px !important; font-size: 12px !important; }
-        .compact-client-actions .inline-edit-card input,
-        .compact-client-actions .inline-edit-card select,
-        .compact-client-actions .inline-edit-card textarea,
-        .compact-client-actions .archive-details input { min-height: 36px !important; border-radius: 9px !important; padding: 8px 10px !important; font-size: 13px !important; }
-        .compact-client-actions .inline-edit-card textarea { min-height: 58px !important; }
-        .compact-client-actions .inline-edit-card button,
-        .compact-client-actions .archive-details button { min-height: 36px !important; border-radius: 10px !important; font-size: 13px !important; }
-
-        @media (max-width: 760px) {
-          .clients-page-clean { gap: 10px !important; }
-          .clients-hero { padding: 18px !important; }
-          .clients-hero h1 { font-size: 36px !important; }
-          .clients-hero p { font-size: 14px !important; }
-          .compact-client-form .grid-3,
-          .compact-client-form .grid-2 { grid-template-columns: 1fr !important; }
-          .clients-list-head { grid-template-columns: 1fr !important; }
-          .clients-list-count { width: fit-content !important; }
-          .client-search-form { grid-template-columns: 1fr !important; }
-          .client-list-card.compact-client-row { grid-template-columns: 1fr !important; align-items: start !important; }
-          .client-card-actions.compact-client-actions { justify-content: stretch !important; display: grid !important; grid-template-columns: 1fr 1fr !important; }
-          .compact-client-actions > a,
-          .compact-client-actions > details > summary { width: 100% !important; justify-content: center !important; text-align: center !important; }
-          .compact-client-actions .soft-details[open] .inline-edit-card,
-          .compact-client-actions .archive-details[open] form { position: static !important; width: 100% !important; margin-top: 8px !important; }
-        }
-      `}</style>
-
+    <div className={`grid ${styles.clientsPageClean}`}>
       <section className="card clients-hero">
         <h1>Мои клиенты</h1>
         <p>Здесь база клиентов: поиск, список и профиль клиента. Добавление свернуто ниже, чтобы не занимало экран.</p>
