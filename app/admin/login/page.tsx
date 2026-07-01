@@ -1,5 +1,5 @@
 import { verifyAdminPassword } from "@/lib/adminPassword";
-import { setAdminCookie } from "@/lib/admin";
+import { isAdmin, setAdminCookie } from "@/lib/admin";
 import { redirect } from "next/navigation";
 
 async function loginAdmin(formData: FormData) {
@@ -12,6 +12,8 @@ async function loginAdmin(formData: FormData) {
 }
 
 export default function AdminLoginPage({ searchParams }: { searchParams: { error?: string } }) {
+  if (isAdmin()) redirect("/admin");
+
   return (
     <section className="card auth-card">
       <h1>Вход мастера</h1>
