@@ -260,11 +260,12 @@ export default function ScheduleClient(props: Props) {
   return (
     <div className="grid schedule-calendar-workspace">
       <style jsx global>{`
-        .paint-selected { outline: 3px solid rgba(196, 93, 132, .38) !important; transform: translateY(-1px); }
-        .paint-off { background: linear-gradient(135deg, #bd5f82, #f2c7d7) !important; color: white !important; border-color: #a94e71 !important; }
-        .paint-off .day-number, .paint-off small { color: white !important; }
-        .paint-working { background: linear-gradient(135deg, #e5f3df, #ffffff) !important; border-color: #94bd8c !important; }
-        .paint-special { background: linear-gradient(135deg, #f6bdd5, #f6e3ff) !important; border-color: #cf78a4 !important; }
+        #calendar .paint-selected { outline: 3px solid rgba(196, 93, 132, .38) !important; transform: translateY(-1px); }
+        #calendar .calendar-day.paint-selected.paint-off { background: linear-gradient(135deg, #fff1f5, #f3d4de) !important; color: #73334d !important; border-color: #cf7896 !important; }
+        #calendar .calendar-day.paint-selected.paint-working { background: linear-gradient(135deg, #effaf0, #ffffff) !important; color: #285d36 !important; border-color: #8fcf9d !important; }
+        #calendar .calendar-day.paint-selected.paint-special { background: linear-gradient(135deg, #f7efff, #fdeaf3) !important; color: #6f438b !important; border-color: #bf96dd !important; }
+        #calendar .calendar-day.paint-selected .day-number,
+        #calendar .calendar-day.paint-selected small { color: inherit !important; }
         .paint-save-box { border: 1px solid rgba(196, 93, 132, .18); background: rgba(255, 248, 251, .86); }
         .schedule-floating-toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; width: min(92vw, 420px); padding: 14px 16px; border-radius: 20px; box-shadow: 0 18px 42px rgba(80, 48, 64, .24); text-align: center; font-weight: 900; animation: schedule-toast-in .18s ease-out; }
         .schedule-floating-toast.ok-notice { background: #f1fff4; border: 1px solid rgba(71, 141, 84, .24); color: #245c31; }
@@ -274,17 +275,29 @@ export default function ScheduleClient(props: Props) {
         .schedule-calendar-head { display: grid; gap: 12px; }
         .schedule-calendar-head h2 { margin: 0; }
         .schedule-calendar-head p { margin: 4px 0 0; }
-        .calendar-month-switcher { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; width: 100%; max-width: 360px; margin: 4px auto 0; }
+        .calendar-month-switcher { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: center; gap: 8px; width: 100%; max-width: 360px; margin: 4px auto 0; }
         .calendar-month-title { text-align: center; font-weight: 800; font-size: 16px; }
         .calendar-arrow-button { min-height: 38px; padding: 0 !important; border-radius: 12px !important; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; text-decoration: none; }
-        .schedule-paint-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
-        .schedule-paint-actions button { min-height: 36px; padding: 8px 11px; border-radius: 12px; white-space: nowrap; font-size: 13px; }
-        .schedule-paint-label { flex: 0 0 auto; font-size: 13px; color: #6f5b64; }
-        .calendar-grid { gap: 6px !important; }
-        .calendar-day { min-height: 74px !important; aspect-ratio: 1 / .92; border-radius: 12px !important; padding: 8px !important; display: grid; align-content: start; gap: 2px; }
-        .calendar-day .day-number { font-size: 16px; line-height: 1; font-weight: 800; }
-        .calendar-day span:not(.day-number) { font-size: 11px; }
-        .calendar-day small { font-size: 9.5px; line-height: 1.15; }
+        .schedule-paint-actions { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)) auto; align-items: center; gap: 8px; }
+        .schedule-paint-actions button { min-height: 38px !important; padding: 8px 10px !important; border-radius: 13px !important; white-space: nowrap; font-size: 13px; width: 100% !important; }
+        .schedule-paint-label { font-size: 13px; color: #6f5b64; }
+        #calendar .paint-mode-btn.paint-mode-off { background: #fff1f5 !important; color: #933f61 !important; border-color: #e6b7c7 !important; box-shadow: none !important; }
+        #calendar .paint-mode-btn.paint-mode-working { background: #effaf0 !important; color: #2d7541 !important; border-color: #a9dcb4 !important; box-shadow: none !important; }
+        #calendar .paint-mode-btn.paint-mode-special { background: #f7efff !important; color: #74499a !important; border-color: #cdb2ea !important; box-shadow: none !important; }
+        #calendar .paint-mode-btn.paint-active { outline: 3px solid rgba(196, 93, 132, .22) !important; transform: translateY(-1px); }
+        #calendar .paint-mode-btn.paint-mode-off.paint-active { background: linear-gradient(135deg, #bd5f82, #df93ad) !important; color: #fff !important; border-color: #bd5f82 !important; }
+        #calendar .paint-mode-btn.paint-mode-working.paint-active { background: linear-gradient(135deg, #5ba46e, #8ecf9d) !important; color: #fff !important; border-color: #5ba46e !important; }
+        #calendar .paint-mode-btn.paint-mode-special.paint-active { background: linear-gradient(135deg, #8d62b5, #cf92d6) !important; color: #fff !important; border-color: #8d62b5 !important; }
+
+        #calendar .calendar-grid { display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)) !important; gap: 6px !important; width: 100%; }
+        #calendar .calendar-empty { min-height: 74px; }
+        #calendar .calendar-day { width: 100% !important; min-width: 0 !important; min-height: 74px !important; aspect-ratio: 1 / .92; border-radius: 12px !important; padding: 8px !important; display: grid !important; align-content: start; gap: 2px; }
+        #calendar .calendar-day .day-number { font-size: 16px; line-height: 1; font-weight: 800; }
+        #calendar .calendar-day span:not(.day-number) { font-size: 11px; }
+        #calendar .calendar-day small { font-size: 9.5px; line-height: 1.15; }
+        #calendar .calendar-day.day-off { background: #f5eef2 !important; border-color: #ead5de !important; }
+        #calendar .calendar-day.day-working { background: #f4fff5 !important; border-color: #d5ebd9 !important; }
+        #calendar .calendar-day.day-special { background: #f7efff !important; border-color: #dac4ef !important; }
 
         .schedule-selected-card { padding: 16px !important; }
         .selected-date-title { margin: 0 0 12px; font-size: 18px; line-height: 1.2; font-weight: 600; }
@@ -292,8 +305,9 @@ export default function ScheduleClient(props: Props) {
         .time-control-panel, .open-online-card { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
         .schedule-section-title { margin: 0 0 10px; font-size: 15px; line-height: 1.2; font-weight: 600; }
         .schedule-section-note { margin: -4px 0 10px; font-size: 12px; color: #74616b; }
-        .time-column-list { display: grid; grid-template-rows: repeat(6, minmax(36px, auto)); grid-auto-flow: column; grid-auto-columns: minmax(74px, 1fr); gap: 8px; overflow-x: auto; padding: 2px 2px 8px; max-height: none !important; }
-        .time-column-list button { min-height: 36px; padding: 7px 8px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+        #selected-day .time-column-list { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(36px, auto)); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; overflow: visible; padding: 2px 0 8px; max-height: none !important; }
+        #selected-day .time-column-list .schedule-time-button { width: 100% !important; min-width: 0 !important; min-height: 36px !important; padding: 7px 6px !important; border-radius: 12px !important; font-size: 13px !important; font-weight: 700 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-shadow: none !important; }
+        #selected-day .time-column-list .notice { grid-column: 1 / -1; }
         .chosen-time-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: none !important; }
         .chosen-time-list button { min-height: 34px; padding: 7px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
         .save-online-button { margin-top: 12px; width: 100%; min-height: 40px; border-radius: 14px; }
@@ -309,7 +323,15 @@ export default function ScheduleClient(props: Props) {
           .calendar-month-switcher { max-width: 100%; }
           .schedule-selected-card { padding: 14px !important; }
           .schedule-day-grid { grid-template-columns: 1fr !important; gap: 18px; }
-          .time-column-list { grid-template-rows: repeat(6, minmax(34px, auto)); grid-auto-columns: minmax(70px, 1fr); gap: 7px; }
+          .schedule-paint-actions { grid-template-columns: 1fr 1fr 1fr; }
+          .schedule-paint-label { grid-column: 1 / -1; }
+          .schedule-paint-actions button { font-size: 12.5px !important; padding-inline: 6px !important; }
+          .schedule-paint-actions .paint-cancel-btn { grid-column: 1 / -1; }
+          #calendar .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; gap: 6px !important; }
+          #calendar .calendar-empty,
+          #calendar .calendar-day { min-height: 52px !important; padding: 6px 4px !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 2px !important; }
+          #selected-day .time-column-list { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(34px, auto)); gap: 7px; }
+          #selected-day .time-column-list .schedule-time-button { min-height: 34px !important; font-size: 12.5px !important; padding-inline: 4px !important; }
         }
       `}</style>
 
@@ -331,11 +353,20 @@ export default function ScheduleClient(props: Props) {
         <div className="schedule-paint-actions" style={{ marginTop: 14 }}>
           <span className="schedule-paint-label">Отметить:</span>
           {(["DAY_OFF", "WORKING", "SPECIAL"] as const).map((mode) => (
-            <button type="button" key={mode} className={paintMode === mode ? "" : "secondary"} onClick={() => { setPaintMode((current) => current === mode ? "" : mode); setPaintDates([]); setPaintSaveText(""); }}>
+            <button
+              type="button"
+              key={mode}
+              className={[
+                "paint-mode-btn",
+                mode === "DAY_OFF" ? "paint-mode-off" : mode === "WORKING" ? "paint-mode-working" : "paint-mode-special",
+                paintMode === mode ? "paint-active" : "secondary"
+              ].join(" ")}
+              onClick={() => { setPaintMode((current) => current === mode ? "" : mode); setPaintDates([]); setPaintSaveText(""); }}
+            >
               {modeLabels[mode]}
             </button>
           ))}
-          {paintMode ? <button type="button" className="secondary" onClick={() => { setPaintMode(""); setPaintDates([]); }}>Отмена</button> : null}
+          {paintMode ? <button type="button" className="secondary paint-cancel-btn" onClick={() => { setPaintMode(""); setPaintDates([]); }}>Отмена</button> : null}
         </div>
 
         {paintMode ? (
@@ -386,13 +417,13 @@ export default function ScheduleClient(props: Props) {
               <p className="schedule-section-note">Нажми время сверху — оно уйдёт в список открытых окон ниже.</p>
 
               <div className="time-list time-column-list">
-                {visibleTopTimes.map((item) => <button type="button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
+                {visibleTopTimes.map((item) => <button type="button" className="schedule-time-button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
                 {visibleTopTimes.length === 0 ? <div className="notice">Нет времени для выбора.</div> : null}
               </div>
 
               <h3 className="schedule-section-title" style={{ marginTop: 14 }}>Окна для клиентов онлайн</h3>
               <div className="time-list chosen-time-list">
-                {onlineTimes.map((time) => <button type="button" className="ok" key={time} onClick={() => removeOnlineTime(time)}>{time} ×</button>)}
+                {onlineTimes.map((time) => <button type="button" className="ok schedule-time-button" key={time} onClick={() => removeOnlineTime(time)}>{time} ×</button>)}
                 {onlineTimes.length === 0 ? <div className="notice">Пока не выбрано ни одного онлайн-окна.</div> : null}
               </div>
 
