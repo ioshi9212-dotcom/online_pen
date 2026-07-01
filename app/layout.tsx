@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import ConfirmDangerActions from "./ConfirmDangerActions";
 import SiteHeader from "./SiteHeader";
 import "./globals.css";
+import "./soft-square-ui.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
