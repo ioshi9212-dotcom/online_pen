@@ -93,6 +93,43 @@ input[type="submit"] {
   border-radius: var(--control-radius) !important;
 }
 
+.client-note-stack {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.test-version-note,
+.combo-service-note,
+.final-check-note {
+  border-radius: var(--card-radius-soft) !important;
+  border-color: rgba(190, 99, 134, .18) !important;
+  background: linear-gradient(135deg, rgba(255, 246, 250, .96), rgba(255, 255, 255, .86)) !important;
+  color: #2d2530 !important;
+}
+
+.test-version-note b,
+.combo-service-note b,
+.final-check-note b {
+  display: block !important;
+  margin-bottom: 5px !important;
+  color: #7d3855 !important;
+  font-size: 14px !important;
+  line-height: 1.15 !important;
+}
+
+.test-version-note p,
+.combo-service-note p,
+.final-check-note p {
+  margin: 0 !important;
+  color: rgba(72, 65, 72, .78) !important;
+  font-size: 12.5px !important;
+  line-height: 1.35 !important;
+}
+
+.combo-service-note p + p {
+  margin-top: 7px !important;
+}
+
 .master-booking-details {
   overflow: hidden !important;
 }
