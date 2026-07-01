@@ -66,8 +66,18 @@ const modeLabels: Record<PaintMode, string> = {
   SPECIAL: "Особенный"
 };
 
+const monthLabels = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+const weekDayLabels = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+
 function freeWindowLabel(item: TimeItem) {
   return item.endTime && item.endTime !== item.time ? `${item.time}–${item.endTime}` : item.time;
+}
+
+function titleFromDateKey(key: string) {
+  const [year, month, day] = key.split("-").map(Number);
+  if (!year || !month || !day) return key;
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return `${monthLabels[month - 1] || ""} ${day} ${weekDayLabels[weekday] || ""}`.trim();
 }
 
 function optimisticIsWorkingDay(kind: string, fallback: boolean) {
@@ -83,6 +93,14 @@ function optimisticDayLabel(kind: string, fallback: string) {
   return fallback;
 }
 
+function selectedFirst(groups: OnlineWindowGroup[], selectedDateKey: string) {
+  return [...groups].sort((a, b) => {
+    if (a.key === selectedDateKey && b.key !== selectedDateKey) return -1;
+    if (b.key === selectedDateKey && a.key !== selectedDateKey) return 1;
+    return a.key.localeCompare(b.key);
+  });
+}
+
 export default function ScheduleClient(props: Props) {
   const router = useRouter();
   const [isPaintPending, startPaintTransition] = useTransition();
@@ -92,6 +110,7 @@ export default function ScheduleClient(props: Props) {
   const [paintSaveText, setPaintSaveText] = useState("");
   const [optimisticDayKinds, setOptimisticDayKinds] = useState<Record<string, PaintMode>>({});
   const [onlineTimes, setOnlineTimes] = useState<string[]>(props.currentOnlineTimes);
+  const [openGroups, setOpenGroups] = useState<OnlineWindowGroup[]>(props.openOnlineGroups);
   const [onlineSaveState, setOnlineSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [onlineSaveText, setOnlineSaveText] = useState("");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -102,6 +121,10 @@ export default function ScheduleClient(props: Props) {
     setOnlineSaveText("");
     setCopyState("idle");
   }, [props.selectedDateKey, props.currentOnlineTimes]);
+
+  useEffect(() => {
+    setOpenGroups(props.openOnlineGroups);
+  }, [props.openOnlineGroups]);
 
   useEffect(() => {
     setOptimisticDayKinds({});
@@ -170,18 +193,33 @@ export default function ScheduleClient(props: Props) {
   }
 
   async function saveOnlineTimes() {
+    const requestedTimes = [...onlineTimes].sort();
     setOnlineSaveState("saving");
     setOnlineSaveText("");
     try {
       const response = await fetch("/admin/schedule/save-online", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: props.selectedDateKey, times: onlineTimes })
+        body: JSON.stringify({ date: props.selectedDateKey, times: requestedTimes })
       });
-      const data = await response.json().catch(() => null) as { saved?: number; skipped?: number } | null;
+      const data = await response.json().catch(() => null) as { saved?: number; skipped?: number; savedTimes?: string[] } | null;
       if (!response.ok) throw new Error("save-failed");
+
+      const savedTimes = Array.isArray(data?.savedTimes) ? data.savedTimes.map(String).sort() : requestedTimes;
+      setOnlineTimes(savedTimes);
+      setOpenGroups((current) => {
+        const rest = current.filter((group) => group.key !== props.selectedDateKey);
+        if (savedTimes.length === 0) return selectedFirst(rest, props.selectedDateKey);
+        const selectedGroup: OnlineWindowGroup = {
+          key: props.selectedDateKey,
+          title: titleFromDateKey(props.selectedDateKey),
+          items: savedTimes.map((time) => ({ id: `${props.selectedDateKey}-${time}`, time }))
+        };
+        return selectedFirst([selectedGroup, ...rest], props.selectedDateKey);
+      });
+
       setOnlineSaveState("saved");
-      setOnlineSaveText(`Сохранила онлайн-окна: ${data?.saved ?? onlineTimes.length}${data?.skipped ? `. Пропущено занятых: ${data.skipped}` : ""}.`);
+      setOnlineSaveText(`Сохранила онлайн-окна: ${data?.saved ?? savedTimes.length}${data?.skipped ? `. Пропущено занятых: ${data.skipped}` : ""}.`);
       router.refresh();
     } catch {
       setOnlineSaveState("error");
@@ -191,10 +229,11 @@ export default function ScheduleClient(props: Props) {
 
   const freeTimes = useMemo(() => props.selectedTimes.filter((item) => !item.isBusy), [props.selectedTimes]);
   const visibleTopTimes = useMemo(() => freeTimes.filter((item) => !onlineTimes.includes(item.time)), [freeTimes, onlineTimes]);
-  const openOnlineText = useMemo(() => props.openOnlineGroups
+  const visibleOpenGroups = useMemo(() => selectedFirst(openGroups, props.selectedDateKey), [openGroups, props.selectedDateKey]);
+  const openOnlineText = useMemo(() => visibleOpenGroups
     .filter((group) => group.items.length > 0)
     .map((group) => `${group.title} - ${group.items.map((item) => item.time).join(", ")}`)
-    .join("\n"), [props.openOnlineGroups]);
+    .join("\n"), [visibleOpenGroups]);
 
   async function copyOpenOnlineList() {
     if (!openOnlineText) return;
@@ -354,7 +393,7 @@ export default function ScheduleClient(props: Props) {
               </div>
 
               <div className="open-online-list" aria-label="Открытые окна для записи">
-                {props.openOnlineGroups.map((group) => (
+                {visibleOpenGroups.map((group) => (
                   <div key={group.key} className="open-online-row">
                     <b className="open-online-row-title">{group.title} - {group.items.map((item) => item.time).join(", ")}</b>
                   </div>
