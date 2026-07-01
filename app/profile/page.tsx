@@ -1,4 +1,5 @@
 import { updateClientProfile } from "@/app/actions";
+import { getClientCookie } from "@/lib/clientSession";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -9,8 +10,9 @@ function toDateInput(date: Date) {
 }
 
 export default async function ClientProfilePage({ searchParams }: { searchParams: { client?: string; saved?: string; error?: string } }) {
-  const token = searchParams.client;
+  const token = searchParams.client || getClientCookie();
   if (!token) redirect("/login");
+  if (!searchParams.client) redirect(`/profile?client=${token}`);
 
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client) redirect("/login");
