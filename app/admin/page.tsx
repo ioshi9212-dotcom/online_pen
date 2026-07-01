@@ -42,7 +42,7 @@ function fmtTopDate(date: Date) {
 function fmtOpenWindowTitle(date: Date) {
   const month = upperFirst(formatInBusinessTime(date, { month: "long" }));
   const day = formatInBusinessTime(date, { day: "numeric" });
-  const weekday = formatInBusinessTime(date, { weekday: "long" });
+  const weekday = formatInBusinessTime(date, { weekday: "short" }).replace(".", "");
   return `${month}, ${day} ${weekday}`;
 }
 
