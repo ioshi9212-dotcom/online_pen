@@ -18,6 +18,12 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
         <p className="muted">Для тех, кто уже оставлял заявку</p>
         <h1>Я уже зарегистрирована</h1>
         <p>Введите телефон и дату рождения. Если мастер уже подтвердил заявку — откроется кабинет. Если нет — покажем экран ожидания.</p>
+
+        <div className="notice test-version-note">
+          <b>Тестовая версия сайта.</b>
+          <p>Он старается, честно. Но после записи всё равно напишите мастеру — пусть человек проверит то, что робот красиво наобещал.</p>
+        </div>
+
         {searchParams.error === "wrong_birthdate" ? <div className="notice danger-status">Дата рождения не совпала. Проверь цифры.</div> : null}
         <form action={loginClient} className="grid">
           <label>Телефон<input name="phone" required placeholder="+7..." /></label>
