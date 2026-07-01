@@ -93,12 +93,8 @@ function optimisticDayLabel(kind: string, fallback: string) {
   return fallback;
 }
 
-function selectedFirst(groups: OnlineWindowGroup[], selectedDateKey: string) {
-  return [...groups].sort((a, b) => {
-    if (a.key === selectedDateKey && b.key !== selectedDateKey) return -1;
-    if (b.key === selectedDateKey && a.key !== selectedDateKey) return 1;
-    return a.key.localeCompare(b.key);
-  });
+function sortByDate(groups: OnlineWindowGroup[]) {
+  return [...groups].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 export default function ScheduleClient(props: Props) {
@@ -209,13 +205,13 @@ export default function ScheduleClient(props: Props) {
       setOnlineTimes(savedTimes);
       setOpenGroups((current) => {
         const rest = current.filter((group) => group.key !== props.selectedDateKey);
-        if (savedTimes.length === 0) return selectedFirst(rest, props.selectedDateKey);
+        if (savedTimes.length === 0) return sortByDate(rest);
         const selectedGroup: OnlineWindowGroup = {
           key: props.selectedDateKey,
           title: titleFromDateKey(props.selectedDateKey),
           items: savedTimes.map((time) => ({ id: `${props.selectedDateKey}-${time}`, time }))
         };
-        return selectedFirst([selectedGroup, ...rest], props.selectedDateKey);
+        return sortByDate([selectedGroup, ...rest]);
       });
 
       setOnlineSaveState("saved");
@@ -229,7 +225,7 @@ export default function ScheduleClient(props: Props) {
 
   const freeTimes = useMemo(() => props.selectedTimes.filter((item) => !item.isBusy), [props.selectedTimes]);
   const visibleTopTimes = useMemo(() => freeTimes.filter((item) => !onlineTimes.includes(item.time)), [freeTimes, onlineTimes]);
-  const visibleOpenGroups = useMemo(() => selectedFirst(openGroups, props.selectedDateKey), [openGroups, props.selectedDateKey]);
+  const visibleOpenGroups = useMemo(() => sortByDate(openGroups), [openGroups]);
   const openOnlineText = useMemo(() => visibleOpenGroups
     .filter((group) => group.items.length > 0)
     .map((group) => `${group.title} - ${group.items.map((item) => item.time).join(", ")}`)
