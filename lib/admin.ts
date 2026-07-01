@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createHmac } from "crypto";
 
 const COOKIE_NAME = "online_pen_admin";
+const MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
 
 function secret() {
   const value = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD;
@@ -27,7 +28,7 @@ export function setAdminCookie() {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30
+    maxAge: MAX_AGE_SECONDS
   });
 }
 
