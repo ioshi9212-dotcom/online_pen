@@ -42,8 +42,8 @@ function fmtTopDate(date: Date) {
 function fmtOpenWindowTitle(date: Date) {
   const month = upperFirst(formatInBusinessTime(date, { month: "long" }));
   const day = formatInBusinessTime(date, { day: "numeric" });
-  const weekday = formatInBusinessTime(date, { weekday: "short" }).replace(".", "");
-  return `${month} ${day} ${weekday}`;
+  const weekday = formatInBusinessTime(date, { weekday: "long" });
+  return `${month}, ${day} ${weekday}`;
 }
 
 function dayRange(key: string) {
@@ -158,25 +158,14 @@ function BookingList({ title, date, bookings }: { title: string; date: Date; boo
 function OpenWindowsStory({ groups }: { groups: OpenWindowGroup[] }) {
   return (
     <section className="admin-home-panel master-open-windows-panel">
-      <div className="admin-panel-head">
-        <div><h2>Открытые окна для записи</h2><p>Красивый список открытых окон, который можно показать клиентам или просто сделать скрин.</p></div>
-        <div className="actions"><a className="button secondary" href="/admin/schedule">Открыть календарь</a><a className="button" href="/admin/schedule/free">Редактировать окна</a></div>
-      </div>
-      <div className="master-open-window-story">
-        <div className="master-open-window-story-head">
-          <div><h3>Свободные даты для записи</h3><p>Только реальные онлайн-окна, которые уже открыты, ещё не заняты и не прошли.</p></div>
-          <span className="master-open-window-story-badge">Для скрина / сторис</span>
-        </div>
-        {groups.length ? (
-          <div className="master-open-window-groups">
-            {groups.map((group) => (
-              <div key={group.key} className="master-open-window-group">
-                <b className="master-open-window-group-title">{group.title}</b>
-                <div className="master-open-window-times">{group.times.map((time) => <span key={`${group.key}-${time}`} className="master-open-window-time">{time}</span>)}</div>
-              </div>
-            ))}
+      <h2 className="master-open-windows-title">Свободные окна</h2>
+      <div className="master-open-windows-list">
+        {groups.map((group) => (
+          <div key={group.key} className="master-open-window-line">
+            <span>{group.title} — {group.times.join(", ")}</span>
           </div>
-        ) : <div className="master-open-window-empty">Сейчас открытых онлайн-окон нет. Как только откроешь даты в календаре, они появятся здесь красивым списком.</div>}
+        ))}
+        {groups.length === 0 ? <div className="master-open-windows-empty">Открытых окон пока нет.</div> : null}
       </div>
     </section>
   );
@@ -191,7 +180,7 @@ export default async function AdminPage() {
   const tomorrow = businessDateFromKey(tomorrowKey);
   const todayRange = dayRange(todayKey);
   const tomorrowRange = dayRange(tomorrowKey);
-  const horizon = businessDateFromKey(addBusinessDays(todayKey, 21));
+  const horizon = businessDateFromKey(addBusinessDays(todayKey, 90));
 
   const [pendingClients, pendingBookings, activeClients, waitlist, rawTodayBookings, rawTomorrowBookings, onlineWindows, busyBookings] = await Promise.all([
     prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 4 }),
@@ -200,7 +189,7 @@ export default async function AdminPage() {
     prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.booking.findMany({ where: { startAt: { gte: todayRange.start, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
     prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
-    prisma.onlineWindow.findMany({ where: { startAt: { gte: today, lt: horizon } }, orderBy: { startAt: "asc" }, take: 80 }),
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: today, lt: horizon } }, orderBy: { startAt: "asc" }, take: 300 }),
     prisma.booking.findMany({ where: { startAt: { gte: today, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
   ]);
 
@@ -215,30 +204,25 @@ export default async function AdminPage() {
       acc[key].times.push(fmtTime(window.startAt));
       return acc;
     }, {})
-  ).slice(0, 8);
+  );
 
   return (
     <main className="master-dashboard">
       <Sidebar requestCount={requestCount} waitlistCount={waitlist.length} />
       <section className="master-main admin-workdesk master-mobile-workdesk">
         <style>{`
-          .master-open-windows-panel { overflow: hidden; }
-          .master-open-window-story { margin-top: 14px; padding: 18px; border-radius: 28px; background: linear-gradient(180deg, rgba(255, 248, 251, .96), rgba(248, 236, 243, .96)); border: 1px solid rgba(191, 143, 163, .28); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
-          .master-open-window-story-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-          .master-open-window-story-head h3 { margin: 0 0 6px; font-size: 20px; }
-          .master-open-window-story-head p { margin: 0; color: #775d69; }
-          .master-open-window-story-badge { padding: 8px 12px; border-radius: 999px; background: rgba(181, 96, 130, .14); color: #8d4362; font-weight: 800; white-space: nowrap; }
-          .master-open-window-groups { display: grid; gap: 12px; margin-top: 16px; }
-          .master-open-window-group { padding: 14px; border-radius: 22px; background: rgba(255,255,255,.88); border: 1px solid rgba(203, 182, 191, .55); }
-          .master-open-window-group-title { display: block; margin-bottom: 10px; font-size: 18px; line-height: 1.15; color: #2d2530; }
-          .master-open-window-times { display: flex; flex-wrap: wrap; gap: 8px; }
-          .master-open-window-time { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 12px; border-radius: 999px; background: #fff; border: 1px solid rgba(196, 93, 132, .18); font-weight: 900; color: #4f3b44; }
-          .master-open-window-empty { margin-top: 16px; padding: 18px; border-radius: 22px; background: rgba(255,255,255,.7); border: 1px dashed rgba(180, 145, 160, .7); color: #6c5a61; font-weight: 700; }
-          @media (max-width: 760px) { .master-open-window-story { padding: 16px; border-radius: 24px; } .master-open-window-story-head { flex-direction: column; } .master-open-window-story-badge { align-self: flex-start; } .master-open-window-group-title { font-size: 17px; } }
+          .master-open-windows-panel { padding: 16px 18px !important; overflow: visible; }
+          .master-open-windows-title { margin: 0 0 8px; font-size: 20px; line-height: 1.2; font-weight: 500; color: #2d2530; }
+          .master-open-windows-list { display: grid; gap: 0; }
+          .master-open-window-line { padding: 8px 0; border-bottom: 1px solid rgba(80, 58, 68, .14); color: #2d2530; font-size: 15px; line-height: 1.35; font-weight: 400; }
+          .master-open-window-line:last-child { border-bottom: 0; }
+          .master-open-window-line span { font-weight: 400; }
+          .master-open-windows-empty { padding: 8px 0; color: #7c6872; font-size: 15px; font-weight: 400; }
+          @media (max-width: 760px) { .master-open-windows-panel { padding: 14px 16px !important; } .master-open-windows-title { font-size: 19px; } .master-open-window-line { padding: 7px 0; font-size: 14px; } }
         `}</style>
 
         <header className="master-mobile-topbar"><div><b>Главная</b><span>{fmtTopDate(today)}</span></div><div className="master-top-actions"><a className="master-new-booking" href="/admin/manage">Новая запись</a><a className="master-settings-link" href="/admin/schedule?view=mode">Настройки записи</a></div></header>
-        <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Сегодня, завтра, заявки, ждуны и красивый список открытых окон для записи. Без лишней гирлянды.</p></div><div className="actions"><a className="button secondary" href="/admin/schedule?view=mode">Настройки записи</a><a className="button" href="/admin/manage">Новая запись</a></div></header>
+        <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Сегодня, завтра, заявки, ждуны и список свободных окон. Без лишней гирлянды.</p></div><div className="actions"><a className="button secondary" href="/admin/schedule?view=mode">Настройки записи</a><a className="button" href="/admin/manage">Новая запись</a></div></header>
 
         <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlist.length}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>
         <section className="master-mobile-day-stack"><BookingList title="Сегодня" date={today} bookings={todayBookings} /><BookingList title="Завтра" date={tomorrow} bookings={tomorrowBookings} /></section>
