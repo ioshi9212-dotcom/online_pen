@@ -137,7 +137,220 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const note = noticeText(searchParams);
 
   return (
-    <main className="page client-page">
+    <main className="page client-page client-page-compact">
+      <style jsx global>{`
+        .client-page-compact #windows .calendar-card h2 {
+          font-size: clamp(22px, 6vw, 30px) !important;
+          line-height: 1 !important;
+          max-width: 280px !important;
+        }
+
+        .client-page-compact .instruction-cards .info-card p {
+          font-size: 12.5px !important;
+          line-height: 1.25 !important;
+        }
+
+        .client-page-compact .calendar-legend .blue-dot,
+        .client-page-compact .calendar-grid .day-btn .day-dots .blue-dot {
+          background: var(--beauty-rose, #be6386) !important;
+        }
+
+        .client-collapse-card {
+          padding: 0 !important;
+          overflow: hidden !important;
+        }
+
+        .client-collapse-summary {
+          list-style: none !important;
+          cursor: pointer !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 14px !important;
+          padding: 17px 20px !important;
+        }
+
+        .client-collapse-summary::-webkit-details-marker {
+          display: none !important;
+        }
+
+        .client-collapse-summary span {
+          display: grid !important;
+          gap: 4px !important;
+          min-width: 0 !important;
+        }
+
+        .client-collapse-summary small {
+          color: var(--beauty-muted, #6f6570) !important;
+          font-size: 12px !important;
+          line-height: 1.1 !important;
+        }
+
+        .client-collapse-summary h2 {
+          margin: 0 !important;
+          font-size: clamp(27px, 7vw, 40px) !important;
+          line-height: 1 !important;
+        }
+
+        .client-collapse-summary i {
+          width: 34px !important;
+          height: 34px !important;
+          min-width: 34px !important;
+          border-radius: 999px !important;
+          display: grid !important;
+          place-items: center !important;
+          border: 1px solid rgba(128, 59, 88, .16) !important;
+          color: #8a3e5e !important;
+          background: rgba(255,255,255,.72) !important;
+          font-style: normal !important;
+          font-size: 22px !important;
+          transition: transform .18s ease !important;
+        }
+
+        .client-collapse-card[open] .client-collapse-summary i {
+          transform: rotate(180deg) !important;
+        }
+
+        .client-collapse-body {
+          padding: 0 20px 20px !important;
+        }
+
+        .waitlist-compact-form {
+          gap: 10px !important;
+        }
+
+        .waitlist-compact-form label {
+          gap: 5px !important;
+          font-size: 13px !important;
+        }
+
+        .waitlist-compact-form input,
+        .waitlist-compact-form select,
+        .waitlist-compact-form textarea {
+          min-height: 40px !important;
+          border-radius: 11px !important;
+          padding: 9px 11px !important;
+          font-size: 14px !important;
+        }
+
+        .waitlist-compact-form textarea {
+          min-height: 72px !important;
+        }
+
+        .waitlist-compact-form button {
+          min-height: 40px !important;
+          border-radius: 12px !important;
+          padding: 9px 14px !important;
+        }
+
+        .waitlist-active-list {
+          margin-top: 12px !important;
+          gap: 8px !important;
+        }
+
+        .waitlist-active-list .mini-card {
+          padding: 12px !important;
+          border-radius: 13px !important;
+        }
+
+        .waitlist-active-list h3 {
+          margin: 0 !important;
+          font-size: 15px !important;
+          line-height: 1.15 !important;
+        }
+
+        .waitlist-active-list p {
+          margin: 5px 0 0 !important;
+          font-size: 12.5px !important;
+          line-height: 1.25 !important;
+        }
+
+        .waitlist-active-list button {
+          min-height: 34px !important;
+          border-radius: 10px !important;
+          padding: 7px 10px !important;
+          font-size: 12px !important;
+        }
+
+        .price-compact-card {
+          padding: 18px 20px !important;
+        }
+
+        .price-compact-card h2 {
+          margin: 0 0 12px !important;
+          font-size: clamp(30px, 8vw, 46px) !important;
+          line-height: 1 !important;
+        }
+
+        .price-list.price-compact-list {
+          display: grid !important;
+          gap: 8px !important;
+        }
+
+        .price-list.price-compact-list .price-row {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) auto !important;
+          align-items: center !important;
+          gap: 12px !important;
+          padding: 10px 0 !important;
+          border-bottom: 1px solid rgba(128, 59, 88, .11) !important;
+        }
+
+        .price-list.price-compact-list .price-row:last-child {
+          border-bottom: 0 !important;
+        }
+
+        .price-list.price-compact-list .price-row b {
+          display: block !important;
+          font-size: 16px !important;
+          line-height: 1.15 !important;
+          font-weight: 800 !important;
+        }
+
+        .price-list.price-compact-list .price-row p {
+          margin: 4px 0 0 !important;
+          font-size: 12.5px !important;
+          line-height: 1.25 !important;
+        }
+
+        .price-list.price-compact-list .price-row strong {
+          font-size: 17px !important;
+          line-height: 1 !important;
+          white-space: nowrap !important;
+          color: var(--beauty-rose-dark, #803b58) !important;
+        }
+
+        .history-compact-list {
+          display: grid !important;
+          gap: 7px !important;
+        }
+
+        .history-compact-list p {
+          margin: 0 !important;
+          padding: 8px 0 !important;
+          border-bottom: 1px solid rgba(128, 59, 88, .11) !important;
+          font-size: 13px !important;
+          line-height: 1.3 !important;
+        }
+
+        .history-compact-list p:last-child {
+          border-bottom: 0 !important;
+        }
+
+        @media (max-width: 760px) {
+          .client-collapse-summary,
+          .client-collapse-body,
+          .price-compact-card {
+            padding-left: 18px !important;
+            padding-right: 18px !important;
+          }
+
+          .price-list.price-compact-list .price-row {
+            grid-template-columns: minmax(0, 1fr) auto !important;
+          }
+        }
+      `}</style>
+
       {note ? <div className={searchParams.busy || searchParams.bookingError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
 
       <section className="hero">
@@ -147,7 +360,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       </section>
 
       <section className="info-cards instruction-cards">
-        <article className="info-card"><h3>1. Календарь</h3><p>Серые числа — день недоступен. Белые — можно открыть. Синяя точка — есть свободное место, серая — часть времени уже занята.</p></article>
+        <article className="info-card"><h3>1. Календарь</h3><p>Серые числа — день недоступен. Белые — можно открыть. Розовая точка — есть свободное место, серая — часть времени уже занята.</p></article>
         <article className="info-card"><h3>2. Услуга</h3><p>Сначала выберите услугу. После кнопки «Выбрать услугу» появится свободное время для этой даты.</p></article>
         <article className="info-card"><h3>3. Заявка</h3><p>Выберите время, проверьте свои данные и отправьте заявку. Окно займётся за вами до ответа мастера.</p></article>
       </section>
@@ -180,37 +393,45 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         )}
       </section>
 
-      <section className="card" id="waitlist">
-        <h2>Лист ожидания</h2>
-        <form action={joinWaitlist} className="grid">
-          <input type="hidden" name="clientToken" value={token} />
-          <label>Как искать окно<select name="waitMode"><option value="NEAREST">Ближайшее свободное</option><option value="DATES">Конкретные даты</option></select></label>
-          <label>Даты, если нужны конкретные<input name="desiredDates" type="date" /></label>
-          <label>Комментарий<textarea name="note" placeholder="Например: могу после 16:00, кроме пятницы" /></label>
-          <button type="submit">Встать в лист ожидания</button>
-        </form>
+      <details className="card client-collapse-card" id="waitlist">
+        <summary className="client-collapse-summary">
+          <span>
+            <small>{client.waitlist.length ? `${client.waitlist.length} активн.` : "если нужное время занято"}</small>
+            <h2>Лист ожидания</h2>
+          </span>
+          <i aria-hidden="true">⌄</i>
+        </summary>
+        <div className="client-collapse-body">
+          <form action={joinWaitlist} className="grid waitlist-compact-form">
+            <input type="hidden" name="clientToken" value={token} />
+            <label>Как искать окно<select name="waitMode"><option value="NEAREST">Ближайшее свободное</option><option value="DATES">Конкретные даты</option></select></label>
+            <label>Даты, если нужны конкретные<input name="desiredDates" type="date" /></label>
+            <label>Комментарий<textarea name="note" placeholder="Например: могу после 16:00, кроме пятницы" /></label>
+            <button type="submit">Встать в лист ожидания</button>
+          </form>
 
-        {client.waitlist.length ? (
-          <div className="grid" style={{ marginTop: 16 }}>
-            {client.waitlist.map((entry) => (
-              <article className="mini-card" key={entry.id}>
-                <h3>{waitlistTitle(entry)}</h3>
-                <p>{waitlistDescription(entry)}</p>
-                {entry.note ? <p className="muted">Комментарий: {entry.note}</p> : null}
-                <form action={cancelWaitlistEntry}>
-                  <input type="hidden" name="clientToken" value={token} />
-                  <input type="hidden" name="waitlistId" value={entry.id} />
-                  <button className="secondary" type="submit">Убрать из ожидания</button>
-                </form>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </section>
+          {client.waitlist.length ? (
+            <div className="grid waitlist-active-list">
+              {client.waitlist.map((entry) => (
+                <article className="mini-card" key={entry.id}>
+                  <h3>{waitlistTitle(entry)}</h3>
+                  <p>{waitlistDescription(entry)}</p>
+                  {entry.note ? <p className="muted">Комментарий: {entry.note}</p> : null}
+                  <form action={cancelWaitlistEntry}>
+                    <input type="hidden" name="clientToken" value={token} />
+                    <input type="hidden" name="waitlistId" value={entry.id} />
+                    <button className="secondary" type="submit">Убрать из ожидания</button>
+                  </form>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </details>
 
-      <section className="card" id="price">
+      <section className="card price-compact-card" id="price">
         <h2>Прайс</h2>
-        <div className="price-list">
+        <div className="price-list price-compact-list">
           {priceServices.map((service) => (
             <article className="price-row" key={service.id}>
               <div><b>{service.title}</b>{service.description ? <p>{service.description}</p> : null}</div>
@@ -228,10 +449,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       </section>
 
       {pastBookings.length ? (
-        <section className="card">
-          <h2>История</h2>
-          {pastBookings.slice(0, 8).map((booking) => <p key={booking.id}>{fmtDate(booking.startAt)} — {booking.service.title} — {statusText(booking.status)}</p>)}
-        </section>
+        <details className="card client-collapse-card" id="history">
+          <summary className="client-collapse-summary">
+            <span>
+              <small>{pastBookings.length} записей</small>
+              <h2>История</h2>
+            </span>
+            <i aria-hidden="true">⌄</i>
+          </summary>
+          <div className="client-collapse-body history-compact-list">
+            {pastBookings.slice(0, 8).map((booking) => <p key={booking.id}>{fmtDate(booking.startAt)} — {booking.service.title} — {statusText(booking.status)}</p>)}
+          </div>
+        </details>
       ) : null}
     </main>
   );
