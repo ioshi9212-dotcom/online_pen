@@ -27,9 +27,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "bad-date" }, { status: 400 });
   }
 
-  const times = safeJsonList(body?.times);
+  const times = safeJsonList(body?.times).sort();
+  const savedTimes: string[] = [];
   const { day, start, end } = dayRange(dateKey);
-  let saved = 0;
   let skipped = 0;
 
   await prisma.onlineWindow.deleteMany({ where: { startAt: { gte: start, lt: end } } });
@@ -55,8 +55,8 @@ export async function POST(request: Request) {
       create: { startAt, note: "Открыто для онлайн-записи" },
       update: { note: "Открыто для онлайн-записи" }
     });
-    saved += 1;
+    savedTimes.push(time);
   }
 
-  return NextResponse.json({ ok: true, saved, skipped });
+  return NextResponse.json({ ok: true, saved: savedTimes.length, skipped, savedTimes });
 }
