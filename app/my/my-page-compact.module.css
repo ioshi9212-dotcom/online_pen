@@ -1,5 +1,5 @@
 .clientPageCompact :global(#windows .calendar-card h2) {
-  font-size: clamp(22px, 6vw, 30px) !important;
+  font-size: clamp(20px, 5.4vw, 27px) !important;
   line-height: 1 !important;
   max-width: 280px !important;
 }
@@ -26,7 +26,7 @@
   align-items: center !important;
   justify-content: space-between !important;
   gap: 14px !important;
-  padding: 17px 20px !important;
+  padding: 14px 16px !important;
 }
 
 .clientPageCompact :global(.client-collapse-summary::-webkit-details-marker) {
@@ -35,34 +35,34 @@
 
 .clientPageCompact :global(.client-collapse-summary span) {
   display: grid !important;
-  gap: 4px !important;
+  gap: 3px !important;
   min-width: 0 !important;
 }
 
 .clientPageCompact :global(.client-collapse-summary small) {
   color: var(--beauty-muted, #6f6570) !important;
-  font-size: 12px !important;
+  font-size: 11.5px !important;
   line-height: 1.1 !important;
 }
 
 .clientPageCompact :global(.client-collapse-summary h2) {
   margin: 0 !important;
-  font-size: clamp(27px, 7vw, 40px) !important;
+  font-size: clamp(23px, 6vw, 34px) !important;
   line-height: 1 !important;
 }
 
 .clientPageCompact :global(.client-collapse-summary i) {
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
-  border-radius: 999px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 10px !important;
   display: grid !important;
   place-items: center !important;
   border: 1px solid rgba(128, 59, 88, .16) !important;
   color: #8a3e5e !important;
   background: rgba(255,255,255,.72) !important;
   font-style: normal !important;
-  font-size: 22px !important;
+  font-size: 20px !important;
   transition: transform .18s ease !important;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .clientPageCompact :global(.client-collapse-body) {
-  padding: 0 20px 20px !important;
+  padding: 0 16px 16px !important;
 }
 
 .clientPageCompact :global(.waitlist-compact-form) {
@@ -87,7 +87,7 @@
 .clientPageCompact :global(.waitlist-compact-form select),
 .clientPageCompact :global(.waitlist-compact-form textarea) {
   min-height: 40px !important;
-  border-radius: 11px !important;
+  border-radius: 10px !important;
   padding: 9px 11px !important;
   font-size: 14px !important;
 }
@@ -98,7 +98,7 @@
 
 .clientPageCompact :global(.waitlist-compact-form button) {
   min-height: 40px !important;
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   padding: 9px 14px !important;
 }
 
@@ -132,26 +132,26 @@
 }
 
 .clientPageCompact :global(.price-compact-card) {
-  padding: 18px 20px !important;
+  padding: 15px 16px !important;
 }
 
 .clientPageCompact :global(.price-compact-card h2) {
-  margin: 0 0 12px !important;
-  font-size: clamp(30px, 8vw, 46px) !important;
+  margin: 0 0 10px !important;
+  font-size: clamp(26px, 7vw, 36px) !important;
   line-height: 1 !important;
 }
 
 .clientPageCompact :global(.price-list.price-compact-list) {
   display: grid !important;
-  gap: 8px !important;
+  gap: 0 !important;
 }
 
 .clientPageCompact :global(.price-list.price-compact-list .price-row) {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
-  align-items: center !important;
+  align-items: start !important;
   gap: 12px !important;
-  padding: 10px 0 !important;
+  padding: 9px 0 !important;
   border-bottom: 1px solid rgba(128, 59, 88, .11) !important;
 }
 
@@ -161,20 +161,20 @@
 
 .clientPageCompact :global(.price-list.price-compact-list .price-row b) {
   display: block !important;
-  font-size: 16px !important;
-  line-height: 1.15 !important;
+  font-size: 14.5px !important;
+  line-height: 1.12 !important;
   font-weight: 800 !important;
 }
 
 .clientPageCompact :global(.price-list.price-compact-list .price-row p) {
-  margin: 4px 0 0 !important;
-  font-size: 12.5px !important;
-  line-height: 1.25 !important;
+  margin: 3px 0 0 !important;
+  font-size: 11.5px !important;
+  line-height: 1.2 !important;
 }
 
 .clientPageCompact :global(.price-list.price-compact-list .price-row strong) {
-  font-size: 17px !important;
-  line-height: 1 !important;
+  font-size: 15px !important;
+  line-height: 1.05 !important;
   white-space: nowrap !important;
   color: var(--beauty-rose-dark, #803b58) !important;
 }
@@ -196,15 +196,136 @@
   border-bottom: 0 !important;
 }
 
+.clientPageCompact :global(.selected-day-card),
+.clientPageCompact :global(.calendar-card),
+.clientPageCompact :global(#bookings),
+.clientPageCompact :global(#price),
+.clientPageCompact :global(#profile),
+.clientPageCompact :global(.client-collapse-card) {
+  border-radius: 16px !important;
+}
+
+.clientPageCompact :global(.booking-step-card) {
+  padding: 14px !important;
+}
+
+.clientPageCompact :global(.flow-step-title h3) {
+  font-size: 16px !important;
+  line-height: 1.1 !important;
+}
+
+.clientPageCompact :global(.flow-step-title p) {
+  font-size: 11.5px !important;
+  line-height: 1.22 !important;
+}
+
+.clientPageCompact :global(.service-check-grid),
+.clientPageCompact :global(.service-choice-grid) {
+  gap: 8px !important;
+}
+
+.clientPageCompact :global(.service-check) {
+  min-height: 54px !important;
+  border-radius: 12px !important;
+  padding: 10px 11px !important;
+  align-items: center !important;
+}
+
+.clientPageCompact :global(.service-check input) {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.clientPageCompact :global(.service-check b) {
+  font-size: 14px !important;
+  line-height: 1.12 !important;
+}
+
+.clientPageCompact :global(.service-check small) {
+  font-size: 11.5px !important;
+  line-height: 1.18 !important;
+}
+
+.clientPageCompact :global(.service-choice-actions) {
+  grid-template-columns: 1fr !important;
+  gap: 7px !important;
+}
+
+.clientPageCompact :global(.service-choice-actions button),
+.clientPageCompact :global(.final-confirm-card button),
+.clientPageCompact :global(.change-service-btn),
+.clientPageCompact :global(#bookings button),
+.clientPageCompact :global(#profile .button) {
+  border-radius: 10px !important;
+  min-height: 38px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+}
+
+.clientPageCompact :global(#bookings) {
+  padding: 15px 16px !important;
+}
+
+.clientPageCompact :global(#bookings h2) {
+  margin: 0 0 12px !important;
+  font-size: clamp(26px, 7vw, 36px) !important;
+}
+
+.clientPageCompact :global(.booking-card) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 8px !important;
+  padding: 12px !important;
+  border-radius: 13px !important;
+  overflow: visible !important;
+}
+
+.clientPageCompact :global(.booking-card h3) {
+  margin: 0 !important;
+  font-size: 16px !important;
+  line-height: 1.12 !important;
+  color: var(--beauty-rose-dark, #803b58) !important;
+}
+
+.clientPageCompact :global(.booking-card p) {
+  margin: 4px 0 0 !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+.clientPageCompact :global(.booking-card .status) {
+  width: fit-content !important;
+  min-height: 26px !important;
+  border-radius: 9px !important;
+  padding: 6px 9px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+}
+
+.clientPageCompact :global(.booking-card form) {
+  margin: 0 !important;
+}
+
+.clientPageCompact :global(.booking-card button) {
+  width: fit-content !important;
+  max-width: 100% !important;
+}
+
 @media (max-width: 760px) {
   .clientPageCompact :global(.client-collapse-summary),
   .clientPageCompact :global(.client-collapse-body),
   .clientPageCompact :global(.price-compact-card) {
-    padding-left: 18px !important;
-    padding-right: 18px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 
   .clientPageCompact :global(.price-list.price-compact-list .price-row) {
     grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .clientPageCompact :global(.client-page .card),
+  .clientPageCompact :global(.client-page .calendar-card),
+  .clientPageCompact :global(.client-page .selected-day-card) {
+    border-radius: 16px !important;
   }
 }
