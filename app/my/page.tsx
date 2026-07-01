@@ -2,6 +2,7 @@ import { cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
+import { getClientCookie } from "@/lib/clientSession";
 import { businessDateKey, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 
@@ -110,8 +111,9 @@ function waitlistDescription(entry: WaitlistItem) {
 }
 
 export default async function MyPage({ searchParams }: { searchParams: SearchParams }) {
-  const token = searchParams.client;
+  const token = searchParams.client || getClientCookie();
   if (!token) redirect("/login");
+  if (!searchParams.client) redirect(`/my?client=${token}`);
 
   const client = await prisma.client.findUnique({
     where: { publicToken: token },
@@ -168,126 +170,84 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <ClientBookingPicker
         token={token}
-        client={{ firstName: client.firstName, lastName: client.lastName, phone: client.phone }}
+        services={bookableServices.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes, description: service.description }))}
         windows={windows}
-        services={bookableServices.map((service) => ({ id: service.id, title: service.title, description: service.description, durationMinutes: service.durationMinutes, price: service.price }))}
         initialDate={initialDate}
         initialTime={initialTime}
+        dates={dates}
       />
 
-      <section className="card current-booking-card current-booking-compact" id="my-booking">
-        <div className="section-head">
-          <div><h2>Ваши записи</h2><p>{activeBookings.length ? "Текущие заявки и подтверждённые записи." : "Активной записи пока нет."}</p></div>
-        </div>
-        {activeBookings.length ? (
-          <div className="active-booking-lines">
+      <section className="card" id="bookings">
+        <h2>Мои записи</h2>
+        {activeBookings.length === 0 ? <div className="empty-state">Активных записей пока нет.</div> : (
+          <div className="grid">
             {activeBookings.map((booking) => (
-              <article className="active-booking-line" key={booking.id}>
+              <article className="booking-card" key={booking.id}>
+                <div><h3>{booking.service.title}</h3><p>{fmtDate(booking.startAt)} в {fmtTime(booking.startAt)}</p></div>
                 <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
-                <div>
-                  <b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b>
-                  <p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p>
-                  {booking.status === "PENDING" ? <small>Заявка отправлена. Ждите подтверждения мастера.</small> : null}
-                  {booking.status === "CONFIRMED" ? <small>Запись подтверждена. Просто приходите вовремя, героизм не требуется.</small> : null}
-                </div>
+                <form action={cancelClientBooking}>
+                  <input type="hidden" name="clientToken" value={token} />
+                  <input type="hidden" name="bookingId" value={booking.id} />
+                  <button className="secondary" type="submit">Отменить запись</button>
+                </form>
               </article>
             ))}
           </div>
-        ) : <p className="empty-current-booking">Когда вы отправите заявку, здесь появится её статус.</p>}
+        )}
       </section>
 
-      <section className="card price-preview-card compact-price-card" id="price">
-        <div className="section-head">
-          <div><h2>Прайс</h2><p>Основные услуги и допы.</p></div>
-        </div>
-        {priceServices.length ? (
-          <div className="compact-price-list">
-            {priceServices.map((service) => (
-              <article className="compact-price-row" key={service.id}>
-                <div>
-                  <h3>{service.title}</h3>
-                  {service.description ? <p>{service.description}</p> : null}
-                </div>
-                <span aria-hidden="true"></span>
-                <b>{rub(service.price)}</b>
-              </article>
-            ))}
-          </div>
-        ) : <div className="empty-state">Прайс пока пуст.</div>}
-      </section>
-
-      {client.waitlist.length ? (
-        <div className="waitlist-status-strip">Статус ожидания: вы в листе ожидания. Мастер видит вашу заявку.</div>
-      ) : null}
-
-      <details className="card waitlist-big-card collapsed-client-section" id="waitlist">
-        <summary className="collapsible-summary">
-          <div><h2>Лист ожидания</h2><p>Оставьте заявку, если подходящего времени нет.</p></div>
-          <div className="collapse-actions">
-            {client.waitlist.length ? <span className="status wait">вы в списке</span> : null}
-            <span className="toggle-label"><span className="closed-label">Развернуть <span className="triangle">▾</span></span><span className="open-label">Свернуть <span className="triangle">▴</span></span></span>
-          </div>
-        </summary>
+      <section className="card" id="waitlist">
+        <h2>Лист ожидания</h2>
+        <form action={joinWaitlist} className="grid">
+          <input type="hidden" name="clientToken" value={token} />
+          <label>Как искать окно<select name="waitMode"><option value="NEAREST">Ближайшее свободное</option><option value="DATES">Конкретные даты</option></select></label>
+          <label>Даты, если нужны конкретные<input name="desiredDates" type="date" /></label>
+          <label>Комментарий<textarea name="note" placeholder="Например: могу после 16:00, кроме пятницы" /></label>
+          <button type="submit">Встать в лист ожидания</button>
+        </form>
 
         {client.waitlist.length ? (
-          <div className="waitlist-current-list">
+          <div className="grid" style={{ marginTop: 16 }}>
             {client.waitlist.map((entry) => (
-              <article className="waitlist-current-card" key={entry.id}>
+              <article className="mini-card" key={entry.id}>
                 <h3>{waitlistTitle(entry)}</h3>
                 <p>{waitlistDescription(entry)}</p>
-                {waitlistDates(entry).length ? <div className="chosen-date-list">{waitlistDates(entry).map((date) => <span key={date}>{formatInBusinessTime(new Date(`${date}T00:00:00`), { day: "2-digit", month: "2-digit", year: "numeric" })}</span>)}</div> : null}
-                {entry.note ? <small>Комментарий: {entry.note}</small> : null}
-                <details className="waitlist-cancel-box">
-                  <summary className="button secondary">Отменить ожидание</summary>
-                  <form action={cancelWaitlistEntry} className="grid" style={{ marginTop: 12 }}>
-                    <input type="hidden" name="clientToken" value={token} />
-                    <input type="hidden" name="waitlistId" value={entry.id} />
-                    <button type="submit" className="danger">Да, убрать меня из ожидания</button>
-                  </form>
-                </details>
+                {entry.note ? <p className="muted">Комментарий: {entry.note}</p> : null}
+                <form action={cancelWaitlistEntry}>
+                  <input type="hidden" name="clientToken" value={token} />
+                  <input type="hidden" name="waitlistId" value={entry.id} />
+                  <button className="secondary" type="submit">Убрать из ожидания</button>
+                </form>
               </article>
             ))}
           </div>
-        ) : (
-          <div className="waitlist-empty-state"><h3>В листе ожидания вы не стоите</h3><p>Выберите вариант ниже. Мастер увидит заявку и сможет предложить время.</p></div>
-        )}
+        ) : null}
+      </section>
 
-        <div className="waitlist-choice-grid">
-          <article className="waitlist-choice-card">
-            <h3>Ближайшее окно</h3>
-            <p>Подойдёт, если вы готовы прийти в любое ближайшее свободное время.</p>
-            <form action={joinWaitlist} className="grid">
-              <input type="hidden" name="clientToken" value={token} />
-              <input type="hidden" name="waitMode" value="NEAREST" />
-              <label>Комментарий<textarea name="note" placeholder="Например: могу после 15:00 / только выходные / срочно" /></label>
-              <button type="submit">Ближайшее окно</button>
-            </form>
-          </article>
-
-          <article className="waitlist-choice-card">
-            <h3>Конкретные даты</h3>
-            <p>Можно выбрать несколько дат. Нажатые даты подсветятся.</p>
-            <form action={joinWaitlist} className="grid">
-              <input type="hidden" name="clientToken" value={token} />
-              <input type="hidden" name="waitMode" value="DATES" />
-              <div className="waitlist-date-grid">{dates.map((date) => <label key={date.value} className="date-chip wait-date-chip"><input type="checkbox" name="desiredDates" value={date.value} /><span>{date.label}</span></label>)}</div>
-              <label>Комментарий<textarea name="note" placeholder="Например: лучше вечером / эти даты свободна до 14:00" /></label>
-              <button type="submit">Готово — отправить даты</button>
-            </form>
-          </article>
+      <section className="card" id="price">
+        <h2>Прайс</h2>
+        <div className="price-list">
+          {priceServices.map((service) => (
+            <article className="price-row" key={service.id}>
+              <div><b>{service.title}</b>{service.description ? <p>{service.description}</p> : null}</div>
+              <strong>{rub(service.price)}</strong>
+            </article>
+          ))}
         </div>
-      </details>
+      </section>
+
+      <section className="card" id="profile">
+        <h2>Профиль</h2>
+        <p>{client.firstName} {client.lastName}</p>
+        <p>{client.phone}</p>
+        <a className="button secondary" href={`/profile?client=${token}`}>Редактировать профиль</a>
+      </section>
 
       {pastBookings.length ? (
-        <details className="card collapsed-client-section history-section">
-          <summary className="collapsible-summary">
-            <div><h2>История</h2><p>Прошлые и отменённые записи.</p></div>
-            <span className="toggle-label"><span className="closed-label">Развернуть <span className="triangle">▾</span></span><span className="open-label">Свернуть <span className="triangle">▴</span></span></span>
-          </summary>
-          <div className="booking-status-list">
-            {pastBookings.slice(0, 6).map((booking) => <article className="booking-status-card" key={booking.id}><b>{fmtDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><p>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</p><span className={statusClass(booking.status)}>{statusText(booking.status)}</span></article>)}
-          </div>
-        </details>
+        <section className="card">
+          <h2>История</h2>
+          {pastBookings.slice(0, 8).map((booking) => <p key={booking.id}>{fmtDate(booking.startAt)} — {booking.service.title} — {statusText(booking.status)}</p>)}
+        </section>
       ) : null}
     </main>
   );
