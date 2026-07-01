@@ -5,16 +5,15 @@ import { usePathname, useSearchParams } from "next/navigation";
 const items = [
   { label: "Главная", href: "/admin", icon: "⌂", key: "home" },
   { label: "Календарь", href: "/admin/schedule?view=calendar", icon: "□", key: "calendar" },
-  { label: "Запись", href: "/admin/schedule?view=mode", icon: "⚙", key: "mode" },
-  { label: "Клиенты", href: "/admin/my-clients", icon: "◇", key: "clients" },
-  { label: "Профиль", href: "/admin/profile", icon: "◎", key: "profile" }
+  { label: "Настройки", href: "/admin/settings", icon: "⚙", key: "settings" },
+  { label: "База клиентов", href: "/admin/my-clients", icon: "◇", key: "clients" }
 ];
 
 function activeKey(pathname: string, view: string | null) {
   if (pathname === "/admin") return "home";
-  if (pathname.startsWith("/admin/schedule")) return view === "mode" ? "mode" : "calendar";
   if (pathname.startsWith("/admin/my-clients") || pathname.startsWith("/admin/clients")) return "clients";
-  if (pathname.startsWith("/admin/profile")) return "profile";
+  if (pathname.startsWith("/admin/settings") || pathname.startsWith("/admin/profile") || pathname.startsWith("/admin/services")) return "settings";
+  if (pathname.startsWith("/admin/schedule")) return view === "mode" ? "settings" : "calendar";
   if (pathname.startsWith("/admin/manage") || pathname.startsWith("/admin/bookings")) return "calendar";
   return "home";
 }
