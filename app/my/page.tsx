@@ -31,27 +31,12 @@ function fmtDate(date: Date) {
   return upperFirst(formatInBusinessTime(date, { day: "numeric", month: "long", weekday: "long" }));
 }
 
-function fmtShortDate(date: Date) {
-  return formatInBusinessTime(date, { day: "2-digit", month: "2-digit", weekday: "short" });
-}
-
 function fmtTime(date: Date) {
   return formatInBusinessTime(date, { hour: "2-digit", minute: "2-digit" });
 }
 
 function dayKey(date: Date) {
   return businessDateKey(date);
-}
-
-function dateOptions(days = 28) {
-  const result: { value: string; label: string }[] = [];
-  const start = new Date();
-  for (let index = 0; index < days; index++) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    result.push({ value: dayKey(date), label: fmtShortDate(date) });
-  }
-  return result;
 }
 
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
@@ -150,7 +135,6 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
-  const dates = dateOptions(28);
 
   return (
     <main className="page client-page">
@@ -170,11 +154,11 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <ClientBookingPicker
         token={token}
+        client={{ firstName: client.firstName, lastName: client.lastName, phone: client.phone }}
         services={bookableServices.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes, description: service.description }))}
         windows={windows}
         initialDate={initialDate}
         initialTime={initialTime}
-        dates={dates}
       />
 
       <section className="card" id="bookings">
