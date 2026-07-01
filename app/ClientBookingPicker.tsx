@@ -172,7 +172,6 @@ export default function ClientBookingPicker({ token, client, windows, services, 
           <div className="calendar-grid">
             {Array.from({ length: monthOffset(visibleMonth) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
             {monthDays.map((day) => {
-              const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
               const key = `${visibleMonth.getFullYear()}-${String(visibleMonth.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const dayWindows = windowsByDate.get(key) || [];
               const freeCount = dayWindows.filter((item) => !item.busy).length;
@@ -279,6 +278,11 @@ export default function ClientBookingPicker({ token, client, windows, services, 
             </div>
 
             <p className="owner-warning">Проверьте, что запись оформляется именно на вас. Мастер ждёт человека из карточки, а не сюжетный поворот.</p>
+
+            <div className="notice final-check-note">
+              <b>После отправки заявки напишите мастеру.</b>
+              <p>Сайт ещё тестовый: он старается быть полезным, но иногда ведёт себя как стажёр на первом рабочем дне. Мастер проверит время вручную и подтвердит, что всё встало нормально.</p>
+            </div>
 
             <label className="comment-box">Комментарий, если нужно<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
 
