@@ -1,0 +1,93 @@
+/* Final shape pass: soft-square controls, not oval pills. */
+:root {
+  --control-radius: 10px;
+  --control-radius-lg: 12px;
+  --card-radius-soft: 16px;
+}
+
+button,
+.button,
+.primary-link,
+.btn,
+input[type="submit"],
+summary.button,
+.month-arrow,
+.time-btn,
+.slot-btn,
+.date-option,
+.service-option,
+.service-check,
+.date-chip span,
+.master-new-booking,
+.master-settings-link,
+.open-online-copy,
+.save-online-button,
+.change-service-btn {
+  border-radius: var(--control-radius) !important;
+}
+
+.card,
+.hero,
+.auth-card,
+.notice,
+.empty-state,
+.calendar-card,
+.selected-day-card,
+.mini-card,
+.booking-card,
+.window-card,
+.admin-card,
+.client-card,
+booking-panel,
+.price-card,
+.client-list-card,
+.service-check,
+.price-row,
+.service-row,
+.profile-form,
+.client-collapse-card,
+.client-add-details,
+.clients-list-details {
+  border-radius: var(--card-radius-soft) !important;
+}
+
+input,
+textarea,
+select {
+  border-radius: var(--control-radius) !important;
+}
+
+button,
+.button,
+.primary-link,
+.btn,
+input[type="submit"] {
+  min-height: 38px !important;
+  padding: 8px 13px !important;
+  font-size: 13px !important;
+  line-height: 1.15 !important;
+}
+
+.time-btn,
+.slot-btn,
+.date-option,
+.service-option {
+  min-height: 40px !important;
+}
+
+.status,
+.admin-status,
+.pill,
+.badge {
+  border-radius: 9px !important;
+}
+
+.master-bottom-nav,
+.admin-global-bottom-nav {
+  border-radius: var(--card-radius-soft) !important;
+}
+
+.master-bottom-nav a,
+.admin-global-bottom-nav a {
+  border-radius: var(--control-radius) !important;
+}
