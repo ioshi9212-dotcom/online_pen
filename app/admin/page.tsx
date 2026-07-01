@@ -13,7 +13,7 @@ type BookingWithClientService = {
   endAt: Date;
   status: string;
   adminComment: string;
-  client: { firstName: string; lastName: string; phone: string };
+  client: { id: string; firstName: string; lastName: string; phone: string };
   service: { title: string; durationMinutes: number };
 };
 
@@ -66,6 +66,10 @@ function scheduleHref(date: Date) {
   return `/admin/schedule?view=calendar&month=${businessMonthKey(date)}&date=${key}#selected-day`;
 }
 
+function manageHref(booking: BookingWithClientService) {
+  return `/admin/manage?clientId=${booking.client.id}#manual-booking`;
+}
+
 function statusText(status: string) {
   if (status === "PENDING") return "Не подтверждено";
   if (status === "CONFIRMED") return "Предстоит";
@@ -96,6 +100,59 @@ function parseWaitDates(value: string | null | undefined) {
 
 function waitModeText(mode: string) {
   return mode === "DATES" ? "Конкретные даты" : "Ближайшее окно";
+}
+
+function BookingStatusForm({ booking, status, label, className = "secondary" }: { booking: BookingWithClientService; status: string; label: string; className?: string }) {
+  return (
+    <form action={setBookingStatus}>
+      <input type="hidden" name="id" value={booking.id} />
+      <input type="hidden" name="status" value={status} />
+      <input type="hidden" name="redirectTo" value="/admin" />
+      <button type="submit" className={className}>{label}</button>
+    </form>
+  );
+}
+
+function BookingQuickActions({ booking }: { booking: BookingWithClientService }) {
+  if (booking.status === "CANCELLED_BY_CLIENT") {
+    return (
+      <form action={acknowledgeClientCancellation} className="master-cancel-ack-form">
+        <input type="hidden" name="id" value={booking.id} />
+        <input type="hidden" name="redirectTo" value="/admin" />
+        <button type="submit">Видела</button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="master-booking-actions-panel">
+      {booking.status === "PENDING" ? (
+        <>
+          <BookingStatusForm booking={booking} status="CONFIRMED" label="Подтвердить" className="ok" />
+          <BookingStatusForm booking={booking} status="REJECTED" label="Отклонить" className="danger" />
+        </>
+      ) : null}
+
+      {booking.status === "CONFIRMED" ? (
+        <>
+          <BookingStatusForm booking={booking} status="COMPLETED" label="Завершить" />
+          <BookingStatusForm booking={booking} status="NO_SHOW" label="Не пришла" />
+          <BookingStatusForm booking={booking} status="CANCELLED_BY_ADMIN" label="Отменить" className="danger" />
+        </>
+      ) : null}
+
+      {booking.status === "COMPLETED" || booking.status === "NO_SHOW" || booking.status === "REJECTED" || booking.status === "CANCELLED_BY_ADMIN" ? (
+        <a className="button secondary" href={scheduleHref(booking.startAt)}>Открыть день</a>
+      ) : null}
+
+      {booking.status === "PENDING" || booking.status === "CONFIRMED" ? (
+        <>
+          <a className="button secondary" href={manageHref(booking)}>Изменить</a>
+          <a className="button secondary" href={scheduleHref(booking.startAt)}>Открыть день</a>
+        </>
+      ) : null}
+    </div>
+  );
 }
 
 function Sidebar({ requestCount, waitlistCount }: { requestCount: number; waitlistCount: number }) {
@@ -135,18 +192,14 @@ function BookingList({ title, date, bookings }: { title: string; date: Date; boo
         {bookings.map((booking) => {
           const cancelled = booking.status === "CANCELLED_BY_CLIENT";
           return (
-            <div className={cancelled ? "master-booking-row is-cancelled" : "master-booking-row"} key={booking.id}>
-              <a className="master-booking-link" href={scheduleHref(booking.startAt)}>
+            <details className={cancelled ? "master-booking-row is-cancelled master-booking-details" : "master-booking-row master-booking-details"} key={booking.id}>
+              <summary className="master-booking-link">
                 <time>{fmtTime(booking.startAt)}</time>
                 <div className="master-booking-main"><b>{booking.client.lastName} {booking.client.firstName}</b><small>{durationLabel(booking.startAt, booking.endAt)} · {booking.service.title}</small></div>
-                <span className={statusClass(booking.status)}>{statusText(booking.status)}</span><i aria-hidden="true">›</i>
-              </a>
-              {cancelled ? (
-                <form action={acknowledgeClientCancellation} className="master-cancel-ack-form">
-                  <input type="hidden" name="id" value={booking.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Видела</button>
-                </form>
-              ) : null}
-            </div>
+                <span className={statusClass(booking.status)}>{statusText(booking.status)}</span><i aria-hidden="true">⌄</i>
+              </summary>
+              <BookingQuickActions booking={booking} />
+            </details>
           );
         })}
         {bookings.length === 0 ? <div className="admin-empty">Записей нет. Редкий подарок расписанию.</div> : null}
