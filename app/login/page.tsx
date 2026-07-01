@@ -1,6 +1,17 @@
 import { loginClient } from "@/app/actions";
+import { getClientCookie } from "@/lib/clientSession";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+export const dynamic = "force-dynamic";
+
+export default async function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+  const savedClientToken = getClientCookie();
+  if (savedClientToken) {
+    const savedClient = await prisma.client.findUnique({ where: { publicToken: savedClientToken }, select: { status: true } });
+    if (savedClient?.status === "APPROVED") redirect(`/my?client=${savedClientToken}`);
+  }
+
   return (
     <main className="auth-page">
       <section className="auth-card">
