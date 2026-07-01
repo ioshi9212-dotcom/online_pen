@@ -260,48 +260,76 @@ export default function ScheduleClient(props: Props) {
   return (
     <div className="grid schedule-calendar-workspace">
       <style jsx global>{`
-        .paint-selected { outline: 4px solid rgba(196, 93, 132, .45) !important; transform: translateY(-2px); }
+        .paint-selected { outline: 3px solid rgba(196, 93, 132, .38) !important; transform: translateY(-1px); }
         .paint-off { background: linear-gradient(135deg, #bd5f82, #f2c7d7) !important; color: white !important; border-color: #a94e71 !important; }
         .paint-off .day-number, .paint-off small { color: white !important; }
         .paint-working { background: linear-gradient(135deg, #e5f3df, #ffffff) !important; border-color: #94bd8c !important; }
         .paint-special { background: linear-gradient(135deg, #f6bdd5, #f6e3ff) !important; border-color: #cf78a4 !important; }
-        .paint-save-box { border: 1px solid rgba(196, 93, 132, .24); background: rgba(255, 248, 251, .96); }
+        .paint-save-box { border: 1px solid rgba(196, 93, 132, .18); background: rgba(255, 248, 251, .86); }
         .schedule-floating-toast { position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; width: min(92vw, 420px); padding: 14px 16px; border-radius: 20px; box-shadow: 0 18px 42px rgba(80, 48, 64, .24); text-align: center; font-weight: 900; animation: schedule-toast-in .18s ease-out; }
         .schedule-floating-toast.ok-notice { background: #f1fff4; border: 1px solid rgba(71, 141, 84, .24); color: #245c31; }
         .schedule-floating-toast.danger-notice { background: #fff2f2; border: 1px solid rgba(187, 67, 67, .24); color: #8a2c2c; }
         @keyframes schedule-toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
-        .open-online-card { align-content: start; }
-        .open-online-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-        .open-online-head h3 { margin: 0 0 6px; }
-        .open-online-copy { white-space: nowrap; }
-        .open-online-list { display: grid; gap: 12px; margin-top: 12px; }
-        .open-online-row { padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255, 255, 255, .72); }
-        .open-online-row-title { display: block; margin-bottom: 0; }
-        .open-online-text { width: 100%; min-height: 104px; resize: vertical; margin-top: 12px; font-size: 13px; line-height: 1.45; }
+
+        .schedule-calendar-head { display: grid; gap: 12px; }
+        .schedule-calendar-head h2 { margin: 0; }
+        .schedule-calendar-head p { margin: 4px 0 0; }
+        .calendar-month-switcher { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; width: 100%; max-width: 360px; margin: 4px auto 0; }
+        .calendar-month-title { text-align: center; font-weight: 800; font-size: 16px; }
+        .calendar-arrow-button { min-height: 38px; padding: 0 !important; border-radius: 12px !important; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; text-decoration: none; }
+        .schedule-paint-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+        .schedule-paint-actions button { min-height: 36px; padding: 8px 11px; border-radius: 12px; white-space: nowrap; font-size: 13px; }
+        .schedule-paint-label { flex: 0 0 auto; font-size: 13px; color: #6f5b64; }
+        .calendar-grid { gap: 6px !important; }
+        .calendar-day { min-height: 74px !important; aspect-ratio: 1 / .92; border-radius: 12px !important; padding: 8px !important; display: grid; align-content: start; gap: 2px; }
+        .calendar-day .day-number { font-size: 16px; line-height: 1; font-weight: 800; }
+        .calendar-day span:not(.day-number) { font-size: 11px; }
+        .calendar-day small { font-size: 9.5px; line-height: 1.15; }
+
+        .schedule-selected-card { padding: 16px !important; }
+        .selected-date-title { margin: 0 0 12px; font-size: 18px; line-height: 1.2; font-weight: 600; }
+        .schedule-day-grid { align-items: start; gap: 18px; }
+        .time-control-panel, .open-online-card { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+        .schedule-section-title { margin: 0 0 10px; font-size: 15px; line-height: 1.2; font-weight: 600; }
+        .schedule-section-note { margin: -4px 0 10px; font-size: 12px; color: #74616b; }
+        .time-column-list { display: grid; grid-template-rows: repeat(6, minmax(36px, auto)); grid-auto-flow: column; grid-auto-columns: minmax(74px, 1fr); gap: 8px; overflow-x: auto; padding: 2px 2px 8px; max-height: none !important; }
+        .time-column-list button { min-height: 36px; padding: 7px 8px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+        .chosen-time-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: none !important; }
+        .chosen-time-list button { min-height: 34px; padding: 7px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+        .save-online-button { margin-top: 12px; width: 100%; min-height: 40px; border-radius: 14px; }
+        .open-online-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .open-online-head h3 { margin: 0; font-size: 15px; line-height: 1.2; font-weight: 600; }
+        .open-online-copy { white-space: nowrap; min-height: 34px; padding: 7px 10px; border-radius: 12px; font-size: 13px; }
+        .open-online-plain-list { display: grid; gap: 0; }
+        .open-online-plain-line { padding: 8px 0; border-bottom: 1px solid rgba(80, 58, 68, .14); font-size: 13px; line-height: 1.35; font-weight: 400; }
+        .open-online-plain-line:last-child { border-bottom: 0; }
+        .open-online-empty { padding: 8px 0; color: #76636d; font-size: 13px; }
         @media (max-width: 760px) {
           .schedule-top-card { position: static !important; top: auto !important; z-index: auto !important; }
-          .open-online-head { display: grid; grid-template-columns: 1fr; }
-          .open-online-copy { width: 100%; }
+          .calendar-month-switcher { max-width: 100%; }
+          .schedule-selected-card { padding: 14px !important; }
+          .schedule-day-grid { grid-template-columns: 1fr !important; gap: 18px; }
+          .time-column-list { grid-template-rows: repeat(6, minmax(34px, auto)); grid-auto-columns: minmax(70px, 1fr); gap: 7px; }
         }
       `}</style>
 
       {paintSaveText ? <div className={`schedule-floating-toast ${paintSaveState === "error" ? "danger-notice" : "ok-notice"}`} role="status" aria-live="polite">{paintSaveText}</div> : null}
 
       <section className="card schedule-calendar-card" id="calendar">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
+        <div className="schedule-calendar-head">
           <div>
             <h2>Календарь</h2>
-            <p>Обычный режим: нажми дату и ниже управляй записью. Кнопки ниже нужны только чтобы быстро отметить выходные или рабочие дни.</p>
+            <p>Нажми дату, чтобы открыть окна для записи. Кнопки ниже — для быстрой отметки дней.</p>
           </div>
-          <div className="actions">
-            <a className="button secondary" href={`/admin/schedule?view=calendar&month=${props.prevKey}#calendar`}>← Пред. месяц</a>
-            <span className="pill">{props.monthTitle}</span>
-            <a className="button secondary" href={`/admin/schedule?view=calendar&month=${props.nextKey}#calendar`}>След. месяц →</a>
+          <div className="calendar-month-switcher" aria-label="Переключение месяца">
+            <a className="button secondary calendar-arrow-button" href={`/admin/schedule?view=calendar&month=${props.prevKey}#calendar`} aria-label="Предыдущий месяц">‹</a>
+            <span className="calendar-month-title">{props.monthTitle}</span>
+            <a className="button secondary calendar-arrow-button" href={`/admin/schedule?view=calendar&month=${props.nextKey}#calendar`} aria-label="Следующий месяц">›</a>
           </div>
         </div>
 
-        <div className="actions schedule-paint-actions" style={{ marginTop: 14 }}>
-          <span className="schedule-paint-label">Отметить дни:</span>
+        <div className="schedule-paint-actions" style={{ marginTop: 14 }}>
+          <span className="schedule-paint-label">Отметить:</span>
           {(["DAY_OFF", "WORKING", "SPECIAL"] as const).map((mode) => (
             <button type="button" key={mode} className={paintMode === mode ? "" : "secondary"} onClick={() => { setPaintMode((current) => current === mode ? "" : mode); setPaintDates([]); setPaintSaveText(""); }}>
               {modeLabels[mode]}
@@ -348,56 +376,48 @@ export default function ScheduleClient(props: Props) {
 
       {props.selectedDateKey ? (
         <section className="card schedule-selected-card" id="selected-day">
-          <h2>{props.selectedDateTitle}</h2>
+          <h2 className="selected-date-title">{props.selectedDateTitle}</h2>
           {props.warning ? <div className="notice danger-notice">Предупреждение: {props.warning}. Чтобы всё равно создать запись, поставь галочку подтверждения.</div> : null}
           {props.success ? <div className="notice ok-notice">{props.success}</div> : null}
 
           <div className="grid-2 schedule-day-grid">
-            <div className="mini-card">
-              <h3>Открыть окна для онлайн-записи</h3>
-              <p className="small">Нажимай свободное время сверху — оно исчезнет из списка и уйдёт вниз. Нижний список — то, что увидят клиенты онлайн.</p>
+            <div className="time-control-panel">
+              <h3 className="schedule-section-title">Выбери время, чтобы открыть для записи</h3>
+              <p className="schedule-section-note">Нажми время сверху — оно уйдёт в список открытых окон ниже.</p>
 
-              <div className="grid">
-                <b>Выбери время, чтобы открыть для записи</b>
-                <div className="time-list" style={{ maxHeight: 360 }}>
-                  {visibleTopTimes.map((item) => <button type="button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
-                  {visibleTopTimes.length === 0 ? <div className="notice">Нет времени для выбора.</div> : null}
-                </div>
+              <div className="time-list time-column-list">
+                {visibleTopTimes.map((item) => <button type="button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
+                {visibleTopTimes.length === 0 ? <div className="notice">Нет времени для выбора.</div> : null}
               </div>
 
-              <div className="grid" style={{ marginTop: 16 }}>
-                <b>Окна для клиентов онлайн</b>
-                <div className="time-list" style={{ maxHeight: 280 }}>
-                  {onlineTimes.map((time) => <button type="button" className="ok" key={time} onClick={() => removeOnlineTime(time)}>{time} ×</button>)}
-                  {onlineTimes.length === 0 ? <div className="notice">Пока не выбрано ни одного онлайн-окна.</div> : null}
-                </div>
-
-                {onlineSaveText ? <div className={`notice ${onlineSaveState === "error" ? "danger-notice" : "ok-notice"}`}>{onlineSaveText}</div> : null}
-                <button type="button" onClick={saveOnlineTimes} disabled={onlineSaveState === "saving"}>{onlineSaveState === "saving" ? "Сохраняю…" : "Готово — сохранить онлайн-окна"}</button>
+              <h3 className="schedule-section-title" style={{ marginTop: 14 }}>Окна для клиентов онлайн</h3>
+              <div className="time-list chosen-time-list">
+                {onlineTimes.map((time) => <button type="button" className="ok" key={time} onClick={() => removeOnlineTime(time)}>{time} ×</button>)}
+                {onlineTimes.length === 0 ? <div className="notice">Пока не выбрано ни одного онлайн-окна.</div> : null}
               </div>
+
+              {onlineSaveText ? <div className={`notice ${onlineSaveState === "error" ? "danger-notice" : "ok-notice"}`}>{onlineSaveText}</div> : null}
+              <button className="save-online-button" type="button" onClick={saveOnlineTimes} disabled={onlineSaveState === "saving"}>{onlineSaveState === "saving" ? "Сохраняю…" : "Готово — сохранить онлайн-окна"}</button>
             </div>
 
-            <div className="mini-card open-online-card">
+            <div className="open-online-card">
               <div className="open-online-head">
-                <div>
-                  <h3>Открытые окна для записи</h3>
-                  <p className="small">Только даты и время, которые мастер уже открыл для клиентов. Занятые и прошедшие окна сюда не попадают.</p>
-                </div>
+                <h3>Открытые окна для записи</h3>
                 <button type="button" className="secondary open-online-copy" onClick={copyOpenOnlineList} disabled={!openOnlineText}>
                   {copyState === "copied" ? "Скопировано" : "Скопировать"}
                 </button>
               </div>
 
-              <div className="open-online-list" aria-label="Открытые окна для записи">
+              <div className="open-online-plain-list" aria-label="Открытые окна для записи">
                 {visibleOpenGroups.map((group) => (
-                  <div key={group.key} className="open-online-row">
-                    <b className="open-online-row-title">{group.title} - {group.items.map((item) => item.time).join(", ")}</b>
+                  <div key={group.key} className="open-online-plain-line">
+                    {group.title} — {group.items.map((item) => item.time).join(", ")}
                   </div>
                 ))}
+                {visibleOpenGroups.length === 0 ? <div className="open-online-empty">Открытых окон пока нет.</div> : null}
               </div>
 
-              <textarea className="open-online-text" readOnly value={openOnlineText} placeholder="" aria-label="Список открытых онлайн-окон для копирования" />
-              {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически. Можно выделить текст в поле и скопировать вручную.</div> : null}
+              {copyState === "error" ? <div className="notice danger-notice">Не получилось скопировать автоматически.</div> : null}
             </div>
           </div>
         </section>
