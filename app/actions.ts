@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
+import { setClientCookie } from "@/lib/clientSession";
 import { redirect } from "next/navigation";
 
 function required(value: FormDataEntryValue | null, name: string) {
@@ -27,6 +28,11 @@ function myUrl(token: string, params: Record<string, string | undefined> = {}) {
   return `/my?${search.toString()}`;
 }
 
+function enterClientCabinet(token: string, params: Record<string, string | undefined> = {}) {
+  setClientCookie(token);
+  redirect(myUrl(token, params));
+}
+
 export async function registerClient(formData: FormData) {
   const firstName = required(formData.get("firstName"), "Имя");
   const lastName = required(formData.get("lastName"), "Фамилия");
@@ -37,13 +43,13 @@ export async function registerClient(formData: FormData) {
   const existing = await prisma.client.findUnique({ where: { phone } });
 
   if (existing?.status === "PENDING") redirect(`/pending?phone=${encodeURIComponent(existing.phone)}&already=1`);
-  if (existing?.status === "APPROVED") redirect(`/my?client=${existing.publicToken}&known=1`);
+  if (existing?.status === "APPROVED") enterClientCabinet(existing.publicToken, { known: "1" });
   if (existing?.status === "BANNED") redirect("/unavailable");
 
   const result = await syncPublicRegistration({ firstName, lastName, phone, birthDate, notes });
   const client = result.client;
 
-  if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&known=1`);
+  if (client.status === "APPROVED") enterClientCabinet(client.publicToken, { known: "1" });
   if (client.status === "BANNED") redirect("/unavailable");
 
   redirect(`/pending?phone=${encodeURIComponent(client.phone)}`);
@@ -59,7 +65,7 @@ export async function loginClient(formData: FormData) {
   const sameDate = client.birthDate.toISOString().slice(0, 10) === birthDate.toISOString().slice(0, 10);
   if (!sameDate) redirect(`/login?error=wrong_birthdate`);
 
-  if (client.status === "APPROVED") redirect(`/my?client=${client.publicToken}&login=1`);
+  if (client.status === "APPROVED") enterClientCabinet(client.publicToken, { login: "1" });
   if (client.status === "BANNED") redirect(`/unavailable`);
   if (client.status === "REJECTED") redirect(`/register?phone=${encodeURIComponent(phone)}&rejected=1`);
   redirect(`/pending?phone=${encodeURIComponent(phone)}&already=1`);
@@ -80,6 +86,7 @@ export async function updateClientProfile(formData: FormData) {
   if (duplicate && duplicate.id !== client.id) redirect(`/profile?client=${clientToken}&error=phone-exists`);
 
   await prisma.client.update({ where: { id: client.id }, data: { firstName, lastName, phone, birthDate, avatarUrl } });
+  setClientCookie(clientToken);
 
   redirect(`/profile?client=${clientToken}&saved=1`);
 }
@@ -129,6 +136,7 @@ export async function createBooking(formData: FormData) {
     }
   });
 
+  setClientCookie(token);
   redirect(myUrl(token, { created: booking.id }));
 }
 
@@ -161,6 +169,7 @@ export async function joinWaitlist(formData: FormData) {
     await prisma.waitlistEntry.create({ data: { clientId: client.id, ...data } });
   }
 
+  setClientCookie(token);
   redirect(`/my?client=${token}&waitlist=${waitMode === "DATES" ? "dates" : "nearest"}#waitlist`);
 }
 
@@ -176,6 +185,7 @@ export async function cancelWaitlistEntry(formData: FormData) {
     data: { status: "CANCELLED_BY_CLIENT", closedAt: new Date() }
   });
 
+  setClientCookie(token);
   redirect(`/my?client=${token}&waitlist=cancelled#waitlist`);
 }
 
@@ -191,5 +201,6 @@ export async function cancelClientBooking(formData: FormData) {
     data: { status: "CANCELLED_BY_CLIENT", cancelledAt: new Date() }
   });
 
+  setClientCookie(token);
   redirect(`/my?client=${token}&cancelled=1`);
 }
