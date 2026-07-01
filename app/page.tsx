@@ -1,9 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
+import { getClientCookie } from "@/lib/clientSession";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const savedClientToken = getClientCookie();
+  if (savedClientToken) {
+    const savedClient = await prisma.client.findUnique({ where: { publicToken: savedClientToken }, select: { status: true } });
+    if (savedClient?.status === "APPROVED") redirect(`/my?client=${savedClientToken}`);
+  }
+
   const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   const mainServices = services.filter((service) => service.showInBooking);
   const addOns = services.filter((service) => !service.showInBooking);
