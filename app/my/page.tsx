@@ -1,4 +1,4 @@
-import { cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
+import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
