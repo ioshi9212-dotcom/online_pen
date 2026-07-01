@@ -37,6 +37,8 @@ type OpenOnlineWindow = {
   startAt: Date;
 };
 
+const shortWeekDays = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+
 function one(value: string | string[] | undefined, fallback = "") {
   return Array.isArray(value) ? value[0] || fallback : value || fallback;
 }
@@ -75,7 +77,7 @@ function dayLabel(kind: string, isWorkingDay: boolean) {
 function onlineWindowDayTitle(date: Date) {
   const month = new Intl.DateTimeFormat("ru-RU", { month: "long" }).format(date);
   const monthTitle = month.charAt(0).toUpperCase() + month.slice(1);
-  return `${monthTitle} ${date.getDate()}`;
+  return `${monthTitle} ${date.getDate()} ${shortWeekDays[date.getDay()]}`;
 }
 
 function pointBusy(point: Date, busyItems: { startAt: Date; endAt: Date }[]) {
