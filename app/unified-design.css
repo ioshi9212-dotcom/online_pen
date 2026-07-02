@@ -1,0 +1,538 @@
+/* Unified visual pass: one calm salon UI for client, auth and master pages. */
+:root {
+  --ui-bg: #f8f1f4;
+  --ui-bg-2: #fffafb;
+  --ui-card: rgba(255, 255, 255, .88);
+  --ui-card-solid: #fffdfd;
+  --ui-soft: #fbf4f7;
+  --ui-line: rgba(128, 59, 88, .16);
+  --ui-line-strong: rgba(128, 59, 88, .25);
+  --ui-text: #2d2930;
+  --ui-muted: rgba(45, 41, 48, .62);
+  --ui-rose: #be6386;
+  --ui-rose-dark: #7d3855;
+  --ui-danger: #a94352;
+  --ui-ok: #417552;
+  --ui-warn: #8a6a32;
+  --control-radius: 7px;
+  --control-radius-lg: 9px;
+  --card-radius-soft: 14px;
+  --radius: 14px;
+  --beauty-rose: #be6386;
+  --beauty-rose-dark: #7d3855;
+  --beauty-line: rgba(128, 59, 88, .16);
+  --beauty-text: #2d2930;
+  --beauty-muted: rgba(45, 41, 48, .62);
+  --blue: #be6386;
+  --blue-dark: #7d3855;
+  --panel: var(--ui-card-solid);
+  --panel-soft: var(--ui-soft);
+  --line: var(--ui-line);
+  --line-strong: var(--ui-line-strong);
+  --text: var(--ui-text);
+  --muted: var(--ui-muted);
+}
+
+html,
+body,
+.site-frame,
+.app-shell {
+  background:
+    radial-gradient(circle at 98% 0%, rgba(219, 169, 184, .20), transparent 25%),
+    radial-gradient(circle at 0% 24%, rgba(255, 234, 226, .58), transparent 24%),
+    linear-gradient(180deg, var(--ui-bg-2), var(--ui-bg)) !important;
+  color: var(--ui-text) !important;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-weight: 350 !important;
+  letter-spacing: 0 !important;
+}
+
+* {
+  font-family: inherit !important;
+  letter-spacing: normal !important;
+}
+
+b,
+strong,
+th,
+label,
+.brand,
+.master-brand,
+.master-nav a,
+.status,
+.admin-status,
+.badge,
+.pill {
+  font-weight: 450 !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+.brand b,
+.beauty-brand b,
+.calendar-month-switcher b,
+.master-day-head h2,
+.admin-home-header h1,
+.auth-card h1,
+.client-page h1,
+.public-page h1,
+.client-page h2,
+.public-page h2,
+.selected-day-card h2,
+.calendar-card h2 {
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  font-weight: 420 !important;
+  color: var(--ui-text) !important;
+  letter-spacing: -0.015em !important;
+}
+
+h1,
+.auth-card h1,
+.hero h1,
+.client-page .hero h1,
+.public-page .hero h1,
+.admin-home-header h1,
+.schedule-top-card h1,
+.profile-hero h1 {
+  font-size: clamp(24px, 6.4vw, 38px) !important;
+  line-height: 1.03 !important;
+  margin: 0 0 6px !important;
+  max-width: 100% !important;
+}
+
+h2,
+.card h2,
+.hero h2,
+.client-page h2,
+.public-page h2,
+.auth-card h2,
+.calendar-card h2,
+.selected-day-card h2,
+.master-day-head h2,
+.admin-panel-head h2,
+.section-head h2 {
+  font-size: clamp(20px, 4.8vw, 28px) !important;
+  line-height: 1.08 !important;
+  margin: 0 0 6px !important;
+}
+
+h3,
+.card h3,
+.info-card h3,
+.flow-step-title h3,
+.final-confirm-card h3,
+.master-request-title {
+  font-size: clamp(15px, 3.8vw, 18px) !important;
+  line-height: 1.15 !important;
+  font-weight: 430 !important;
+}
+
+p,
+small,
+.muted,
+.lead,
+label,
+input,
+textarea,
+select,
+button,
+.button,
+.primary-link,
+.btn,
+td,
+th {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+.lead,
+.hero .lead {
+  max-width: 620px !important;
+  font-size: 14px !important;
+}
+
+.eyebrow {
+  color: var(--ui-rose-dark) !important;
+  font-size: 11px !important;
+  font-weight: 420 !important;
+  letter-spacing: .04em !important;
+}
+
+.card,
+.hero,
+.auth-card,
+.notice,
+.empty-state,
+.calendar-card,
+.selected-day-card,
+.info-card,
+.mini-card,
+.booking-card,
+.window-card,
+.admin-card,
+.client-card,
+.booking-panel,
+.price-card,
+.price-row,
+.service-row,
+.profile-form,
+.client-collapse-card,
+.client-add-details,
+.clients-list-details,
+.admin-home-panel,
+.admin-home-header,
+.admin-summary-card,
+.admin-booking-row,
+.admin-request-row,
+.admin-wait-row,
+.admin-window-row,
+.master-sidebar,
+.master-booking-row,
+.master-primary-action,
+.master-shortcuts,
+.master-shortcuts a,
+.simple-row,
+.pretty-price-card,
+.pretty-addon-row,
+.service-visibility-box,
+.public-price-row,
+.booking-summary-row > div,
+.confirm-box,
+.booking-status-card,
+.price-preview-item,
+.waitlist-current-card,
+.waitlist-choice-card,
+.waitlist-empty-state,
+.selected-summary-panel,
+.final-confirm-card,
+.upcoming-booking-card {
+  border-radius: var(--card-radius-soft) !important;
+  border-color: var(--ui-line) !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,249,251,.82)) !important;
+  color: var(--ui-text) !important;
+  box-shadow: 0 10px 28px rgba(81, 50, 63, .055) !important;
+}
+
+.hero,
+.auth-card,
+.card,
+.calendar-card,
+.selected-day-card,
+.admin-home-panel,
+.admin-home-header {
+  padding: clamp(16px, 4vw, 22px) !important;
+}
+
+button,
+.button,
+.primary-link,
+.btn,
+input[type="submit"],
+summary.button,
+.month-arrow,
+.time-btn,
+.slot-btn,
+.date-option,
+.service-option,
+.service-check,
+.date-chip span,
+.master-new-booking,
+.master-settings-link,
+.open-online-copy,
+.save-online-button,
+.change-service-btn,
+.master-nav a,
+.master-logout,
+.master-bottom-nav a,
+.admin-global-bottom-nav a,
+.toggle-label,
+.price-label,
+.chosen-date-list span,
+.admin-wait-dates span {
+  border-radius: var(--control-radius) !important;
+  font-weight: 400 !important;
+  box-shadow: none !important;
+}
+
+button,
+.button,
+.primary-link,
+.btn,
+input[type="submit"] {
+  min-height: 34px !important;
+  padding: 7px 11px !important;
+  font-size: 12.5px !important;
+  line-height: 1.15 !important;
+}
+
+button:not(.secondary):not(.danger):not(.month-arrow):not(.day-btn):not(.time-btn),
+.button:not(.secondary):not(.danger),
+.primary-link,
+.btn-primary,
+.master-nav a.active,
+.master-nav a:hover {
+  background: linear-gradient(135deg, var(--ui-rose), #d1849e) !important;
+  border-color: var(--ui-rose) !important;
+  color: #fff !important;
+}
+
+.button.secondary,
+button.secondary,
+.secondary,
+.btn-secondary,
+.month-arrow,
+.toggle-label {
+  background: rgba(255,255,255,.72) !important;
+  color: var(--ui-rose-dark) !important;
+  border-color: var(--ui-line) !important;
+}
+
+button.danger,
+.button.danger,
+.danger {
+  background: rgba(255, 244, 245, .90) !important;
+  color: var(--ui-danger) !important;
+  border-color: rgba(169, 67, 82, .22) !important;
+}
+
+input,
+textarea,
+select {
+  border-radius: var(--control-radius) !important;
+  border-color: var(--ui-line-strong) !important;
+  background: rgba(255,255,255,.75) !important;
+  color: var(--ui-text) !important;
+  font-weight: 350 !important;
+  padding: 10px 11px !important;
+}
+
+label {
+  font-weight: 400 !important;
+  gap: 6px !important;
+}
+
+.status,
+.admin-status,
+.badge,
+.pill,
+.master-nav a em {
+  border-radius: var(--control-radius) !important;
+  font-size: 11.5px !important;
+  font-weight: 420 !important;
+  padding: 5px 8px !important;
+}
+
+.admin-status.ok,
+.status.ok,
+.ok-status {
+  color: var(--ui-ok) !important;
+  border-color: rgba(65, 117, 82, .22) !important;
+  background: rgba(239, 250, 242, .78) !important;
+}
+
+.admin-status.wait,
+.status.wait,
+.pending-row,
+.admin-request-row {
+  color: var(--ui-warn) !important;
+  border-color: rgba(138, 106, 50, .22) !important;
+  background: rgba(255, 249, 232, .70) !important;
+}
+
+.danger-notice,
+.danger-status,
+.admin-status.cancelled {
+  color: var(--ui-danger) !important;
+  border-color: rgba(169, 67, 82, .22) !important;
+  background: rgba(255, 244, 245, .78) !important;
+}
+
+.calendar-grid .day-btn,
+.calendar-grid button.day-btn,
+.calendar-grid span.day-btn,
+.time-btn,
+.slot-btn,
+.service-check,
+.date-option,
+.service-option {
+  border-radius: var(--control-radius) !important;
+  font-weight: 380 !important;
+}
+
+.calendar-grid button.day-btn.active,
+.day-btn.active,
+.time-btn.free,
+.slot-btn.free,
+.date-option.active,
+.service-option.active,
+.service-check:has(input:checked) {
+  background: rgba(248, 232, 238, .92) !important;
+  color: var(--ui-text) !important;
+  border-color: var(--ui-rose) !important;
+  outline: 2px solid rgba(190, 99, 134, .13) !important;
+  box-shadow: none !important;
+}
+
+.time-grid .time-btn.free,
+.client-page .time-btn.free {
+  background: linear-gradient(135deg, var(--ui-rose), #d1849e) !important;
+  color: #fff !important;
+}
+
+.calendar-legend .blue-dot,
+.calendar-grid .day-btn .day-dots .blue-dot,
+.blue-dot {
+  background: var(--ui-rose) !important;
+}
+
+.master-brand-icon,
+.master-profile-mini > span,
+.brand-icon,
+.beauty-brand-icon,
+.master-primary-action span {
+  border-radius: var(--control-radius-lg) !important;
+  background: var(--ui-rose) !important;
+  font-weight: 420 !important;
+}
+
+.master-dashboard,
+.master-main,
+.admin-workdesk,
+.client-page,
+.auth-page,
+.public-page,
+.page {
+  gap: 12px !important;
+}
+
+.master-sidebar {
+  background: rgba(255,255,255,.76) !important;
+}
+
+.master-nav a {
+  min-height: 38px !important;
+  padding: 8px 10px !important;
+}
+
+.master-day-head h2 em,
+.badge,
+.master-nav a em {
+  background: rgba(248, 232, 238, .86) !important;
+  color: var(--ui-rose-dark) !important;
+}
+
+.admin-summary-card b,
+.pretty-price-bottom b,
+.pretty-addon-row b,
+.public-price-row strong,
+.price-row strong {
+  font-size: 17px !important;
+  font-weight: 440 !important;
+}
+
+.table,
+table {
+  font-weight: 350 !important;
+}
+
+th {
+  font-weight: 420 !important;
+}
+
+.client-start-warning {
+  background: linear-gradient(135deg, #be6386, #e6a0b8) !important;
+  border-radius: var(--card-radius-soft) !important;
+}
+
+.client-start-warning b {
+  font-weight: 430 !important;
+}
+
+.test-version-note b,
+.combo-service-note b,
+.final-check-note b,
+.upcoming-booking-note b {
+  font-weight: 430 !important;
+}
+
+@media (max-width: 760px) {
+  body,
+  .app-shell,
+  .site-frame {
+    background: linear-gradient(180deg, #fffafb, #f8f1f4) !important;
+  }
+
+  .app-shell,
+  .site-frame,
+  .container {
+    width: min(100% - 18px, 1320px) !important;
+  }
+
+  h1,
+  .auth-card h1,
+  .hero h1,
+  .client-page .hero h1,
+  .public-page .hero h1,
+  .admin-home-header h1,
+  .schedule-top-card h1,
+  .profile-hero h1 {
+    font-size: 25px !important;
+    line-height: 1.05 !important;
+  }
+
+  h2,
+  .card h2,
+  .calendar-card h2,
+  .selected-day-card h2,
+  .master-day-head h2,
+  .admin-panel-head h2,
+  .section-head h2 {
+    font-size: 21px !important;
+  }
+
+  .hero,
+  .auth-card,
+  .card,
+  .calendar-card,
+  .selected-day-card,
+  .admin-home-panel,
+  .admin-home-header {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  button,
+  .button,
+  .primary-link,
+  .btn,
+  input[type="submit"] {
+    min-height: 33px !important;
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .beauty-top-card,
+  .top-menu.compact-client-menu.beauty-top-card {
+    border-radius: 12px !important;
+  }
+
+  .beauty-brand,
+  .top-menu .brand.beauty-brand,
+  .beauty-brand b,
+  .top-menu .brand.beauty-brand b {
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    font-weight: 360 !important;
+  }
+
+  .master-mobile-topbar b {
+    font-weight: 420 !important;
+  }
+
+  .master-booking-main b,
+  .admin-request-main b,
+  .admin-wait-row b {
+    font-weight: 430 !important;
+  }
+}
