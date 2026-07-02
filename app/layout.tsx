@@ -8,7 +8,14 @@ import "./soft-square-ui.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
-  description: "Онлайн-запись к мастеру"
+  description: "Онлайн-запись к мастеру",
+  applicationName: "Онлайн-запись",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }]
+  }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
