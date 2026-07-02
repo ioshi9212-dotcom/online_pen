@@ -33,7 +33,10 @@ export default async function ClientProfilePage({ searchParams }: { searchParams
       <section className="hero">
         <div className="actions" style={{ justifyContent: "space-between" }}>
           <div><h1>Профиль</h1><p>{client.firstName}, здесь можно поправить данные и поставить фото.</p></div>
-          <a className="button secondary" href={`/my?client=${token}`}>В кабинет</a>
+          <div className="actions">
+            <a className="button secondary" href={`/my?client=${token}`}>В кабинет</a>
+            <a className="button secondary" href="/logout">Выйти</a>
+          </div>
         </div>
       </section>
 
