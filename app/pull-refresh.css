@@ -1,0 +1,48 @@
+.pull-refresh {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid rgba(128, 59, 88, .18);
+  box-shadow: 0 10px 25px rgba(70, 38, 50, .14);
+  color: #7d3855;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.pull-refresh.is-visible {
+  opacity: 1;
+}
+
+.pull-refresh b {
+  font-size: 12px;
+  font-weight: 430;
+}
+
+.pull-refresh-spinner {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pull-refresh-spinner.is-spinning {
+  animation: pullRefreshSpin .75s linear infinite;
+}
+
+@keyframes pullRefreshSpin {
+  to { transform: rotate(360deg); }
+}
