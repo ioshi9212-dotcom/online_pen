@@ -1,5 +1,5 @@
 import { acknowledgeClientCancellation, approveClient, closeWaitlistEntry, rejectClient, rememberMasterBooking, setBookingStatus } from "@/app/admin/actions";
-import { canRememberBooking, hasBookingMark, MASTER_REMEMBER_MARK, rememberOpensLabel } from "@/lib/bookingRemember";
+import { canRememberBooking, hasBookingMark, MASTER_REMEMBER_MARK, rememberOpensLabel, timeUntilBookingLabel } from "@/lib/bookingRemember";
 import { isAdmin } from "@/lib/admin";
 import { isClientCancelSeen } from "@/lib/cancellationNotice";
 import { prisma } from "@/lib/prisma";
@@ -217,7 +217,7 @@ function BookingList({ title, date, bookings }: { title: string; date: Date; boo
             <details className={cancelled ? "master-booking-row is-cancelled master-booking-details" : "master-booking-row master-booking-details"} key={booking.id}>
               <summary className="master-booking-link">
                 <time>{fmtTime(booking.startAt)}</time>
-                <div className="master-booking-main"><b>{booking.client.lastName} {booking.client.firstName}</b><small>{durationLabel(booking.startAt, booking.endAt)} · {booking.service.title}</small></div>
+                <div className="master-booking-main"><b>{booking.client.lastName} {booking.client.firstName}</b><small>{durationLabel(booking.startAt, booking.endAt)} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt)}</small></div>
                 <span className={statusClass(booking.status)}>{statusText(booking.status)}</span><i aria-hidden="true">⌄</i>
               </summary>
               <BookingQuickActions booking={booking} />
@@ -249,6 +249,7 @@ function OpenWindowsStory({ groups }: { groups: OpenWindowGroup[] }) {
 export default async function AdminPage() {
   if (!isAdmin()) redirect("/admin/login");
 
+  const now = new Date();
   const todayKey = todayBusinessDateKey();
   const tomorrowKey = addBusinessDays(todayKey, 1);
   const today = businessDateFromKey(todayKey);
@@ -259,13 +260,13 @@ export default async function AdminPage() {
 
   const [pendingClients, pendingBookings, activeClients, waitlist, rawTodayBookings, rawTomorrowBookings, onlineWindows, busyBookings] = await Promise.all([
     prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 4 }),
-    prisma.booking.findMany({ where: { status: "PENDING" }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 4 }),
+    prisma.booking.findMany({ where: { status: "PENDING", startAt: { gt: now } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 4 }),
     prisma.client.count({ where: { status: "APPROVED" } }),
     prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.booking.findMany({ where: { startAt: { gte: todayRange.start, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
-    prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
-    prisma.onlineWindow.findMany({ where: { startAt: { gte: today, lt: horizon } }, orderBy: { startAt: "asc" }, take: 300 }),
-    prisma.booking.findMany({ where: { startAt: { gte: today, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
+    prisma.booking.findMany({ where: { startAt: { gt: now, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
+    prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: now, lt: horizon } }, orderBy: { startAt: "asc" }, take: 300 }),
+    prisma.booking.findMany({ where: { startAt: { gte: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
   ]);
 
   const todayBookings = rawTodayBookings.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
@@ -314,7 +315,7 @@ export default async function AdminPage() {
           {pendingBookings.length > 0 ? (
             <details className="admin-home-panel master-request-card">
               <summary><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">новых — {pendingBookings.length}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
-              <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {booking.service.title}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form></div></div>)}</div>
+              <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt, now)}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form></div></div>)}</div>
             </details>
           ) : (
             <section className="admin-home-panel master-request-card"><div className="master-request-static-head"><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">Новых нет</p></div></div></section>
