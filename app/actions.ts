@@ -1,5 +1,6 @@
 "use server";
 
+import { addBookingMark, canRememberBooking, CLIENT_REMEMBER_MARK } from "@/lib/bookingRemember";
 import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
@@ -140,6 +141,27 @@ export async function createBooking(formData: FormData) {
   redirect(myUrl(token, { created: booking.id }));
 }
 
+export async function rememberClientBooking(formData: FormData) {
+  const token = required(formData.get("clientToken"), "Клиент");
+  const bookingId = required(formData.get("bookingId"), "Запись");
+
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId, client: { publicToken: token }, status: { in: ["PENDING", "CONFIRMED"] } },
+    select: { id: true, startAt: true, clientComment: true }
+  });
+
+  if (!booking) redirect(myUrl(token));
+  if (!canRememberBooking(booking.startAt)) redirect(myUrl(token, { rememberError: "early" }) + "#upcoming-booking");
+
+  await prisma.booking.update({
+    where: { id: booking.id },
+    data: { clientComment: addBookingMark(booking.clientComment, CLIENT_REMEMBER_MARK) }
+  });
+
+  setClientCookie(token);
+  redirect(myUrl(token, { remembered: "1" }) + "#upcoming-booking");
+}
+
 export async function joinWaitlist(formData: FormData) {
   const token = required(formData.get("clientToken"), "Клиент");
   const mode = String(formData.get("waitMode") || "NEAREST");
@@ -192,6 +214,7 @@ export async function cancelWaitlistEntry(formData: FormData) {
 export async function cancelClientBooking(formData: FormData) {
   const token = required(formData.get("clientToken"), "Клиент");
   const bookingId = required(formData.get("bookingId"), "Запись");
+  const afterCancel = optional(formData.get("afterCancel"));
 
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client) redirect("/login");
@@ -202,5 +225,6 @@ export async function cancelClientBooking(formData: FormData) {
   });
 
   setClientCookie(token);
+  if (afterCancel === "reschedule") redirect(`/my?client=${token}&cancelled=1&reschedule=1#windows`);
   redirect(`/my?client=${token}&cancelled=1`);
 }
