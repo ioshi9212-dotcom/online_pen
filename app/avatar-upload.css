@@ -1,0 +1,61 @@
+.profile-avatar-upload {
+  display: grid !important;
+  grid-template-columns: 86px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  align-items: center !important;
+}
+
+.avatar-preview,
+.profile-avatar-preview {
+  width: 78px !important;
+  height: 78px !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  background: linear-gradient(135deg, rgba(248, 232, 238, .95), rgba(255, 255, 255, .9)) !important;
+  border: 1px solid rgba(128, 59, 88, .18) !important;
+  color: #7d3855 !important;
+  font-size: 28px !important;
+  font-weight: 420 !important;
+}
+
+.avatar-preview img,
+.profile-avatar-preview img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.avatar-upload-form input[type="file"] {
+  padding: 8px !important;
+  background: rgba(255, 255, 255, .82) !important;
+}
+
+.avatar-remove-check {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-top: 8px !important;
+  color: rgba(45, 41, 48, .68) !important;
+}
+
+.avatar-remove-check input {
+  width: auto !important;
+}
+
+@media (max-width: 520px) {
+  .profile-avatar-upload {
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .avatar-preview,
+  .profile-avatar-preview {
+    width: 68px !important;
+    height: 68px !important;
+    border-radius: 12px !important;
+    font-size: 24px !important;
+  }
+}
