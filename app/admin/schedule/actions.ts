@@ -2,6 +2,7 @@
 
 import { isAdmin } from "@/lib/admin";
 import { getBookingConflictReasons } from "@/lib/bookingConflicts";
+import { ONLINE_BOOKING_HIDE_DAYS_KEY, normalizeOnlineBookingHideDays } from "@/lib/onlineBookingCutoff";
 import { combineDateAndTime, dateFromKey, getEffectiveDay, overlaps, parseMinutes } from "@/lib/schedule";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -84,6 +85,7 @@ export async function saveScheduleMode(formData: FormData) {
   const stepMinutes = n(formData, "stepMinutes", 30);
   const startTime = s(formData, "defaultStartTime") || "09:00";
   const endTime = s(formData, "defaultEndTime") || "20:00";
+  const onlineHideDays = normalizeOnlineBookingHideDays(formData.get("onlineHideDays"));
 
   await prisma.setting.upsert({
     where: { key: "SLOT_STEP_MINUTES" },
@@ -95,6 +97,12 @@ export async function saveScheduleMode(formData: FormData) {
     where: { key: "slot_step_minutes" },
     create: { key: "slot_step_minutes", value: String(stepMinutes) },
     update: { value: String(stepMinutes) }
+  });
+
+  await prisma.setting.upsert({
+    where: { key: ONLINE_BOOKING_HIDE_DAYS_KEY },
+    create: { key: ONLINE_BOOKING_HIDE_DAYS_KEY, value: String(onlineHideDays) },
+    update: { value: String(onlineHideDays) }
   });
 
   for (let weekday = 0; weekday < 7; weekday += 1) {
