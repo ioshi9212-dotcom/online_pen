@@ -1,25 +1,14 @@
-import { Buffer } from "node:buffer";
+const ALLOWED_AVATAR_DATA_URL = /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const MAX_AVATAR_DATA_URL_LENGTH = 2_100_000;
 
-const ALLOWED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_AVATAR_BYTES = 1_500_000;
-
-export type AvatarUploadResult =
+export type AvatarDataUrlResult =
   | { ok: true; value: string }
-  | { ok: false; error: "type" | "size" | "read" };
+  | { ok: false; error: "type" | "size" };
 
-export function isUploadedAvatar(value: FormDataEntryValue | null): value is File {
-  return typeof File !== "undefined" && value instanceof File && value.size > 0;
-}
-
-export async function avatarFileToDataUrl(file: File): Promise<AvatarUploadResult> {
-  if (!ALLOWED_AVATAR_TYPES.has(file.type)) return { ok: false, error: "type" };
-  if (file.size > MAX_AVATAR_BYTES) return { ok: false, error: "size" };
-
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    return { ok: true, value: `data:${file.type};base64,${base64}` };
-  } catch {
-    return { ok: false, error: "read" };
-  }
+export function normalizeAvatarDataUrl(value: FormDataEntryValue | null): AvatarDataUrlResult | null {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  if (text.length > MAX_AVATAR_DATA_URL_LENGTH) return { ok: false, error: "size" };
+  if (!ALLOWED_AVATAR_DATA_URL.test(text)) return { ok: false, error: "type" };
+  return { ok: true, value: text };
 }
