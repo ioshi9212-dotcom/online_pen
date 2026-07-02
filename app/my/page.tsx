@@ -1,6 +1,7 @@
 import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist, rememberClientBooking } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel } from "@/lib/bookingRemember";
+import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { getClientCookie } from "@/lib/clientSession";
@@ -119,11 +120,14 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   if (!client) redirect("/login");
   if (client.status !== "APPROVED") redirect("/unavailable");
 
+  const settings = await prisma.setting.findMany();
+  const onlineMinStart = getOnlineBookingMinStart(settings);
+
   const [bookableServices, priceServices, onlineWindows, busyBookings] = await Promise.all([
     prisma.service.findMany({ where: { isActive: true, showInBooking: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
-    prisma.onlineWindow.findMany({ where: { startAt: { gte: new Date() } }, orderBy: { startAt: "asc" }, take: 120 }),
-    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, include: { service: true } })
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: onlineMinStart } }, orderBy: { startAt: "asc" }, take: 120 }),
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: onlineMinStart } }, include: { service: true } })
   ]);
 
   const busyStartSet = new Set<string>();
