@@ -67,8 +67,8 @@ function scheduleHref(date: Date) {
   return `/admin/schedule?view=calendar&month=${businessMonthKey(date)}&date=${key}#selected-day`;
 }
 
-function manageHref(booking: BookingWithClientService) {
-  return `/admin/manage?clientId=${booking.client.id}#manual-booking`;
+function editHref(booking: BookingWithClientService) {
+  return `/admin/bookings/${booking.id}/edit`;
 }
 
 function statusText(status: string) {
@@ -169,7 +169,7 @@ function BookingQuickActions({ booking }: { booking: BookingWithClientService })
 
       {booking.status === "PENDING" || booking.status === "CONFIRMED" ? (
         <>
-          <a className="button secondary" href={manageHref(booking)}>Изменить</a>
+          <a className="button secondary" href={editHref(booking)}>Изменить</a>
           <a className="button secondary" href={scheduleHref(booking.startAt)}>Открыть день</a>
         </>
       ) : null}
@@ -315,7 +315,7 @@ export default async function AdminPage() {
           {pendingBookings.length > 0 ? (
             <details className="admin-home-panel master-request-card">
               <summary><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">новых — {pendingBookings.length}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
-              <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt, now)}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form></div></div>)}</div>
+              <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt, now)}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form><a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a></div></div>)}</div>
             </details>
           ) : (
             <section className="admin-home-panel master-request-card"><div className="master-request-static-head"><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">Новых нет</p></div></div></section>
