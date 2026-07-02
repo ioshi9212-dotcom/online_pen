@@ -1,6 +1,7 @@
 "use server";
 
 import { addBookingMark, canRememberBooking, MASTER_REMEMBER_MARK } from "@/lib/bookingRemember";
+import { getBookingConflictReasons, isActiveBookingStatus } from "@/lib/bookingConflicts";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
@@ -51,6 +52,15 @@ export async function setBookingStatus(formData: FormData) {
   const status = String(formData.get("status"));
   const redirectTo = redirectTarget(formData, "/admin/bookings");
   if (!BOOKING_STATUSES.has(status)) redirect(redirectTo);
+
+  const booking = await prisma.booking.findUnique({ where: { id }, select: { startAt: true, endAt: true } });
+  if (!booking) redirect(redirectTo);
+
+  if (isActiveBookingStatus(status)) {
+    if (booking.startAt <= new Date()) redirect(redirectTo);
+    const conflictReasons = await getBookingConflictReasons({ startAt: booking.startAt, endAt: booking.endAt, ignoreBookingId: id });
+    if (conflictReasons.length) redirect(redirectTo);
+  }
 
   await prisma.booking.update({
     where: { id },
