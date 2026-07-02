@@ -1,5 +1,6 @@
 import { isAdmin } from "@/lib/admin";
 import { formatDateOnly, formatTimeOnly } from "@/lib/format";
+import { getOnlineBookingHideDays, onlineBookingHideDaysLabel } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { combineDateAndTime, dateFromKey, dateKey, generateTimeList, getEffectiveDay, getSettingInt, overlaps } from "@/lib/schedule";
 import { redirect } from "next/navigation";
@@ -198,6 +199,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
   ]);
 
   const stepMinutes = getSettingInt(settings, "SLOT_STEP_MINUTES", getSettingInt(settings, "slot_step_minutes", 30));
+  const onlineHideDays = getOnlineBookingHideDays(settings);
   const defaultRule = rules.find((item) => item.isWorkingDay) || rules[0];
   const defaultStartTime = defaultRule?.startTime || "09:00";
   const defaultEndTime = defaultRule?.endTime || "20:00";
@@ -235,7 +237,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
       <section className="card schedule-top-card">
         <p className="eyebrow">Кабинет мастера</p>
         <h1>{view === "mode" ? "Настройки записи" : "Календарь"}</h1>
-        <p>{view === "mode" ? "Здесь задаётся базовый режим записи: шаг времени и обычный рабочий день." : "Нажми на день — ниже сразу откроются окна для клиентов и ручная запись."}</p>
+        <p>{view === "mode" ? "Здесь задаётся базовый режим записи: шаг времени, рабочий день и насколько близкие онлайн-окна видны клиентам." : "Нажми на день — ниже сразу откроются окна для клиентов и ручная запись."}</p>
         <div className="actions schedule-tabs">
           <a className={view === "calendar" ? "button" : "button secondary"} href={`/admin/schedule?view=calendar&month=${month.key}&date=${selectedDateKey || todayKey}`}>Календарь</a>
           <a className={view === "mode" ? "button" : "button secondary"} href="/admin/schedule?view=mode">Настройки записи</a>
@@ -248,13 +250,24 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
       {view === "mode" ? (
         <section className="card" id="mode">
           <h2>Настройки записи</h2>
-          <p>Здесь задаётся базовый шаг времени и обычный рабочий день. Конкретные выходные, особенные дни и онлайн-окна отмечаются в календаре.</p>
+          <p>Здесь задаётся базовый шаг времени, обычный рабочий день и какие ближайшие онлайн-окна скрывать от клиентов.</p>
           <form action={saveScheduleMode} className="grid">
             <div className="grid-3">
               <label>Шаг времени<select name="stepMinutes" defaultValue={String(stepMinutes)}><option value="15">15 минут</option><option value="30">30 минут</option><option value="45">45 минут</option><option value="60">1 час</option><option value="90">1,5 часа</option><option value="150">2,5 часа</option></select></label>
               <label>Рабочий день с<input name="defaultStartTime" type="time" defaultValue={defaultStartTime} /></label>
               <label>Рабочий день до<input name="defaultEndTime" type="time" defaultValue={defaultEndTime} /></label>
             </div>
+            <label className="notice online-cutoff-setting">
+              Онлайн-запись клиентам
+              <select name="onlineHideDays" defaultValue={String(onlineHideDays)}>
+                <option value="-1">Показывать все открытые окна</option>
+                <option value="0">Не показывать окна на сегодня</option>
+                <option value="1">Не показывать окна на сегодня и завтра</option>
+                <option value="2">Не показывать окна на ближайшие 2 дня</option>
+                <option value="3">Не показывать окна на ближайшие 3 дня</option>
+              </select>
+              <small>{onlineBookingHideDaysLabel(onlineHideDays)}. Окна у мастера не удаляются, просто клиент их не увидит.</small>
+            </label>
             <button>Сохранить настройки записи</button>
           </form>
         </section>
