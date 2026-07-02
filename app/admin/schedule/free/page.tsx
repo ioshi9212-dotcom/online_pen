@@ -1,6 +1,7 @@
 import { isAdmin } from "@/lib/admin";
 import { formatTimeOnly } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { businessDateKey, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 import FreeWindowsClient from "./FreeWindowsClient";
 
@@ -10,14 +11,11 @@ function one(value: string | string[] | undefined, fallback = "") {
   return Array.isArray(value) ? value[0] || fallback : value || fallback;
 }
 
-const weekDays = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
-
 function dayTitle(date: Date) {
-  return `${date.getDate()} ${weekDays[date.getDay()]}`;
-}
-
-function fullDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const month = formatInBusinessTime(date, { month: "long" });
+  const day = formatInBusinessTime(date, { day: "numeric" });
+  const weekday = formatInBusinessTime(date, { weekday: "short" }).replace(".", "");
+  return `${day} ${month} ${weekday}`;
 }
 
 function pointBusy(point: Date, busyItems: { startAt: Date; endAt: Date }[]) {
@@ -45,7 +43,7 @@ export default async function FreeWindowsPage({ searchParams }: { searchParams: 
   const hiddenCount = allWindows.length - windows.length;
 
   const grouped = windows.reduce<Record<string, typeof windows>>((acc, item) => {
-    const key = fullDateKey(item.startAt);
+    const key = businessDateKey(item.startAt);
     acc[key] = acc[key] || [];
     acc[key].push(item);
     return acc;
