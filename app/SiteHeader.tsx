@@ -25,6 +25,13 @@ export default function SiteHeader() {
           <span>Профиль</span>
           <span className="beauty-menu-arrow" aria-hidden="true">›</span>
         </a>
+        {clientToken ? (
+          <a className="beauty-menu-row" href="/logout">
+            <span className="beauty-menu-icon" aria-hidden="true">↩</span>
+            <span>Выйти</span>
+            <span className="beauty-menu-arrow" aria-hidden="true">›</span>
+          </a>
+        ) : null}
         <div className="master-menu-entry beauty-master-entry">
           <a className="primary-link beauty-menu-row" href="/admin">
             <span className="beauty-menu-icon" aria-hidden="true">♕</span>
