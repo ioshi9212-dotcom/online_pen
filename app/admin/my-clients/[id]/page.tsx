@@ -84,9 +84,9 @@ export default async function AdminClientProfilePage({ params, searchParams = {}
         <div className="section-head">
           <div>
             <h2>Записи</h2>
-            <p>Последние записи клиента. Полное редактирование записи — в ручном управлении.</p>
+            <p>Последние записи клиента. Теперь каждую запись можно открыть и перенести нормально, без ручного пересоздания.</p>
           </div>
-          <a className="button secondary" href={`/admin/manage?clientId=${client.id}#bookings-list`}>Открыть все записи</a>
+          <a className="button secondary" href="/admin/bookings">Открыть все записи</a>
         </div>
         {client.bookings.length === 0 ? <div className="notice">Записей пока нет.</div> : null}
         <div className="mini-list">
@@ -97,6 +97,7 @@ export default async function AdminClientProfilePage({ params, searchParams = {}
               <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span>
               {booking.clientComment ? <small>Клиент: {booking.clientComment}</small> : null}
               {booking.adminComment ? <small>Заметка: {booking.adminComment}</small> : null}
+              <a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить запись</a>
             </div>
           ))}
         </div>
