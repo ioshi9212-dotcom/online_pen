@@ -1,4 +1,5 @@
-import { acknowledgeClientCancellation, approveClient, closeWaitlistEntry, rejectClient, setBookingStatus } from "@/app/admin/actions";
+import { acknowledgeClientCancellation, approveClient, closeWaitlistEntry, rejectClient, rememberMasterBooking, setBookingStatus } from "@/app/admin/actions";
+import { canRememberBooking, hasBookingMark, MASTER_REMEMBER_MARK, rememberOpensLabel } from "@/lib/bookingRemember";
 import { isAdmin } from "@/lib/admin";
 import { isClientCancelSeen } from "@/lib/cancellationNotice";
 import { prisma } from "@/lib/prisma";
@@ -113,6 +114,25 @@ function BookingStatusForm({ booking, status, label, className = "secondary" }: 
   );
 }
 
+function MasterRememberControl({ booking }: { booking: BookingWithClientService }) {
+  if (!["PENDING", "CONFIRMED"].includes(booking.status)) return null;
+
+  const remembered = hasBookingMark(booking.adminComment, MASTER_REMEMBER_MARK);
+  if (remembered) return <span className="master-reminder-hint is-done">Мастер помнит</span>;
+
+  if (!canRememberBooking(booking.startAt)) {
+    return <span className="master-reminder-hint">«Помню» появится {rememberOpensLabel(booking.startAt)}</span>;
+  }
+
+  return (
+    <form action={rememberMasterBooking}>
+      <input type="hidden" name="id" value={booking.id} />
+      <input type="hidden" name="redirectTo" value="/admin" />
+      <button type="submit">Помню про запись</button>
+    </form>
+  );
+}
+
 function BookingQuickActions({ booking }: { booking: BookingWithClientService }) {
   if (booking.status === "CANCELLED_BY_CLIENT") {
     return (
@@ -126,6 +146,8 @@ function BookingQuickActions({ booking }: { booking: BookingWithClientService })
 
   return (
     <div className="master-booking-actions-panel">
+      <MasterRememberControl booking={booking} />
+
       {booking.status === "PENDING" ? (
         <>
           <BookingStatusForm booking={booking} status="CONFIRMED" label="Подтвердить" className="ok" />
