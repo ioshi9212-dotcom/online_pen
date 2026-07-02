@@ -39,7 +39,7 @@ export default async function EditBookingPage({ params, searchParams }: { params
   const [booking, clients, services] = await Promise.all([
     prisma.booking.findUnique({ where: { id: params.id }, include: { client: true, service: true } }),
     prisma.client.findMany({ orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-    prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] })
+    prisma.service.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] })
   ]);
 
   if (!booking) redirect("/admin/bookings");
@@ -88,7 +88,7 @@ export default async function EditBookingPage({ params, searchParams }: { params
 
             <label>Услуга
               <select name="serviceId" defaultValue={booking.serviceId} required>
-                {services.map((service) => <option key={service.id} value={service.id}>{service.title} — {durationLabel(service.durationMinutes)} — {rub(service.price)}</option>)}
+                {services.map((service) => <option key={service.id} value={service.id}>{service.title} — {durationLabel(service.durationMinutes)} — {rub(service.price)}{service.isActive ? "" : " · выключена"}</option>)}
               </select>
             </label>
 
