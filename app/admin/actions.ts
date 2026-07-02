@@ -1,5 +1,6 @@
 "use server";
 
+import { addBookingMark, canRememberBooking, MASTER_REMEMBER_MARK } from "@/lib/bookingRemember";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
@@ -62,6 +63,22 @@ export async function setBookingStatus(formData: FormData) {
   redirect(redirectTo);
 }
 
+export async function rememberMasterBooking(formData: FormData) {
+  guard();
+  const id = getId(formData);
+  const redirectTo = redirectTarget(formData, "/admin");
+  const booking = await prisma.booking.findUnique({ where: { id }, select: { startAt: true, status: true, adminComment: true } });
+
+  if (!booking || !["PENDING", "CONFIRMED"].includes(booking.status)) redirect(redirectTo);
+  if (!canRememberBooking(booking.startAt)) redirect(redirectTo);
+
+  await prisma.booking.update({
+    where: { id },
+    data: { adminComment: addBookingMark(booking.adminComment, MASTER_REMEMBER_MARK) }
+  });
+
+  redirect(redirectTo);
+}
 
 export async function acknowledgeClientCancellation(formData: FormData) {
   guard();
