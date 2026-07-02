@@ -1,5 +1,6 @@
-import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist } from "@/app/actions";
+import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist, rememberClientBooking } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
+import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel } from "@/lib/bookingRemember";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { getClientCookie } from "@/lib/clientSession";
@@ -16,6 +17,9 @@ type SearchParams = {
   created?: string;
   waitlist?: string;
   cancelled?: string;
+  remembered?: string;
+  rememberError?: string;
+  reschedule?: string;
   login?: string;
   known?: string;
   busy?: string;
@@ -46,9 +50,12 @@ function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
 
 function noticeText(searchParams: SearchParams) {
   if (searchParams.created) return "Заявка отправлена. Окно занято за вами, ждите подтверждения мастера.";
+  if (searchParams.remembered) return "Отметила: вы помните про запись. Мастер теперь тоже видит эту отметку.";
+  if (searchParams.rememberError === "early") return "Кнопка подтверждения появится только с 9:00 за день до записи.";
   if (searchParams.waitlist === "cancelled") return "Вы отменили лист ожидания.";
   if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
   if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
+  if (searchParams.reschedule) return "Старая запись отменена. Теперь можно выбрать новое время.";
   if (searchParams.cancelled) return "Запись отменена.";
   if (searchParams.login) return "Вход выполнен.";
   if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
@@ -119,9 +126,11 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
     prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: new Date() } }, include: { service: true } })
   ]);
 
+  const busyStartSet = new Set<string>();
   const windows = onlineWindows.map((window) => {
     const fallbackEndAt = new Date(window.startAt.getTime() + 30 * 60_000);
     const busy = busyBookings.some((booking) => overlaps(window.startAt, fallbackEndAt, booking.startAt, booking.endAt));
+    if (busy) busyStartSet.add(window.startAt.toISOString());
     return {
       id: window.id,
       startAt: window.startAt.toISOString(),
@@ -129,17 +138,83 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
     };
   });
 
+  const existingWindowStarts = new Set(windows.map((window) => window.startAt));
+  for (const booking of busyBookings) {
+    const startIso = booking.startAt.toISOString();
+    if (!existingWindowStarts.has(startIso)) {
+      windows.push({ id: `busy-${booking.id}`, startAt: startIso, busy: true });
+      existingWindowStarts.add(startIso);
+      busyStartSet.add(startIso);
+    }
+  }
+  windows.sort((a, b) => a.startAt.localeCompare(b.startAt));
+
   const firstFreeWindow = windows.find((window) => !window.busy);
   const firstAvailableDate = firstFreeWindow ? dayKey(new Date(firstFreeWindow.startAt)) : dayKey(new Date());
   const initialDate = searchParams.date || firstAvailableDate;
   const initialTime = "";
+  const now = new Date();
   const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
+  const upcomingBooking = activeBookings.find((booking) => booking.startAt >= now) || activeBookings[0];
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
+  const canClientRemember = upcomingBooking ? canRememberBooking(upcomingBooking.startAt, now) : false;
+  const clientRemembered = upcomingBooking ? hasBookingMark(upcomingBooking.clientComment, CLIENT_REMEMBER_MARK) : false;
 
   return (
     <main className={`page client-page client-page-compact ${styles.clientPageCompact}`}>
-      {note ? <div className={searchParams.busy || searchParams.bookingError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
+      {note ? <div className={searchParams.busy || searchParams.bookingError || searchParams.rememberError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
+
+      <section className="client-top-stack" aria-label="Важное">
+        <div className="notice client-start-warning">
+          <b>Онлайн-запись работает в тестовом режиме.</b>
+          <p>Сайт уже почти самостоятельный, но я всё равно проверяю записи руками. Если записались — лучше напишите мне. Робот молодец, но без присмотра пока не герой.</p>
+        </div>
+
+        {upcomingBooking ? (
+          <section className="card upcoming-booking-card" id="upcoming-booking">
+            <div className="upcoming-booking-head">
+              <div>
+                <p className="muted">Ближайшая запись</p>
+                <h2>{upcomingBooking.service.title}</h2>
+                <p>{fmtDate(upcomingBooking.startAt)} в {fmtTime(upcomingBooking.startAt)}</p>
+              </div>
+              <span className={statusClass(upcomingBooking.status)}>{statusText(upcomingBooking.status)}</span>
+            </div>
+
+            <div className="upcoming-booking-note">
+              {clientRemembered ? (
+                <p><b>Вы отметили, что помните про запись.</b> Отлично, сайт выдохнул, мастер увидит отметку.</p>
+              ) : canClientRemember ? (
+                <p><b>Подтвердите, что помните про запись.</b> Кнопка доступна с 9:00 за день до визита. Это не подтверждение мастера, а ваша отметка: «да, я приду».</p>
+              ) : (
+                <p><b>Кнопка «Помню про запись» появится {rememberOpensLabel(upcomingBooking.startAt)}.</b> Раньше не показываю, чтобы никто не подтверждал запись за сто лет до события и потом не забывал, как обычно делают взрослые люди.</p>
+              )}
+            </div>
+
+            <div className="upcoming-booking-actions">
+              {canClientRemember && !clientRemembered ? (
+                <form action={rememberClientBooking}>
+                  <input type="hidden" name="clientToken" value={token} />
+                  <input type="hidden" name="bookingId" value={upcomingBooking.id} />
+                  <button type="submit">Помню про запись</button>
+                </form>
+              ) : null}
+              <form action={cancelClientBooking} data-confirm="Отменить запись? Окно освободится, мастер увидит отмену.">
+                <input type="hidden" name="clientToken" value={token} />
+                <input type="hidden" name="bookingId" value={upcomingBooking.id} />
+                <button type="submit" className="danger">Отменить</button>
+              </form>
+              <form action={cancelClientBooking} data-confirm="Перенос отменит текущую запись и откроет выбор нового времени. Продолжить?">
+                <input type="hidden" name="clientToken" value={token} />
+                <input type="hidden" name="bookingId" value={upcomingBooking.id} />
+                <input type="hidden" name="afterCancel" value="reschedule" />
+                <button type="submit" className="secondary">Перенести</button>
+              </form>
+            </div>
+          </section>
+        ) : null}
+      </section>
 
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
@@ -148,10 +223,6 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       </section>
 
       <section className="client-note-stack" aria-label="Важные подсказки">
-        <div className="notice test-version-note">
-          <b>Сайт в тестовом режиме.</b>
-          <p>Он уже почти взрослый, но иногда всё ещё нажимает кнопки как кот по клавиатуре. После отправки заявки напишите мастеру, чтобы она проверила запись вручную.</p>
-        </div>
         <div className="notice combo-service-note">
           <b>Маникюр + педикюр в один день.</b>
           <p>Шаг записи — 2,5 часа. Для двух услуг выбирайте два соседних свободных времени: например, маникюр на 12:00 и педикюр на 14:30. Это не значит, что вы будете сидеть и ждать до 14:30 — мастер просто увидит, что нужно оставить под вас длинное окно.</p>
@@ -182,7 +253,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
               <article className="booking-card" key={booking.id}>
                 <div><h3>{booking.service.title}</h3><p>{fmtDate(booking.startAt)} в {fmtTime(booking.startAt)}</p></div>
                 <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
-                <form action={cancelClientBooking}>
+                <form action={cancelClientBooking} data-confirm="Отменить запись? Окно освободится, мастер увидит отмену.">
                   <input type="hidden" name="clientToken" value={token} />
                   <input type="hidden" name="bookingId" value={booking.id} />
                   <button className="secondary" type="submit">Отменить запись</button>
