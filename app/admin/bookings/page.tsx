@@ -20,7 +20,7 @@ export default async function AdminBookingsPage() {
       <div className="actions" style={{ justifyContent: "space-between" }}>
         <div>
           <h1>Записи</h1>
-          <p>Все ближайшие заявки и записи. Для точечного редактирования удобнее ручное управление.</p>
+          <p>Все ближайшие заявки и записи. Кнопка “Изменить” теперь открывает конкретную запись, а не ручной обходной путь.</p>
         </div>
         <div className="actions">
           <a className="button secondary" href="/admin">Админка</a>
@@ -42,10 +42,11 @@ export default async function AdminBookingsPage() {
               <td><span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span></td>
               <td>{booking.clientComment || "—"}</td>
               <td className="actions">
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><button className="ok">Подтвердить</button></form>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><button className="danger">Отклонить</button></form>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="COMPLETED" /><button className="secondary">Пришла</button></form>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="NO_SHOW" /><button className="secondary">Не пришла</button></form>
+                <a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="ok">Подтвердить</button></form>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="danger">Отклонить</button></form>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="COMPLETED" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="secondary">Пришла</button></form>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="NO_SHOW" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="secondary">Не пришла</button></form>
               </td>
             </tr>
           ))}
