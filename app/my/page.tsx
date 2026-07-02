@@ -21,6 +21,7 @@ type SearchParams = {
   remembered?: string;
   rememberError?: string;
   reschedule?: string;
+  profileSaved?: string;
   login?: string;
   known?: string;
   busy?: string;
@@ -50,6 +51,7 @@ function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
 }
 
 function noticeText(searchParams: SearchParams) {
+  if (searchParams.profileSaved) return "Профиль сохранён. Фото тоже, если сайт опять не решил стать драмой.";
   if (searchParams.created) return "Заявка отправлена. Окно занято за вами, ждите подтверждения мастера.";
   if (searchParams.remembered) return "Отметила: вы помните про запись. Мастер теперь тоже видит эту отметку.";
   if (searchParams.rememberError === "early") return "Кнопка подтверждения появится только с 9:00 за день до записи.";
@@ -317,11 +319,18 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         </div>
       </section>
 
-      <section className="card" id="profile">
-        <h2>Профиль</h2>
-        <p>{client.firstName} {client.lastName}</p>
-        <p>{client.phone}</p>
-        <a className="button secondary" href={`/profile?client=${token}`}>Редактировать профиль</a>
+      <section className="card client-profile-card" id="profile">
+        <div className="profile-avatar-upload">
+          <div className="avatar-preview profile-avatar-preview">
+            {client.avatarUrl ? <img src={client.avatarUrl} alt="Фото клиента" /> : <span>{client.firstName.slice(0, 1).toUpperCase()}</span>}
+          </div>
+          <div>
+            <h2>Профиль</h2>
+            <p>{client.firstName} {client.lastName}</p>
+            <p>{client.phone}</p>
+            <a className="button secondary" href={`/profile?client=${token}`}>Редактировать профиль</a>
+          </div>
+        </div>
       </section>
 
       {pastBookings.length ? (
