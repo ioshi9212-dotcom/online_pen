@@ -146,7 +146,7 @@ export async function rememberClientBooking(formData: FormData) {
   const bookingId = required(formData.get("bookingId"), "Запись");
 
   const booking = await prisma.booking.findFirst({
-    where: { id: bookingId, client: { publicToken: token }, status: { in: ["PENDING", "CONFIRMED"] } },
+    where: { id: bookingId, client: { is: { publicToken: token } }, status: { in: ["PENDING", "CONFIRMED"] } },
     select: { id: true, startAt: true, clientComment: true }
   });
 
