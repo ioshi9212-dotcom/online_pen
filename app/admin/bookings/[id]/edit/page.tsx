@@ -2,7 +2,7 @@ import { isAdmin } from "@/lib/admin";
 import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { formatDateTime, rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { BOOKING_STATUS_OPTIONS, bookingStatusLabel, statusClass } from "@/lib/statusLabels";
+import { BOOKING_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { businessDateKey, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 import { updateBooking } from "./actions";
@@ -38,7 +38,7 @@ export default async function EditBookingPage({ params, searchParams }: { params
 
   const [booking, clients, services] = await Promise.all([
     prisma.booking.findUnique({ where: { id: params.id }, include: { client: true, service: true } }),
-    prisma.client.findMany({ where: { status: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
+    prisma.client.findMany({ orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] })
   ]);
 
@@ -82,7 +82,7 @@ export default async function EditBookingPage({ params, searchParams }: { params
           <div className="grid-3">
             <label>Клиент
               <select name="clientId" defaultValue={booking.clientId} required>
-                {clients.map((client) => <option key={client.id} value={client.id}>{client.lastName} {client.firstName} — {client.phone}</option>)}
+                {clients.map((client) => <option key={client.id} value={client.id}>{client.lastName} {client.firstName} — {client.phone} · {clientStatusLabel(client.status)}</option>)}
               </select>
             </label>
 
