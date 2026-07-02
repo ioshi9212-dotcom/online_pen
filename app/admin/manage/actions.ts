@@ -6,6 +6,7 @@ import { upsertManualClient } from "@/lib/clientSync";
 import { safeDuration } from "@/lib/durations";
 import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { businessDateTimeFromKeyAndTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -25,7 +26,9 @@ function dateOnly(formData: FormData, key: string) {
 }
 
 function dateTime(formData: FormData, key: string) {
-  return new Date(s(formData, key));
+  const value = s(formData, key);
+  const [datePart, timePart = "00:00"] = value.split("T");
+  return businessDateTimeFromKeyAndTime(datePart, timePart);
 }
 
 function nullablePrice(formData: FormData) {
