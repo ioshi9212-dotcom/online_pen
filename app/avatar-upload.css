@@ -45,6 +45,17 @@
   width: auto !important;
 }
 
+.client-start-warning::after {
+  content: "Если нашли ошибку или баг — напишите мне в WhatsApp. Сайт тестовый, он старается, но иногда делает вид, что его не учили.";
+  display: block !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid rgba(255, 255, 255, .34) !important;
+  color: #fff !important;
+  font-size: 12.5px !important;
+  line-height: 1.35 !important;
+}
+
 @media (max-width: 520px) {
   .profile-avatar-upload {
     grid-template-columns: 72px minmax(0, 1fr) !important;
