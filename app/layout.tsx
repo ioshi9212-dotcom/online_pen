@@ -5,6 +5,7 @@ import ConfirmDangerActions from "./ConfirmDangerActions";
 import SiteHeader from "./SiteHeader";
 import "./globals.css";
 import "./soft-square-ui.css";
+import "./unified-design.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
