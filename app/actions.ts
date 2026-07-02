@@ -1,6 +1,6 @@
 "use server";
 
-import { avatarFileToDataUrl, isUploadedAvatar } from "@/lib/avatarUpload";
+import { normalizeAvatarDataUrl } from "@/lib/avatarUpload";
 import { addBookingMark, canRememberBooking, CLIENT_REMEMBER_MARK } from "@/lib/bookingRemember";
 import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
@@ -88,21 +88,20 @@ export async function updateClientProfile(formData: FormData) {
   if (duplicate && duplicate.id !== client.id) redirect(`/profile?client=${clientToken}&error=phone-exists`);
 
   let avatarUrl = client.avatarUrl;
-  const avatarFile = formData.get("avatarFile");
   const removeAvatar = formData.get("removeAvatar") === "on";
+  const avatarDataUrl = normalizeAvatarDataUrl(formData.get("avatarDataUrl"));
 
   if (removeAvatar) {
     avatarUrl = "";
-  } else if (isUploadedAvatar(avatarFile)) {
-    const avatar = await avatarFileToDataUrl(avatarFile);
-    if (!avatar.ok) redirect(`/profile?client=${clientToken}&error=avatar-${avatar.error}`);
-    avatarUrl = avatar.value;
+  } else if (avatarDataUrl) {
+    if (!avatarDataUrl.ok) redirect(`/profile?client=${clientToken}&error=avatar-${avatarDataUrl.error}`);
+    avatarUrl = avatarDataUrl.value;
   }
 
   await prisma.client.update({ where: { id: client.id }, data: { firstName, lastName, phone, birthDate, avatarUrl } });
   setClientCookie(clientToken);
 
-  redirect(`/profile?client=${clientToken}&saved=1`);
+  redirect(myUrl(clientToken, { profileSaved: "1" }) + "#profile");
 }
 
 export async function createBooking(formData: FormData) {
