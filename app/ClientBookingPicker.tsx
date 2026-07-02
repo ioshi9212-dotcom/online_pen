@@ -196,7 +196,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
         <article className="selected-day-card card booking-step-card" id="selected-day">
           <p className="muted">Выбранная дата</p>
           <h2>{fmtDate(`${selectedDateKey}T00:00:00`)}</h2>
-          <p>{selectedBusyCount} занято · {selectedFreeCount} свободно</p>
+          <p>Занято окон: {selectedBusyCount} · Свободно окон: {selectedFreeCount}</p>
 
           {!confirmedService ? (
             <div className="booking-step-panel">
