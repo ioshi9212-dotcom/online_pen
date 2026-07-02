@@ -1,6 +1,7 @@
 "use server";
 
 import { addBookingMark, canRememberBooking, CLIENT_REMEMBER_MARK } from "@/lib/bookingRemember";
+import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
@@ -105,6 +106,10 @@ export async function createBooking(formData: FormData) {
 
   const service = await prisma.service.findUnique({ where: { id: serviceId } });
   if (!service || !service.isActive || !service.showInBooking) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
+
+  const settings = await prisma.setting.findMany();
+  const minVisibleStart = getOnlineBookingMinStart(settings);
+  if (startAt < minVisibleStart) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
 
   const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
   if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
