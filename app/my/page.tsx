@@ -1,6 +1,6 @@
 import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist, rememberClientBooking } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
-import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel } from "@/lib/bookingRemember";
+import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel, timeUntilBookingLabel } from "@/lib/bookingRemember";
 import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
@@ -158,8 +158,8 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const initialDate = searchParams.date || firstAvailableDate;
   const initialTime = "";
   const now = new Date();
-  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status));
-  const upcomingBooking = activeBookings.find((booking) => booking.startAt >= now) || activeBookings[0];
+  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status) && booking.startAt > now);
+  const upcomingBooking = activeBookings[0];
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
   const canClientRemember = upcomingBooking ? canRememberBooking(upcomingBooking.startAt, now) : false;
@@ -182,6 +182,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
                 <p className="muted">Ближайшая запись</p>
                 <h2>{upcomingBooking.service.title}</h2>
                 <p>{fmtDate(upcomingBooking.startAt)} в {fmtTime(upcomingBooking.startAt)}</p>
+                <p className="booking-countdown">{timeUntilBookingLabel(upcomingBooking.startAt, now)}</p>
               </div>
               <span className={statusClass(upcomingBooking.status)}>{statusText(upcomingBooking.status)}</span>
             </div>
@@ -255,7 +256,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
           <div className="grid">
             {activeBookings.map((booking) => (
               <article className="booking-card" key={booking.id}>
-                <div><h3>{booking.service.title}</h3><p>{fmtDate(booking.startAt)} в {fmtTime(booking.startAt)}</p></div>
+                <div><h3>{booking.service.title}</h3><p>{fmtDate(booking.startAt)} в {fmtTime(booking.startAt)}</p><p className="booking-countdown">{timeUntilBookingLabel(booking.startAt, now)}</p></div>
                 <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
                 <form action={cancelClientBooking} data-confirm="Отменить запись? Окно освободится, мастер увидит отмену.">
                   <input type="hidden" name="clientToken" value={token} />
