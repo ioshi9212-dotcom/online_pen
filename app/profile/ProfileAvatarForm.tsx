@@ -175,7 +175,7 @@ export default function ProfileAvatarForm({ token, client }: Props) {
           <label>Фото клиента
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange} />
           </label>
-          <p className="muted">Фото появится в кружке сразу после выбора. Сайт сам сожмёт его перед сохранением.</p>
+          <p className="muted">Добавьте фото, чтобы я понимала, кто записался. Фото вижу только я. У сайта нет цели сделать из этого доску розыска.</p>
           {client.avatarUrl || preview ? <label className="avatar-remove-check"><input type="checkbox" checked={removeAvatar} onChange={handleRemoveAvatar} /> Убрать фото</label> : null}
           {reading ? <p className="notice">Обрабатываю фото… секунду.</p> : null}
           {saved ? <p className="notice ok-status">Профиль сохранён. Сейчас верну в кабинет.</p> : null}
