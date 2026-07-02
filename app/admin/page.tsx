@@ -28,6 +28,10 @@ function fmtTime(date: Date) {
   return formatInBusinessTime(date, { hour: "2-digit", minute: "2-digit" });
 }
 
+function fmtCompactTime(date: Date) {
+  return fmtTime(date).replace(":", ".");
+}
+
 function fmtShortDate(date: Date) {
   return formatInBusinessTime(date, { day: "numeric", month: "long" });
 }
@@ -45,6 +49,13 @@ function fmtOpenWindowTitle(date: Date) {
   const day = formatInBusinessTime(date, { day: "numeric" });
   const weekday = formatInBusinessTime(date, { weekday: "short" }).replace(".", "");
   return `${month}, ${day} ${weekday}`;
+}
+
+function fmtUpcomingLine(date: Date) {
+  const month = formatInBusinessTime(date, { month: "long" });
+  const day = formatInBusinessTime(date, { day: "numeric" });
+  const weekday = formatInBusinessTime(date, { weekday: "short" }).replace(".", "").toUpperCase();
+  return `${month}, ${day}, ${weekday}, ${fmtCompactTime(date)}`;
 }
 
 function dayRange(key: string) {
@@ -230,6 +241,44 @@ function BookingList({ title, date, bookings }: { title: string; date: Date; boo
   );
 }
 
+function UpcomingBookingRow({ booking }: { booking: BookingWithClientService }) {
+  return (
+    <div className="master-upcoming-row">
+      <div className="master-upcoming-main">
+        <b>{fmtUpcomingLine(booking.startAt)} — {booking.client.firstName} {booking.client.lastName}</b>
+        <small>{booking.service.title} · {statusText(booking.status)}</small>
+      </div>
+      <a className="button secondary" href={editHref(booking)}>Изменить</a>
+    </div>
+  );
+}
+
+function UpcomingBookings({ bookings }: { bookings: BookingWithClientService[] }) {
+  const firstBookings = bookings.slice(0, 3);
+  const restBookings = bookings.slice(3);
+
+  return (
+    <section className="admin-home-panel master-upcoming-card">
+      <div className="master-upcoming-head">
+        <div><h2>Ближайшие записи</h2><p>{bookings.length ? `Всего впереди: ${bookings.length}` : "Пока впереди пусто"}</p></div>
+        <span className="badge">{bookings.length}</span>
+      </div>
+      <div className="master-upcoming-list">
+        {firstBookings.map((booking) => <UpcomingBookingRow key={booking.id} booking={booking} />)}
+        {bookings.length === 0 ? <div className="admin-empty">Будущих записей нет.</div> : null}
+      </div>
+      {restBookings.length ? (
+        <details className="master-upcoming-more">
+          <summary><span>Показать все записи</span><i aria-hidden="true">⌄</i></summary>
+          <div className="master-upcoming-list">
+            {restBookings.map((booking) => <UpcomingBookingRow key={booking.id} booking={booking} />)}
+          </div>
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
 function OpenWindowsStory({ groups }: { groups: OpenWindowGroup[] }) {
   return (
     <section className="admin-home-panel master-open-windows-panel">
@@ -258,19 +307,21 @@ export default async function AdminPage() {
   const tomorrowRange = dayRange(tomorrowKey);
   const horizon = businessDateFromKey(addBusinessDays(todayKey, 90));
 
-  const [pendingClients, pendingBookings, activeClients, waitlist, rawTodayBookings, rawTomorrowBookings, onlineWindows, busyBookings] = await Promise.all([
+  const [pendingClients, pendingBookings, activeClients, waitlist, rawTodayBookings, rawTomorrowBookings, upcomingBookingsRaw, onlineWindows, busyBookings] = await Promise.all([
     prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 4 }),
     prisma.booking.findMany({ where: { status: "PENDING", startAt: { gt: now } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 4 }),
     prisma.client.count({ where: { status: "APPROVED" } }),
     prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.booking.findMany({ where: { startAt: { gt: now, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
     prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
+    prisma.booking.findMany({ where: { startAt: { gt: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 80 }),
     prisma.onlineWindow.findMany({ where: { startAt: { gte: now, lt: horizon } }, orderBy: { startAt: "asc" }, take: 300 }),
     prisma.booking.findMany({ where: { startAt: { gte: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
   ]);
 
   const todayBookings = rawTodayBookings.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
   const tomorrowBookings = rawTomorrowBookings.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
+  const upcomingBookings = upcomingBookingsRaw.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
   const requestCount = pendingClients.length + pendingBookings.length;
   const busySet = new Set(busyBookings.map((booking) => booking.startAt.toISOString()));
   const openWindowGroups = Object.values(
@@ -294,6 +345,21 @@ export default async function AdminPage() {
           .master-open-window-line:last-child { border-bottom: 0; }
           .master-open-window-line span { font-weight: 400; }
           .master-open-windows-empty { padding: 8px 0; color: #7c6872; font-size: 15px; font-weight: 400; }
+          .master-upcoming-card { padding: 13px 14px !important; }
+          .master-upcoming-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+          .master-upcoming-head h2 { margin: 0 !important; font-size: 17px !important; line-height: 1.15 !important; font-weight: 430 !important; }
+          .master-upcoming-head p { margin: 3px 0 0; font-size: 12px !important; color: #7a6570; }
+          .master-upcoming-list { display: grid; gap: 0; }
+          .master-upcoming-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(80, 58, 68, .12); }
+          .master-upcoming-row:last-child { border-bottom: 0; }
+          .master-upcoming-main { min-width: 0; display: grid; gap: 2px; }
+          .master-upcoming-main b { font-size: 12.5px !important; line-height: 1.24 !important; font-weight: 420 !important; color: #2d2530; }
+          .master-upcoming-main small { font-size: 11.5px !important; line-height: 1.2 !important; color: #7a6570; }
+          .master-upcoming-row .button { min-height: 26px !important; padding: 5px 8px !important; font-size: 11.5px !important; border-radius: 6px !important; }
+          .master-upcoming-more { margin-top: 4px; }
+          .master-upcoming-more summary::-webkit-details-marker { display: none; }
+          .master-upcoming-more summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 0 0; color: #7d3855; font-size: 12px; font-weight: 400; }
+          .master-upcoming-more[open] summary i { transform: rotate(180deg); }
           .master-mobile-topbar { grid-template-columns: 1fr !important; }
           .master-request-card summary::-webkit-details-marker { display: none; }
           .master-request-card summary { list-style: none; cursor: pointer; }
@@ -302,14 +368,15 @@ export default async function AdminPage() {
           .master-request-arrow::before { content: "⌄"; font-size: 18px; line-height: 1; }
           .master-request-card[open] .master-request-arrow::before { content: "⌃"; }
           .master-request-static-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-          @media (max-width: 760px) { .master-open-windows-panel { padding: 14px 16px !important; } .master-open-windows-title { font-size: 19px; } .master-open-window-line { padding: 7px 0; font-size: 14px; } .master-request-title { font-size: 16px; } }
+          @media (max-width: 760px) { .master-open-windows-panel { padding: 14px 16px !important; } .master-open-windows-title { font-size: 19px; } .master-open-window-line { padding: 7px 0; font-size: 14px; } .master-request-title { font-size: 16px; } .master-upcoming-card { padding: 12px !important; } .master-upcoming-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 6px 0; } .master-upcoming-main b { font-size: 12px !important; } .master-upcoming-row .button { min-height: 25px !important; padding: 5px 7px !important; font-size: 11px !important; } }
         `}</style>
 
         <header className="master-mobile-topbar"><div><b>Главная</b><span>{fmtTopDate(today)}</span></div></header>
-        <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Сегодня, завтра, заявки, ждуны и список свободных окон. Без лишней гирлянды.</p></div></header>
+        <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Сегодня, завтра, ближайшие записи, заявки, ждуны и список свободных окон. Без лишней гирлянды.</p></div></header>
 
-        <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlist.length}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>
+        <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{upcomingBookings.length}</b><span>впереди</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlist.length}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>
         <section className="master-mobile-day-stack"><BookingList title="Сегодня" date={today} bookings={todayBookings} /><BookingList title="Завтра" date={tomorrow} bookings={tomorrowBookings} /></section>
+        <UpcomingBookings bookings={upcomingBookings} />
 
         <section className="master-mobile-request-grid">
           {pendingBookings.length > 0 ? (
