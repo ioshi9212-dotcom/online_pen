@@ -268,7 +268,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
               </select>
               <small>{onlineBookingHideDaysLabel(onlineHideDays)}. Окна у мастера не удаляются, просто клиент их не увидит.</small>
             </label>
-            <button>Сохранить настройки записи</button>
+            <button type="submit">Сохранить настройки записи</button>
           </form>
         </section>
       ) : null}
