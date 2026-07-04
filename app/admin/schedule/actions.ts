@@ -5,6 +5,7 @@ import { getBookingConflictReasons } from "@/lib/bookingConflicts";
 import { ONLINE_BOOKING_HIDE_DAYS_KEY, normalizeOnlineBookingHideDays } from "@/lib/onlineBookingCutoff";
 import { combineDateAndTime, dateFromKey, getEffectiveDay, overlaps, parseMinutes } from "@/lib/schedule";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -41,6 +42,11 @@ function bulkKindLabel(kind: string) {
   if (kind === "DAY_OFF") return "выходные";
   if (kind === "SPECIAL") return "особенные дни";
   return "рабочие дни";
+}
+
+function scheduleModeRedirect(message: string) {
+  const params = new URLSearchParams({ view: "mode", done: message });
+  redirect(`/admin/schedule?${params.toString()}`);
 }
 
 async function persistBulkDayOverrides(formData: FormData) {
@@ -113,7 +119,10 @@ export async function saveScheduleMode(formData: FormData) {
     });
   }
 
-  redirect("/admin/schedule?view=mode&done=Режим сохранён");
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin/settings");
+  revalidatePath("/my");
+  scheduleModeRedirect("Режим сохранён");
 }
 
 export async function saveBulkDayOverrides(formData: FormData) {
