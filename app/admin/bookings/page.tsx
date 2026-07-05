@@ -7,6 +7,10 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+function canCancel(status: string, startAt: Date) {
+  return ["PENDING", "CONFIRMED"].includes(status) && startAt > new Date();
+}
+
 export default async function AdminBookingsPage() {
   if (!isAdmin()) redirect("/admin/login");
   const bookings = await prisma.booking.findMany({
@@ -20,7 +24,7 @@ export default async function AdminBookingsPage() {
       <div className="actions" style={{ justifyContent: "space-between" }}>
         <div>
           <h1>Записи</h1>
-          <p>Все ближайшие заявки и записи. Кнопка “Изменить” теперь открывает конкретную запись, а не ручной обходной путь.</p>
+          <p>Все ближайшие заявки и записи. Отмена записи возвращает её время в открытые онлайн-окна, если оно ещё не прошло и не занято.</p>
         </div>
         <div className="actions">
           <a className="button secondary" href="/admin">Админка</a>
@@ -43,10 +47,18 @@ export default async function AdminBookingsPage() {
               <td>{booking.clientComment || "—"}</td>
               <td className="actions">
                 <a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="ok">Подтвердить</button></form>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="danger">Отклонить</button></form>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="COMPLETED" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="secondary">Пришла</button></form>
-                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="NO_SHOW" /><input type="hidden" name="redirectTo" value="/admin/bookings" /><button className="secondary">Не пришла</button></form>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin/bookings?done=1" /><button className="ok">Подтвердить</button></form>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin/bookings?done=1" /><button className="danger">Отклонить</button></form>
+                {canCancel(booking.status, booking.startAt) ? (
+                  <form action={setBookingStatus}>
+                    <input type="hidden" name="id" value={booking.id} />
+                    <input type="hidden" name="status" value="CANCELLED_BY_ADMIN" />
+                    <input type="hidden" name="redirectTo" value="/admin/bookings?done=1" />
+                    <button className="danger">Отменить запись</button>
+                  </form>
+                ) : null}
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="COMPLETED" /><input type="hidden" name="redirectTo" value="/admin/bookings?done=1" /><button className="secondary">Пришла</button></form>
+                <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="NO_SHOW" /><input type="hidden" name="redirectTo" value="/admin/bookings?done=1" /><button className="secondary">Не пришла</button></form>
               </td>
             </tr>
           ))}
