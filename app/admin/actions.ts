@@ -5,6 +5,7 @@ import { getBookingConflictReasons, isActiveBookingStatus } from "@/lib/bookingC
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const BOOKING_STATUSES = new Set(["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"]);
@@ -20,6 +21,19 @@ function getId(formData: FormData) {
 function redirectTarget(formData: FormData, fallback: string) {
   const value = String(formData.get("redirectTo") || "");
   return value.startsWith("/admin") ? value : fallback;
+}
+
+async function restoreOnlineWindowAfterAdminCancel(booking: { id: string; startAt: Date; endAt: Date }) {
+  if (booking.startAt <= new Date()) return;
+
+  const conflictReasons = await getBookingConflictReasons({ startAt: booking.startAt, endAt: booking.endAt, ignoreBookingId: booking.id });
+  if (conflictReasons.length) return;
+
+  await prisma.onlineWindow.upsert({
+    where: { startAt: booking.startAt },
+    create: { startAt: booking.startAt, note: "Возвращено после отмены записи мастером" },
+    update: { note: "Возвращено после отмены записи мастером" }
+  });
 }
 
 export async function approveClient(formData: FormData) {
@@ -53,7 +67,7 @@ export async function setBookingStatus(formData: FormData) {
   const redirectTo = redirectTarget(formData, "/admin/bookings");
   if (!BOOKING_STATUSES.has(status)) redirect(redirectTo);
 
-  const booking = await prisma.booking.findUnique({ where: { id }, select: { startAt: true, endAt: true } });
+  const booking = await prisma.booking.findUnique({ where: { id }, select: { id: true, startAt: true, endAt: true } });
   if (!booking) redirect(redirectTo);
 
   if (isActiveBookingStatus(status)) {
@@ -70,6 +84,16 @@ export async function setBookingStatus(formData: FormData) {
       cancelledAt: status === "CANCELLED_BY_ADMIN" || status === "REJECTED" ? new Date() : undefined
     }
   });
+
+  if (status === "CANCELLED_BY_ADMIN") {
+    await restoreOnlineWindowAfterAdminCancel(booking);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/schedule");
+  revalidatePath("/my");
+
   redirect(redirectTo);
 }
 
