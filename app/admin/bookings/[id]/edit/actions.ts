@@ -5,6 +5,7 @@ import { getBookingConflictReasons, isActiveBookingStatus } from "@/lib/bookingC
 import { safeDuration } from "@/lib/durations";
 import { prisma } from "@/lib/prisma";
 import { businessDateTimeFromKeyAndTime } from "@/lib/timezone";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 const BOOKING_STATUSES = new Set(["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"]);
@@ -17,9 +18,11 @@ function s(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
 }
 
-function dateTime(formData: FormData, key: string) {
-  const value = s(formData, key);
-  const [datePart, timePart = "00:00"] = value.split("T");
+function dateTime(formData: FormData) {
+  const legacyValue = s(formData, "startAt");
+  const [legacyDate, legacyTime = "00:00"] = legacyValue.split("T");
+  const datePart = s(formData, "startDate") || legacyDate;
+  const timePart = s(formData, "startTime") || legacyTime;
   return businessDateTimeFromKeyAndTime(datePart, timePart);
 }
 
@@ -55,7 +58,7 @@ export async function updateBooking(formData: FormData) {
   if (!current) redirect("/admin/bookings");
   if (!service) redirect(editUrl(id, { error: "Услуга не найдена" }));
 
-  const startAt = dateTime(formData, "startAt");
+  const startAt = dateTime(formData);
   const durationMinutes = safeDuration(formData.get("durationMinutes"), service.durationMinutes || 150);
   const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
 
@@ -81,6 +84,12 @@ export async function updateBooking(formData: FormData) {
       cancelledAt: status === "CANCELLED_BY_ADMIN" || status === "REJECTED" || status === "CANCELLED_BY_CLIENT" ? current.cancelledAt ?? new Date() : current.cancelledAt
     }
   });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${id}/edit`);
+  revalidatePath("/admin/schedule");
+  revalidatePath("/my");
 
   redirect(editUrl(id, { saved: "1" }));
 }
