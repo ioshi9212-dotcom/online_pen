@@ -7,6 +7,7 @@ import { safeDuration } from "@/lib/durations";
 import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { businessDateTimeFromKeyAndTime } from "@/lib/timezone";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 function guard() {
@@ -90,6 +91,19 @@ export async function createManualBooking(formData: FormData) {
       cancelledAt: status.includes("CANCELLED") || status === "REJECTED" ? new Date() : null
     }
   });
+
+  if (isActiveBookingStatus(status)) {
+    await prisma.onlineWindow.deleteMany({
+      where: {
+        startAt: { gte: startAt, lt: endAt }
+      }
+    });
+  }
+
+  revalidatePath("/my");
+  revalidatePath("/admin");
+  revalidatePath("/admin/manage");
+  revalidatePath("/admin/schedule");
 
   redirect(manageUrl({ booking: "created", clientId }));
 }
