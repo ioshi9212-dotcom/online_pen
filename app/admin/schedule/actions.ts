@@ -267,5 +267,15 @@ export async function createScheduleBooking(formData: FormData) {
     }
   });
 
+  await prisma.onlineWindow.deleteMany({
+    where: {
+      startAt: { gte: startAt, lt: endAt }
+    }
+  });
+
+  revalidatePath("/my");
+  revalidatePath("/admin");
+  revalidatePath("/admin/schedule");
+
   redirect(`/admin/schedule?view=calendar&month=${month}&date=${dateKey}&success=Запись создана#selected-day`);
 }
