@@ -42,7 +42,7 @@ export default async function AdminProfilePage({ searchParams = {} }: { searchPa
       </div>
 
       {one(searchParams, "saved") ? <div className="notice ok-notice">Профиль мастера сохранён.</div> : null}
-      {one(searchParams, "error") === "short-password" ? <div className="notice danger-notice">Пароль должен быть минимум 4 символа.</div> : null}
+      {one(searchParams, "error") === "short-password" ? <div className="notice danger-notice">Пароль должен быть минимум 12 символов.</div> : null}
       {one(searchParams, "error") === "password-mismatch" ? <div className="notice danger-notice">Пароли не совпали.</div> : null}
 
       <form action={saveMasterProfile} className="card grid profile-form">

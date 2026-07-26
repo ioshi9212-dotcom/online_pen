@@ -1,21 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import ConfirmDangerActions from "./ConfirmDangerActions";
-import PullToRefresh from "./PullToRefresh";
 import SiteHeader from "./SiteHeader";
 import "./globals.css";
 import "./soft-square-ui.css";
 import "./unified-design.css";
 import "./avatar-upload.css";
 import "./pull-refresh.css";
+import "./client-v2.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
   description: "Онлайн-запись к мастеру",
   applicationName: "Онлайн-запись",
   manifest: "/site.webmanifest",
-  themeColor: "#F3A9BE",
   appleWebApp: {
     capable: true,
     title: "Запись",
@@ -28,12 +27,15 @@ export const metadata: Metadata = {
   }
 };
 
+export const viewport: Viewport = {
+  themeColor: "#b73f6c"
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body>
         <ConfirmDangerActions />
-        <PullToRefresh />
         <div className="app-shell">
           <Suspense fallback={null}>
             <SiteHeader />

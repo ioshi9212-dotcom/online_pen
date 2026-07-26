@@ -41,9 +41,10 @@ cp .env.example .env
 - `/` — стартовая страница.
 - `/register` — заявка на доступ.
 - `/login` — вход клиента по телефону и дате рождения.
-- `/my?client=TOKEN` — личный кабинет клиента.
-- `/profile?client=TOKEN` — профиль клиента.
-- `/price?client=TOKEN` — прайс.
+- `/my` — личный кабинет клиента после безопасного входа.
+- `/profile` — профиль клиента.
+- `/price` — прайс.
+- `/preview` — интерактивное превью нового клиентского пути без отправки данных.
 
 ### Мастер
 
@@ -57,14 +58,10 @@ cp .env.example .env
 - `/admin/services` — прайс и услуги.
 - `/admin/profile` — профиль мастера и пароль админки.
 
-## Что очищено
+## Клиентская сессия
 
-- Убран мусорный `app/main.py` от другого проекта.
-- Убраны временные patch/audit markdown-файлы.
-- Все стили собраны в один `app/globals.css`, чтобы интерфейс не расползался из-за десятков CSS-патчей.
-- В меню мастера возвращена кнопка `Настройки записи`.
-- Лишний пункт `Услуги` в меню заменён на единый понятный пункт `Прайс`.
+После входа клиент определяется по подписанной HttpOnly-cookie. Постоянный токен клиента не передаётся в URL, формах или JSON-запросах.
 
 ## Railway fix 0.1.3
 
-Prisma запускается через `node ./node_modules/prisma/build/index.js`, чтобы Railway не падал на `prisma: Permission denied`. Build command в `railway.json`: `npm ci --include=dev && npm run build`.
+Prisma запускается через `node ./node_modules/prisma/build/index.js`, чтобы Railway не падал на `prisma: Permission denied`.

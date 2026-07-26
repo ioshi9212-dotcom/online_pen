@@ -1,50 +1,37 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
-import ClientSaveToast from "./ClientSaveToast";
+import { usePathname } from "next/navigation";
 
 export default function SiteHeader() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-
   if (pathname.startsWith("/admin")) return null;
 
-  const clientToken = searchParams.get("client") || "";
-  const profileHref = clientToken ? `/profile?client=${clientToken}` : "/login";
-  const homeHref = clientToken ? `/my?client=${clientToken}` : "/";
+  const inCabinet = pathname.startsWith("/my") || pathname.startsWith("/profile");
+  const inPreview = pathname.startsWith("/preview");
 
   return (
-    <>
-      <ClientSaveToast />
-      <header className="top-menu compact-client-menu beauty-top-card">
-        <a className="brand beauty-brand" href={homeHref}>
-          <span className="brand-icon beauty-brand-icon" aria-hidden="true">▣</span>
-          <b>Онлайн-запись</b>
-        </a>
+    <header className="site-header-v2">
+      <a className="site-header-v2-brand" href={inCabinet ? "/my" : "/"}>
+        <img src="/icon.svg" alt="" />
+        <span><b>Запись к мастеру</b><small>маникюр · педикюр</small></span>
+      </a>
 
-        <nav className="menu-links compact-client-links beauty-menu-links" aria-label="Основное меню">
-          <a className="beauty-menu-row" href={profileHref}>
-            <span className="beauty-menu-icon" aria-hidden="true">♡</span>
-            <span>Профиль</span>
-            <span className="beauty-menu-arrow" aria-hidden="true">›</span>
-          </a>
-          {clientToken ? (
-            <a className="beauty-menu-row" href="/logout">
-              <span className="beauty-menu-icon" aria-hidden="true">↩</span>
-              <span>Выйти</span>
-              <span className="beauty-menu-arrow" aria-hidden="true">›</span>
-            </a>
-          ) : null}
-          <div className="master-menu-entry beauty-master-entry">
-            <a className="primary-link beauty-menu-row" href="/admin">
-              <span className="beauty-menu-icon" aria-hidden="true">♕</span>
-              <span>Кабинет мастера</span>
-              <span className="beauty-menu-arrow" aria-hidden="true">›</span>
-            </a>
-            <small>Клиентам туда нельзя. Там скучно, пароли и ответственность.</small>
-          </div>
-        </nav>
-      </header>
-    </>
+      {inPreview ? <span className="site-header-v2-preview">Превью дизайна</span> : null}
+
+      <nav aria-label="Основное меню">
+        {inCabinet ? (
+          <>
+            <a href="/my#booking-flow">Записаться</a>
+            <a href="/profile">Профиль</a>
+            <a className="site-header-v2-quiet" href="/logout">Выйти</a>
+          </>
+        ) : (
+          <>
+            <span>Уже есть доступ?</span>
+            <a className="site-header-v2-login" href="/login">Войти</a>
+          </>
+        )}
+      </nav>
+    </header>
   );
 }

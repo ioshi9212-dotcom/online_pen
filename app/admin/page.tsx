@@ -1,4 +1,5 @@
-import { acknowledgeClientCancellation, approveClient, closeWaitlistEntry, rejectClient, rememberMasterBooking, setBookingStatus } from "@/app/admin/actions";
+import { acknowledgeClientCancellation, approveClient, approveClientAndMessage, closeWaitlistEntry, rejectClient, rememberMasterBooking, setBookingStatus } from "@/app/admin/actions";
+import { bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { canRememberBooking, hasBookingMark, MASTER_REMEMBER_MARK, rememberOpensLabel, timeUntilBookingLabel } from "@/lib/bookingRemember";
 import { isAdmin } from "@/lib/admin";
 import { isClientCancelSeen } from "@/lib/cancellationNotice";
@@ -13,6 +14,7 @@ type BookingWithClientService = {
   startAt: Date;
   endAt: Date;
   status: string;
+  clientComment: string;
   adminComment: string;
   client: { id: string; firstName: string; lastName: string; phone: string };
   service: { title: string; durationMinutes: number };
@@ -228,7 +230,7 @@ function BookingList({ title, date, bookings }: { title: string; date: Date; boo
             <details className={cancelled ? "master-booking-row is-cancelled master-booking-details" : "master-booking-row master-booking-details"} key={booking.id}>
               <summary className="master-booking-link">
                 <time>{fmtTime(booking.startAt)}</time>
-                <div className="master-booking-main"><b>{booking.client.lastName} {booking.client.firstName}</b><small>{durationLabel(booking.startAt, booking.endAt)} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt)}</small></div>
+                <div className="master-booking-main"><b>{booking.client.lastName} {booking.client.firstName}</b><small>{durationLabel(booking.startAt, booking.endAt)} · {bookingDisplayTitle(booking.service.title, booking.clientComment)} · {timeUntilBookingLabel(booking.startAt)}</small></div>
                 <span className={statusClass(booking.status)}>{statusText(booking.status)}</span><i aria-hidden="true">⌄</i>
               </summary>
               <BookingQuickActions booking={booking} />
@@ -246,7 +248,7 @@ function UpcomingBookingRow({ booking }: { booking: BookingWithClientService }) 
     <div className="master-upcoming-row">
       <div className="master-upcoming-main">
         <b>{fmtUpcomingLine(booking.startAt)} — {booking.client.firstName} {booking.client.lastName}</b>
-        <small>{booking.service.title} · {statusText(booking.status)}</small>
+        <small>{bookingDisplayTitle(booking.service.title, booking.clientComment)} · {statusText(booking.status)}</small>
       </div>
       <a className="button secondary" href={editHref(booking)}>Изменить</a>
     </div>
@@ -382,7 +384,7 @@ export default async function AdminPage() {
           {pendingBookings.length > 0 ? (
             <details className="admin-home-panel master-request-card">
               <summary><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">новых — {pendingBookings.length}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
-              <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt, now)}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form><a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a></div></div>)}</div>
+              <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {bookingDisplayTitle(booking.service.title, booking.clientComment)} · {timeUntilBookingLabel(booking.startAt, now)}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form><a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a></div></div>)}</div>
             </details>
           ) : (
             <section className="admin-home-panel master-request-card"><div className="master-request-static-head"><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">Новых нет</p></div></div></section>
@@ -391,7 +393,7 @@ export default async function AdminPage() {
           {pendingClients.length > 0 ? (
             <details className="admin-home-panel master-request-card">
               <summary><div><h3 className="master-request-title">Регистрация</h3><p className="master-request-subtitle">новых — {pendingClients.length}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
-              <div className="admin-row-list">{pendingClients.map((client) => <div className="admin-request-row" key={client.id}><div className="admin-request-main"><b>{client.lastName} {client.firstName}</b><small>{client.phone}</small></div><div className="admin-request-actions"><form action={approveClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Принять</button></form><form action={rejectClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form></div></div>)}</div>
+              <div className="admin-row-list">{pendingClients.map((client) => <div className="admin-request-row" key={client.id}><div className="admin-request-main"><b>{client.lastName} {client.firstName}</b><small>{client.phone}</small></div><div className="admin-request-actions"><form action={approveClientAndMessage}><input type="hidden" name="id" value={client.id} /><button type="submit">Открыть доступ и написать</button></form><form action={approveClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="secondary">Только открыть</button></form><form action={rejectClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form></div></div>)}</div>
             </details>
           ) : (
             <section className="admin-home-panel master-request-card"><div className="master-request-static-head"><div><h3 className="master-request-title">Регистрация</h3><p className="master-request-subtitle">Новых нет</p></div></div></section>

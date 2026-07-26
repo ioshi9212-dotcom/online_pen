@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/admin";
+import { bookingDisplayComment, bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { formatDateTime, rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -54,7 +55,7 @@ export default async function EditBookingPage({ params, searchParams }: { params
           <div>
             <p className="eyebrow">Редактирование записи</p>
             <h1>{booking.client.lastName} {booking.client.firstName}</h1>
-            <p>{formatDateTime(booking.startAt)} · {booking.service.title} · <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span></p>
+            <p>{formatDateTime(booking.startAt)} · {bookingDisplayTitle(booking.service.title, booking.clientComment)} · <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span></p>
           </div>
           <div className="actions">
             <a className="button secondary" href="/admin">Главная</a>
@@ -125,7 +126,7 @@ export default async function EditBookingPage({ params, searchParams }: { params
           </div>
 
           <label>Комментарий клиента
-            <input name="clientComment" defaultValue={booking.clientComment} placeholder="что просила клиентка" />
+            <input name="clientComment" defaultValue={bookingDisplayComment(booking.clientComment)} placeholder="что просила клиентка" />
           </label>
 
           <label>Заметка мастера

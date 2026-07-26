@@ -2,12 +2,19 @@
 
 import { normalizeAvatarDataUrl } from "@/lib/avatarUpload";
 import { addBookingMark, canRememberBooking, CLIENT_REMEMBER_MARK } from "@/lib/bookingRemember";
+import { getClientCookie, setClientCookie } from "@/lib/clientSession";
+import { syncPublicRegistration } from "@/lib/clientSync";
+import { formatPhone } from "@/lib/format";
 import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
-import { formatPhone } from "@/lib/format";
-import { syncPublicRegistration } from "@/lib/clientSync";
-import { setClientCookie } from "@/lib/clientSession";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { combineDateAndTime, getEffectiveDay } from "@/lib/schedule";
+import { Prisma } from "@prisma/client";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+const BUNDLE_PREFIX = "bundle:";
+const BUNDLE_COMMENT_PREFIX = "Услуги: ";
 
 function required(value: FormDataEntryValue | null, name: string) {
   const text = String(value || "").trim();
@@ -23,36 +30,82 @@ function birthDateFrom(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-function myUrl(token: string, params: Record<string, string | undefined> = {}) {
-  const search = new URLSearchParams({ client: token });
+function myUrl(params: Record<string, string | undefined> = {}) {
+  const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) search.set(key, value);
   });
-  return `/my?${search.toString()}`;
+  const query = search.toString();
+  return query ? `/my?${query}` : "/my";
 }
 
 function enterClientCabinet(token: string, params: Record<string, string | undefined> = {}) {
   setClientCookie(token);
-  redirect(myUrl(token, params));
+  redirect(myUrl(params));
+}
+
+function currentClientToken() {
+  const token = getClientCookie();
+  if (!token) redirect("/login");
+  return token;
+}
+
+async function currentClient() {
+  const token = currentClientToken();
+  const client = await prisma.client.findUnique({ where: { publicToken: token } });
+  if (!client) redirect("/login");
+  if (client.status !== "APPROVED") redirect("/unavailable");
+  return client;
+}
+
+function requestIp() {
+  const requestHeaders = headers();
+  return requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || requestHeaders.get("x-real-ip")
+    || "unknown";
+}
+
+function allowAttempt(scope: string, identity: string, limit: number) {
+  return checkRateLimit(`${scope}:${requestIp()}:${identity}`, {
+    limit,
+    windowMs: 15 * 60_000,
+    blockMs: 15 * 60_000
+  }).ok;
+}
+
+function serviceIdsFromValue(value: string) {
+  const rawIds = value.startsWith(BUNDLE_PREFIX)
+    ? value.slice(BUNDLE_PREFIX.length).split(",")
+    : [value];
+  return Array.from(new Set(rawIds.map((id) => id.trim()).filter(Boolean))).slice(0, 2);
+}
+
+function bundleComment(title: string, comment: string, bundled: boolean) {
+  if (!bundled) return comment;
+  return `${BUNDLE_COMMENT_PREFIX}${title}${comment ? `\n${comment}` : ""}`;
 }
 
 export async function registerClient(formData: FormData) {
   const firstName = required(formData.get("firstName"), "Имя");
   const lastName = required(formData.get("lastName"), "Фамилия");
   const phone = formatPhone(required(formData.get("phone"), "Телефон"));
-  const birthDate = new Date(required(formData.get("birthDate"), "Дата рождения"));
+  const birthDate = birthDateFrom(required(formData.get("birthDate"), "Дата рождения"));
   const notes = String(formData.get("comment") || "").trim();
+
+  if (!allowAttempt("client-register", phone, 5)) {
+    redirect("/register?error=too-many-attempts");
+  }
 
   const existing = await prisma.client.findUnique({ where: { phone } });
 
   if (existing?.status === "PENDING") redirect(`/pending?phone=${encodeURIComponent(existing.phone)}&already=1`);
-  if (existing?.status === "APPROVED") enterClientCabinet(existing.publicToken, { known: "1" });
+  if (existing?.status === "APPROVED") redirect(`/login?known=1&phone=${encodeURIComponent(phone)}`);
   if (existing?.status === "BANNED") redirect("/unavailable");
 
   const result = await syncPublicRegistration({ firstName, lastName, phone, birthDate, notes });
   const client = result.client;
 
-  if (client.status === "APPROVED") enterClientCabinet(client.publicToken, { known: "1" });
+  if (client.status === "APPROVED") redirect(`/login?known=1&phone=${encodeURIComponent(phone)}`);
   if (client.status === "BANNED") redirect("/unavailable");
 
   redirect(`/pending?phone=${encodeURIComponent(client.phone)}`);
@@ -60,32 +113,33 @@ export async function registerClient(formData: FormData) {
 
 export async function loginClient(formData: FormData) {
   const phone = formatPhone(required(formData.get("phone"), "Телефон"));
-  const birthDate = new Date(required(formData.get("birthDate"), "Дата рождения"));
+  const birthDate = birthDateFrom(required(formData.get("birthDate"), "Дата рождения"));
+
+  if (!allowAttempt("client-login", phone, 8)) {
+    redirect(`/login?error=too-many-attempts&phone=${encodeURIComponent(phone)}`);
+  }
 
   const client = await prisma.client.findUnique({ where: { phone } });
   if (!client) redirect(`/register?phone=${encodeURIComponent(phone)}`);
 
   const sameDate = client.birthDate.toISOString().slice(0, 10) === birthDate.toISOString().slice(0, 10);
-  if (!sameDate) redirect(`/login?error=wrong_birthdate`);
+  if (!sameDate) redirect(`/login?error=wrong-birthdate&phone=${encodeURIComponent(phone)}`);
 
   if (client.status === "APPROVED") enterClientCabinet(client.publicToken, { login: "1" });
-  if (client.status === "BANNED") redirect(`/unavailable`);
+  if (client.status === "BANNED") redirect("/unavailable");
   if (client.status === "REJECTED") redirect(`/register?phone=${encodeURIComponent(phone)}&rejected=1`);
   redirect(`/pending?phone=${encodeURIComponent(phone)}&already=1`);
 }
 
 export async function updateClientProfile(formData: FormData) {
-  const clientToken = required(formData.get("clientToken"), "Клиент");
+  const client = await currentClient();
   const firstName = required(formData.get("firstName"), "Имя");
   const lastName = required(formData.get("lastName"), "Фамилия");
   const phone = formatPhone(required(formData.get("phone"), "Телефон"));
   const birthDate = birthDateFrom(required(formData.get("birthDate"), "Дата рождения"));
 
-  const client = await prisma.client.findUnique({ where: { publicToken: clientToken } });
-  if (!client) redirect("/login");
-
   const duplicate = await prisma.client.findUnique({ where: { phone } });
-  if (duplicate && duplicate.id !== client.id) redirect(`/profile?client=${clientToken}&error=phone-exists`);
+  if (duplicate && duplicate.id !== client.id) redirect("/profile?error=phone-exists");
 
   let avatarUrl = client.avatarUrl;
   const removeAvatar = formData.get("removeAvatar") === "on";
@@ -94,99 +148,126 @@ export async function updateClientProfile(formData: FormData) {
   if (removeAvatar) {
     avatarUrl = "";
   } else if (avatarDataUrl) {
-    if (!avatarDataUrl.ok) redirect(`/profile?client=${clientToken}&error=avatar-${avatarDataUrl.error}`);
+    if (!avatarDataUrl.ok) redirect(`/profile?error=avatar-${avatarDataUrl.error}`);
     avatarUrl = avatarDataUrl.value;
   }
 
-  await prisma.client.update({ where: { id: client.id }, data: { firstName, lastName, phone, birthDate, avatarUrl } });
-  setClientCookie(clientToken);
+  await prisma.client.update({
+    where: { id: client.id },
+    data: { firstName, lastName, phone, birthDate, avatarUrl }
+  });
 
-  redirect(myUrl(clientToken, { profileSaved: "1" }) + "#profile");
+  redirect(myUrl({ profileSaved: "1" }) + "#profile");
 }
 
 export async function createBooking(formData: FormData) {
-  const token = required(formData.get("clientToken"), "Клиент");
-  const serviceId = required(formData.get("serviceId"), "Услуга");
+  const client = await currentClient();
+  const serviceValue = required(formData.get("serviceId"), "Услуга");
   const startAt = new Date(required(formData.get("startAt"), "Время"));
+  if (Number.isNaN(startAt.getTime())) redirect(myUrl({ bookingError: "time" }));
   const clientComment = String(formData.get("comment") || "").trim();
   const returnDate = optional(formData.get("returnDate")) || startAt.toISOString().slice(0, 10);
   const returnTime = optional(formData.get("returnTime")) || startAt.toISOString();
+  const serviceIds = serviceIdsFromValue(serviceValue);
 
-  const client = await prisma.client.findUnique({ where: { publicToken: token } });
-  if (!client || client.status !== "APPROVED") redirect("/unavailable");
+  const services = await prisma.service.findMany({
+    where: { id: { in: serviceIds }, isActive: true, showInBooking: true }
+  });
+  const byId = new Map(services.map((service) => [service.id, service]));
+  const orderedServices = serviceIds.map((id) => byId.get(id)).filter(Boolean) as typeof services;
 
-  const service = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!service || !service.isActive || !service.showInBooking) redirect(myUrl(token, { date: returnDate, time: returnTime, bookingError: "service" }));
+  if (orderedServices.length !== serviceIds.length || orderedServices.length === 0) {
+    redirect(myUrl({ date: returnDate, time: returnTime, bookingError: "service" }));
+  }
 
-  const settings = await prisma.setting.findMany();
+  const [settings, scheduleRules, dayOverrides] = await Promise.all([
+    prisma.setting.findMany(),
+    prisma.scheduleRule.findMany(),
+    prisma.dayOverride.findMany()
+  ]);
   const minVisibleStart = getOnlineBookingMinStart(settings);
-  if (startAt < minVisibleStart) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
+  if (startAt < minVisibleStart) {
+    redirect(myUrl({ date: returnDate, time: returnTime, busy: "1" }));
+  }
 
-  const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
-  if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
+  const durationMinutes = orderedServices.reduce((sum, service) => sum + service.durationMinutes, 0);
+  const finalPrice = orderedServices.reduce((sum, service) => sum + service.price, 0);
+  const serviceTitle = orderedServices.map((service) => service.title).join(" + ");
+  const endAt = new Date(startAt.getTime() + durationMinutes * 60_000);
+  const effectiveDay = getEffectiveDay(startAt, scheduleRules, dayOverrides);
+  const dayEnd = combineDateAndTime(startAt, effectiveDay.endTime);
+  if (endAt > dayEnd) {
+    redirect(myUrl({ date: returnDate, time: returnTime, busy: "1" }));
+  }
 
-  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  try {
+    const booking = await prisma.$transaction(async (tx) => {
+      const [onlineWindow, conflict, blocked] = await Promise.all([
+        tx.onlineWindow.findUnique({ where: { startAt } }),
+        tx.booking.findFirst({
+          where: {
+            status: { in: ["PENDING", "CONFIRMED"] },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt }
+          }
+        }),
+        tx.blockedSlot.findFirst({
+          where: { startAt: { lt: endAt }, endAt: { gt: startAt } }
+        })
+      ]);
 
-  const conflict = await prisma.booking.findFirst({
-    where: {
-      status: { in: ["PENDING", "CONFIRMED"] },
-      startAt: { lt: endAt },
-      endAt: { gt: startAt }
+      if (!onlineWindow || conflict || blocked) return null;
+
+      return tx.booking.create({
+        data: {
+          clientId: client.id,
+          serviceId: orderedServices[0].id,
+          startAt,
+          endAt,
+          clientComment: bundleComment(serviceTitle, clientComment, orderedServices.length > 1),
+          finalPrice,
+          status: "PENDING"
+        }
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    if (!booking) redirect(myUrl({ date: returnDate, time: returnTime, busy: "1" }));
+    redirect(myUrl({ created: booking.id }));
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      redirect(myUrl({ date: returnDate, time: returnTime, busy: "1" }));
     }
-  });
-
-  const blocked = await prisma.blockedSlot.findFirst({
-    where: { startAt: { lt: endAt }, endAt: { gt: startAt } }
-  });
-
-  if (conflict || blocked) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
-
-  const booking = await prisma.booking.create({
-    data: {
-      clientId: client.id,
-      serviceId: service.id,
-      startAt,
-      endAt,
-      clientComment,
-      finalPrice: service.price,
-      status: "PENDING"
-    }
-  });
-
-  setClientCookie(token);
-  redirect(myUrl(token, { created: booking.id }));
+    throw error;
+  }
 }
 
 export async function rememberClientBooking(formData: FormData) {
-  const token = required(formData.get("clientToken"), "Клиент");
+  const client = await currentClient();
   const bookingId = required(formData.get("bookingId"), "Запись");
 
   const booking = await prisma.booking.findFirst({
-    where: { id: bookingId, client: { is: { publicToken: token } }, status: { in: ["PENDING", "CONFIRMED"] } },
+    where: { id: bookingId, clientId: client.id, status: { in: ["PENDING", "CONFIRMED"] } },
     select: { id: true, startAt: true, clientComment: true }
   });
 
-  if (!booking) redirect(myUrl(token));
-  if (!canRememberBooking(booking.startAt)) redirect(myUrl(token, { rememberError: "early" }) + "#upcoming-booking");
+  if (!booking) redirect(myUrl());
+  if (!canRememberBooking(booking.startAt)) {
+    redirect(myUrl({ rememberError: "early" }) + "#upcoming-booking");
+  }
 
   await prisma.booking.update({
     where: { id: booking.id },
     data: { clientComment: addBookingMark(booking.clientComment, CLIENT_REMEMBER_MARK) }
   });
 
-  setClientCookie(token);
-  redirect(myUrl(token, { remembered: "1" }) + "#upcoming-booking");
+  redirect(myUrl({ remembered: "1" }) + "#upcoming-booking");
 }
 
 export async function joinWaitlist(formData: FormData) {
-  const token = required(formData.get("clientToken"), "Клиент");
+  const client = await currentClient();
   const mode = String(formData.get("waitMode") || "NEAREST");
   const note = String(formData.get("note") || "").trim();
   const desiredDates = formData.getAll("desiredDates").map((value) => String(value)).filter(Boolean);
-
-  const client = await prisma.client.findUnique({ where: { publicToken: token } });
-  if (!client || client.status !== "APPROVED") redirect("/unavailable");
-
   const waitMode = mode === "DATES" ? "DATES" : "NEAREST";
 
   const existing = await prisma.waitlistEntry.findFirst({
@@ -207,40 +288,33 @@ export async function joinWaitlist(formData: FormData) {
     await prisma.waitlistEntry.create({ data: { clientId: client.id, ...data } });
   }
 
-  setClientCookie(token);
-  redirect(`/my?client=${token}&waitlist=${waitMode === "DATES" ? "dates" : "nearest"}#waitlist`);
+  redirect(myUrl({ waitlist: waitMode === "DATES" ? "dates" : "nearest" }) + "#waitlist");
 }
 
 export async function cancelWaitlistEntry(formData: FormData) {
-  const token = required(formData.get("clientToken"), "Клиент");
+  const client = await currentClient();
   const waitlistId = required(formData.get("waitlistId"), "Лист ожидания");
-
-  const client = await prisma.client.findUnique({ where: { publicToken: token } });
-  if (!client) redirect("/login");
 
   await prisma.waitlistEntry.updateMany({
     where: { id: waitlistId, clientId: client.id, status: "ACTIVE" },
     data: { status: "CANCELLED_BY_CLIENT", closedAt: new Date() }
   });
 
-  setClientCookie(token);
-  redirect(`/my?client=${token}&waitlist=cancelled#waitlist`);
+  redirect(myUrl({ waitlist: "cancelled" }) + "#waitlist");
 }
 
 export async function cancelClientBooking(formData: FormData) {
-  const token = required(formData.get("clientToken"), "Клиент");
+  const client = await currentClient();
   const bookingId = required(formData.get("bookingId"), "Запись");
   const afterCancel = optional(formData.get("afterCancel"));
-
-  const client = await prisma.client.findUnique({ where: { publicToken: token } });
-  if (!client) redirect("/login");
 
   await prisma.booking.updateMany({
     where: { id: bookingId, clientId: client.id, status: { in: ["PENDING", "CONFIRMED"] } },
     data: { status: "CANCELLED_BY_CLIENT", cancelledAt: new Date() }
   });
 
-  setClientCookie(token);
-  if (afterCancel === "reschedule") redirect(`/my?client=${token}&cancelled=1&reschedule=1#windows`);
-  redirect(`/my?client=${token}&cancelled=1`);
+  if (afterCancel === "reschedule") {
+    redirect(myUrl({ cancelled: "1", reschedule: "1" }) + "#booking-flow");
+  }
+  redirect(myUrl({ cancelled: "1" }));
 }

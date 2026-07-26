@@ -1,0 +1,23 @@
+# dependencies and builds
+node_modules/
+.next/
+out/
+
+# local environment and secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs and local tooling
+*.log
+*.tsbuildinfo
+.DS_Store
+.vercel/
+.railway/
+
+# local databases and exports
+*.db
+*.sqlite
+*.sql
+uploads/

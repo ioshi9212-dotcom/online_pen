@@ -1,14 +1,17 @@
 export default function UnavailablePage() {
   return (
-    <section className="card auth-card">
-      <p className="eyebrow">Доступ закрыт</p>
-      <h1>Расписание не открылось</h1>
-      <p>Похоже, заявка ещё не подтверждена или доступ ограничен.</p>
-      <div className="notice danger-notice">Если это ошибка — напишите мастеру напрямую. Сайт сам себя не переубедит.</div>
-      <div className="actions" style={{ marginTop: 16 }}>
-        <a className="button secondary" href="/login">Попробовать вход</a>
-        <a className="quiet-link" href="/">На главную</a>
-      </div>
-    </section>
+    <main className="client-v2 auth-v2">
+      <section className="auth-v2-card is-compact">
+        <div className="auth-v2-heading">
+          <span className="client-v2-kicker">Доступ закрыт</span>
+          <h1>Расписание пока недоступно</h1>
+          <p>Возможно, мастер ещё не открыл доступ или ограничил его. Если вы уверены, что это ошибка, напишите мастеру.</p>
+        </div>
+        <div className="public-v2-actions">
+          <a className="client-v2-button" href="/login">Проверить ещё раз</a>
+          <a className="client-v2-button is-secondary" href="/">На главную</a>
+        </div>
+      </section>
+    </main>
   );
 }

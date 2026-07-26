@@ -17,10 +17,9 @@ function errorText(error?: string) {
   return "";
 }
 
-export default async function ClientProfilePage({ searchParams }: { searchParams: { client?: string; error?: string } }) {
-  const token = searchParams.client || getClientCookie();
+export default async function ClientProfilePage({ searchParams }: { searchParams: { error?: string } }) {
+  const token = getClientCookie();
   if (!token) redirect("/login");
-  if (!searchParams.client) redirect(`/profile?client=${token}`);
 
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client) redirect("/login");
@@ -29,21 +28,22 @@ export default async function ClientProfilePage({ searchParams }: { searchParams
   const error = errorText(searchParams.error);
 
   return (
-    <main className="client-page">
-      <section className="hero">
-        <div className="actions" style={{ justifyContent: "space-between" }}>
-          <div><h1>Профиль</h1><p>{client.firstName}, здесь можно поправить данные и поставить фото.</p></div>
-          <div className="actions">
-            <a className="button secondary" href={`/my?client=${token}`}>В кабинет</a>
-            <a className="button secondary" href="/logout">Выйти</a>
-          </div>
+    <main className="client-v2 profile-v2">
+      <section className="profile-v2-heading">
+        <div>
+          <span className="client-v2-kicker">Личный кабинет</span>
+          <h1>Профиль</h1>
+          <p>{client.firstName}, здесь можно изменить контактные данные и фотографию.</p>
+        </div>
+        <div className="profile-v2-actions">
+          <a className="client-v2-button is-secondary" href="/my">Назад к записи</a>
+          <a className="client-v2-text-link" href="/logout">Выйти</a>
         </div>
       </section>
 
       {error ? <div className="notice danger-status">{error}</div> : null}
 
       <ProfileAvatarForm
-        token={token}
         client={{
           firstName: client.firstName,
           lastName: client.lastName,

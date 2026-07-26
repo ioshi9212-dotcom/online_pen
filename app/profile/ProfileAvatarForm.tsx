@@ -3,7 +3,6 @@
 import { FormEvent, useRef, useState } from "react";
 
 type Props = {
-  token: string;
   client: {
     firstName: string;
     lastName: string;
@@ -57,7 +56,7 @@ async function compressAvatar(file: File) {
   }
 }
 
-export default function ProfileAvatarForm({ token, client }: Props) {
+export default function ProfileAvatarForm({ client }: Props) {
   const [preview, setPreview] = useState(client.avatarUrl);
   const [avatarDataUrl, setAvatarDataUrl] = useState("");
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -140,7 +139,6 @@ export default function ProfileAvatarForm({ token, client }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clientToken: token,
           firstName: String(formData.get("firstName") || ""),
           lastName: String(formData.get("lastName") || ""),
           phone: String(formData.get("phone") || ""),
@@ -158,7 +156,7 @@ export default function ProfileAvatarForm({ token, client }: Props) {
       }
 
       setSaved(true);
-      window.location.assign(result.redirectTo || `/my?client=${token}&profileSaved=1#profile`);
+      window.location.assign(result.redirectTo || "/my?profileSaved=1#profile");
     } catch {
       setError("Не удалось сохранить профиль. Интернет или сайт опять решили устроить драму.");
       setSaving(false);
@@ -166,7 +164,7 @@ export default function ProfileAvatarForm({ token, client }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card grid avatar-upload-form">
+    <form onSubmit={handleSubmit} className="client-v2-form profile-v2-form avatar-upload-form">
       <div className="profile-avatar-upload">
         <div className="avatar-preview profile-avatar-preview">
           {preview ? <img src={preview} alt="Фото клиента" /> : <span>{client.firstName.slice(0, 1).toUpperCase()}</span>}
@@ -175,25 +173,25 @@ export default function ProfileAvatarForm({ token, client }: Props) {
           <label>Фото клиента
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange} />
           </label>
-          <p className="muted">Добавьте фото, чтобы я понимала, кто записался. Фото вижу только я. У сайта нет цели сделать из этого доску розыска.</p>
+          <p>Фото поможет мастеру быстрее найти вашу карточку. Оно видно только в кабинете мастера.</p>
           {client.avatarUrl || preview ? <label className="avatar-remove-check"><input type="checkbox" checked={removeAvatar} onChange={handleRemoveAvatar} /> Убрать фото</label> : null}
-          {reading ? <p className="notice">Обрабатываю фото… секунду.</p> : null}
-          {saved ? <p className="notice ok-status">Профиль сохранён. Сейчас верну в кабинет.</p> : null}
-          {error ? <p className="notice danger-notice">{error}</p> : null}
+          {reading ? <p className="client-v2-flash">Обрабатываем фото…</p> : null}
+          {saved ? <p className="client-v2-flash is-success">Профиль сохранён.</p> : null}
+          {error ? <p className="client-v2-flash is-error">{error}</p> : null}
         </div>
       </div>
 
-      <div className="grid-2">
+      <div className="client-v2-form-grid">
         <label>Имя<input name="firstName" required defaultValue={client.firstName} /></label>
         <label>Фамилия<input name="lastName" required defaultValue={client.lastName} /></label>
       </div>
-      <div className="grid-2">
+      <div className="client-v2-form-grid">
         <label>Телефон<input name="phone" required defaultValue={client.phone} /></label>
         <label>Дата рождения<input name="birthDate" type="date" required defaultValue={client.birthDate} /></label>
       </div>
-      <div className="actions">
+      <div className="profile-v2-form-actions">
         <button type="submit" disabled={reading || saving}>{reading ? "Обрабатываю…" : saving ? "Сохраняю…" : "Сохранить"}</button>
-        <a className="button secondary" href={`/my?client=${token}`}>Назад</a>
+        <a className="client-v2-button is-secondary" href="/my">Отмена</a>
       </div>
     </form>
   );

@@ -1,4 +1,4 @@
-import { approveClient, rejectClient } from "@/app/admin/actions";
+import { approveClient, approveClientAndMessage, rejectClient } from "@/app/admin/actions";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -32,7 +32,8 @@ export default async function RequestsPage() {
               <td>{client.birthDate.toISOString().slice(0, 10)}</td>
               <td>{client.notes}</td>
               <td className="actions">
-                <form action={approveClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin/requests" /><button className="ok">Подтвердить</button></form>
+                <form action={approveClientAndMessage}><input type="hidden" name="id" value={client.id} /><button className="ok">Открыть и написать</button></form>
+                <form action={approveClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin/requests" /><button className="secondary">Только открыть</button></form>
                 <form action={rejectClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin/requests" /><button className="danger">Отклонить</button></form>
               </td>
             </tr>

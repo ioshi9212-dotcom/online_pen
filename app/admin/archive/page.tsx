@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/admin";
+import { bookingDisplayComment, bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { formatDateTime, rub } from "@/lib/format";
 import { bookingStatusLabel, statusClass } from "@/lib/statusLabels";
 import { prisma } from "@/lib/prisma";
@@ -74,9 +75,9 @@ export default async function ArchivePage() {
               <tr key={booking.id}>
                 <td>{formatDateTime(booking.startAt)}</td>
                 <td>{booking.client.lastName} {booking.client.firstName}<br /><span className="small">{booking.client.phone}</span></td>
-                <td>{booking.service.title}<br /><span className="small">{rub(booking.finalPrice ?? booking.service.price)}</span></td>
+                <td>{bookingDisplayTitle(booking.service.title, booking.clientComment)}<br /><span className="small">{rub(booking.finalPrice ?? booking.service.price)}</span></td>
                 <td><span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span></td>
-                <td><b>Клиент:</b> {booking.clientComment || "—"}<br /><b>Мастер:</b> {booking.adminComment || "—"}</td>
+                <td><b>Клиент:</b> {bookingDisplayComment(booking.clientComment) || "—"}<br /><b>Мастер:</b> {booking.adminComment || "—"}</td>
               </tr>
             ))}
           </tbody>

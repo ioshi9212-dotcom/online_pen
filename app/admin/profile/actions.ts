@@ -1,6 +1,6 @@
 "use server";
 
-import { isAdmin } from "@/lib/admin";
+import { clearAdminCookie, isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { changeAdminPassword } from "@/lib/adminPassword";
 import { redirect } from "next/navigation";
@@ -32,9 +32,11 @@ export async function saveMasterProfile(formData: FormData) {
   const repeatPassword = clean(formData.get("repeatAdminPassword"));
 
   if (password || repeatPassword) {
-    if (password.length < 4) redirect("/admin/profile?error=short-password");
+    if (password.length < 12) redirect("/admin/profile?error=short-password");
     if (password !== repeatPassword) redirect("/admin/profile?error=password-mismatch");
     await changeAdminPassword(password);
+    clearAdminCookie();
+    redirect("/admin/login?passwordChanged=1");
   }
 
   redirect("/admin/profile?saved=1");

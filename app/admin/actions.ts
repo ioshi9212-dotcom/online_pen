@@ -6,6 +6,7 @@ import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 const BOOKING_STATUSES = new Set(["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"]);
@@ -40,6 +41,28 @@ export async function approveClient(formData: FormData) {
   guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
   redirect(redirectTarget(formData, "/admin"));
+}
+
+export async function approveClientAndMessage(formData: FormData) {
+  guard();
+  const client = await prisma.client.update({
+    where: { id: getId(formData) },
+    data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null },
+    select: { firstName: true, phone: true }
+  });
+
+  const requestHeaders = headers();
+  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host") || "";
+  const protocol = requestHeaders.get("x-forwarded-proto") || "https";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${protocol}://${host}` : "");
+  const digits = client.phone.replace(/\D/g, "").replace(/^8(?=\d{10}$)/, "7");
+  const message = [
+    `${client.firstName}, доступ к онлайн-записи открыт.`,
+    appUrl ? `Войдите по ссылке: ${appUrl}/login` : "Теперь можно войти на сайт и выбрать время.",
+    "Для входа понадобятся телефон и дата рождения."
+  ].join("\n");
+
+  redirect(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`);
 }
 
 export async function rejectClient(formData: FormData) {
