@@ -294,6 +294,10 @@ body:has(.site-header-v2) .app-shell {
   justify-items: start !important;
 }
 
+.public-v2-mobile-notice {
+  display: none !important;
+}
+
 .public-v2-copy h1 {
   max-width: 720px !important;
 }
@@ -1962,8 +1966,13 @@ body:has(.site-header-v2) .app-shell {
 }
 
 @media (max-width: 430px) {
+  body {
+    overflow-x: hidden !important;
+  }
+
   .client-v2 {
     width: calc(100% - 20px) !important;
+    padding-top: 16px !important;
   }
 
   .site-header-v2 {
@@ -1985,7 +1994,48 @@ body:has(.site-header-v2) .app-shell {
 
   .client-v2 h1,
   .public-v2-copy h1 {
-    font-size: 36px !important;
+    font-size: 32px !important;
+    line-height: 1.04 !important;
+  }
+
+  .public-v2 {
+    gap: 40px !important;
+  }
+
+  .public-v2-hero {
+    gap: 24px !important;
+  }
+
+  .public-v2-mobile-notice {
+    width: 100% !important;
+    margin-bottom: 18px !important;
+    padding: 16px !important;
+    display: grid !important;
+    gap: 5px !important;
+    border: 1px solid rgba(183, 72, 112, .24) !important;
+    border-radius: 16px !important;
+    background: var(--v2-accent-soft) !important;
+  }
+
+  .public-v2-mobile-notice b {
+    color: var(--v2-accent-dark) !important;
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+  }
+
+  .public-v2-mobile-notice span {
+    color: var(--v2-ink) !important;
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+  }
+
+  .public-v2-copy > p {
+    margin-top: 16px !important;
+    font-size: 16px !important;
+  }
+
+  .public-v2-copy > small {
+    margin-top: 12px !important;
   }
 
   .public-v2-actions,
@@ -1998,14 +2048,34 @@ body:has(.site-header-v2) .app-shell {
   .public-v2-actions .client-v2-button,
   .pending-v2-actions .client-v2-button {
     width: 100% !important;
+    min-height: 50px !important;
   }
 
   .public-v2-visual {
-    min-height: 310px !important;
+    min-height: 250px !important;
+    border-radius: 22px !important;
   }
 
   .public-v2-phone {
-    padding: 22px !important;
+    padding: 18px !important;
+    transform: rotate(-2deg) !important;
+  }
+
+  .client-v2-access-steps > span {
+    padding: 14px !important;
+  }
+
+  .client-v2-step {
+    padding: 18px 14px !important;
+  }
+
+  .client-v2-service-grid .client-v2-service {
+    min-height: 104px !important;
+  }
+
+  .client-v2-time-grid button,
+  .client-v2-calendar-grid > button {
+    min-height: 44px !important;
   }
 
   .auth-v2-card {

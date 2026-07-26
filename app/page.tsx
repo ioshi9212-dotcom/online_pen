@@ -25,11 +25,15 @@ export default async function HomePage() {
     <main className="client-v2 public-v2">
       <section className="public-v2-hero">
         <div className="public-v2-copy">
+          <div className="public-v2-mobile-notice">
+            <b>Сначала — подтверждение мастера</b>
+            <span>Расписание появится после того, как мастер проверит заявку и откроет доступ.</span>
+          </div>
           <span className="client-v2-kicker">Онлайн-запись</span>
           <h1>Удобное время — без переписки туда-сюда</h1>
-          <p>Расписание открывается постоянным клиентам после короткой проверки мастером.</p>
+          <p>Сначала мастер проверит заявку. После подтверждения откроются свободные даты и время.</p>
           <div className="public-v2-actions">
-            <a className="client-v2-button" href="/register">Запросить доступ</a>
+            <a className="client-v2-button" href="/register">Отправить заявку на доступ</a>
             <a className="client-v2-button is-secondary" href="/login">У меня уже есть доступ</a>
           </div>
           <small>Запрос доступа — это ещё не запись на услугу.</small>
