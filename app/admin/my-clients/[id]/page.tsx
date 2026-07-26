@@ -1,7 +1,8 @@
 import { isAdmin } from "@/lib/admin";
+import { bookingDisplayComment, bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { formatDateTime, rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
+import { CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { redirect } from "next/navigation";
 import { archiveClient, saveMyClient } from "../actions";
 
@@ -93,9 +94,9 @@ export default async function AdminClientProfilePage({ params, searchParams = {}
           {client.bookings.map((booking) => (
             <div className={booking.status === "PENDING" ? "mini-item pending-item" : "mini-item"} key={booking.id}>
               <b>{formatDateTime(booking.startAt)}</b>
-              <span>{booking.service.title} · {rub(booking.finalPrice ?? booking.service.price)}</span>
+              <span>{bookingDisplayTitle(booking.service.title, booking.clientComment)} · {rub(booking.finalPrice ?? booking.service.price)}</span>
               <span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span>
-              {booking.clientComment ? <small>Клиент: {booking.clientComment}</small> : null}
+              {bookingDisplayComment(booking.clientComment) ? <small>Клиент: {bookingDisplayComment(booking.clientComment)}</small> : null}
               {booking.adminComment ? <small>Заметка: {booking.adminComment}</small> : null}
               <a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить запись</a>
             </div>

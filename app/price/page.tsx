@@ -1,78 +1,52 @@
-import { prisma } from "@/lib/prisma";
+import { getClientCookie } from "@/lib/clientSession";
 import { rub } from "@/lib/format";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function PricePage({ searchParams = {} }: { searchParams?: { client?: string } }) {
-  const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
+export default async function PricePage() {
+  const services = await prisma.service.findMany({
+    where: { isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }]
+  });
   const mainServices = services.filter((service) => service.showInBooking);
-  const priceOnly = services.filter((service) => !service.showInBooking);
-  const token = searchParams.client;
+  const addOns = services.filter((service) => !service.showInBooking);
+  const inCabinet = Boolean(getClientCookie());
 
   return (
-    <main className="price-page page">
-      <section className="hero price-hero">
-        <p className="muted">Прайс</p>
-        <h1>Услуги и цены</h1>
-        <p className="lead">Основные услуги можно выбрать при записи. Допы видны в прайсе, но не бронируются как отдельное окно.</p>
-        <div className="actions">
-          {token ? <a className="button" href={`/my?client=${token}#windows`}>К свободным окнам</a> : <a className="button" href="/login">Войти для записи</a>}
-          <a className="button secondary" href={token ? `/my?client=${token}` : "/"}>Назад</a>
-        </div>
+    <main className="client-v2 price-v2">
+      <section className="price-v2-heading">
+        <div><span className="client-v2-kicker">Прайс</span><h1>Услуги и цены</h1><p>Основные услуги бронируют время. Дополнения можно указать в комментарии к записи.</p></div>
+        <a className="client-v2-button" href={inCabinet ? "/my#booking-flow" : "/login"}>{inCabinet ? "Выбрать время" : "Войти для записи"}</a>
       </section>
 
       {mainServices.length ? (
-        <section className="price-section card">
-          <div className="section-head">
-            <div>
-              <h2>Основные услуги</h2>
-              <p>Их можно выбрать как отдельную запись.</p>
-            </div>
-          </div>
-          <div className="pretty-price-grid">
+        <section className="price-v2-section">
+          <h2>Основные услуги</h2>
+          <div className="price-v2-grid">
             {mainServices.map((service) => (
-              <article className="pretty-price-card main-price-card" key={service.id}>
-                <div>
-                  <span className="price-label">Запись</span>
-                  <h3>{service.title}</h3>
-                  <p>{service.description || "Основная услуга для записи."}</p>
-                </div>
-                <div className="pretty-price-bottom">
-                  <span>{service.durationMinutes} мин</span>
-                  <b>{rub(service.price)}</b>
-                </div>
+              <article key={service.id}>
+                <div><span>Запись</span><h3>{service.title}</h3><p>{service.description || "Основная услуга для записи."}</p></div>
+                <footer><small>{service.durationMinutes} мин</small><b>{rub(service.price)}</b></footer>
               </article>
             ))}
           </div>
         </section>
       ) : null}
 
-      {priceOnly.length ? (
-        <section className="price-section card">
-          <div className="section-head">
-            <div>
-              <h2>Дополнительно</h2>
-              <p>Эти позиции можно добавить к основной услуге по согласованию с мастером.</p>
-            </div>
-          </div>
-          <div className="pretty-addon-list">
-            {priceOnly.map((service) => (
-              <article className="pretty-addon-row" key={service.id}>
-                <div>
-                  <h3>{service.title}</h3>
-                  {service.description ? <p>{service.description}</p> : <p>Дополнительная позиция в прайсе.</p>}
-                </div>
-                <div>
-                  <span>{service.durationMinutes} мин</span>
-                  <b>{rub(service.price)}</b>
-                </div>
+      {addOns.length ? (
+        <section className="price-v2-section">
+          <h2>Дополнительно</h2>
+          <div className="price-v2-list">
+            {addOns.map((service) => (
+              <article key={service.id}>
+                <div><b>{service.title}</b>{service.description ? <span>{service.description}</span> : null}</div>
+                <strong>{rub(service.price)}</strong>
               </article>
             ))}
           </div>
         </section>
       ) : null}
-
-      {services.length === 0 ? <div className="notice">Прайс пока пуст.</div> : null}
     </main>
   );
 }

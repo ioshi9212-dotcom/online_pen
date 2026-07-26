@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/admin";
+import { bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { formatDateOnly, formatTimeOnly } from "@/lib/format";
 import { getOnlineBookingHideDays, onlineBookingHideDaysLabel } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
@@ -126,7 +127,7 @@ function buildSelectedTimes(params: {
           clientId: bookingStart.clientId,
           clientName: `${bookingStart.client.firstName} ${bookingStart.client.lastName}`,
           serviceId: bookingStart.serviceId,
-          serviceTitle: bookingStart.service.title,
+          serviceTitle: bookingDisplayTitle(bookingStart.service.title, bookingStart.clientComment),
           durationMinutes: bookingStart.service.durationMinutes,
           finalPrice: bookingStart.finalPrice,
           clientComment: bookingStart.clientComment,

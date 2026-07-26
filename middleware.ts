@@ -5,7 +5,9 @@ const LOGIN_PATH = "/admin/login";
 const LOGOUT_PATH = "/admin/logout";
 
 function secret() {
-  return process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || "dev-secret";
+  const value = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD;
+  if (!value && process.env.NODE_ENV === "production") return "";
+  return value || "dev-secret";
 }
 
 function toHex(buffer: ArrayBuffer) {
@@ -13,6 +15,7 @@ function toHex(buffer: ArrayBuffer) {
 }
 
 async function adminToken() {
+  if (!secret()) return "";
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",

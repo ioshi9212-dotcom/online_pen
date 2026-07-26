@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
 
 const COOKIE_NAME = "online_pen_client";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
+const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function secret() {
   const value = process.env.CLIENT_SESSION_SECRET || process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD;

@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/admin";
+import { bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { prisma } from "@/lib/prisma";
 import { CLIENT_STATUS_OPTIONS, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import type { Prisma } from "@prisma/client";
@@ -149,7 +150,7 @@ export default async function MyClientsPage({ searchParams = {} }: { searchParam
                       </div>
                       <div className="compact-client-meta">
                         <p>{client.phone}</p>
-                        {nextBooking ? <small>Запись: {nextBooking.startAt.toLocaleDateString("ru-RU")} · {nextBooking.service.title}</small> : <small>Активных записей нет</small>}
+                        {nextBooking ? <small>Запись: {nextBooking.startAt.toLocaleDateString("ru-RU")} · {bookingDisplayTitle(nextBooking.service.title, nextBooking.clientComment)}</small> : <small>Активных записей нет</small>}
                       </div>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import { normalizeAvatarDataUrl } from "@/lib/avatarUpload";
-import { setClientCookie } from "@/lib/clientSession";
+import { getClientCookie } from "@/lib/clientSession";
 import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 type ProfilePayload = {
-  clientToken?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -33,13 +32,14 @@ export async function POST(request: Request) {
     return error("Не удалось прочитать данные профиля.");
   }
 
-  const clientToken = clean(payload.clientToken);
+  const clientToken = getClientCookie();
   const firstName = clean(payload.firstName);
   const lastName = clean(payload.lastName);
   const phone = formatPhone(clean(payload.phone));
   const birthDateText = clean(payload.birthDate);
 
-  if (!clientToken || !firstName || !lastName || !phone || !birthDateText) return error("Заполните имя, фамилию, телефон и дату рождения.");
+  if (!clientToken) return error("Сессия закончилась. Войдите ещё раз.", 401);
+  if (!firstName || !lastName || !phone || !birthDateText) return error("Заполните имя, фамилию, телефон и дату рождения.");
 
   const client = await prisma.client.findUnique({ where: { publicToken: clientToken } });
   if (!client) return error("Клиент не найден.", 404);
@@ -70,7 +70,5 @@ export async function POST(request: Request) {
     }
   });
 
-  setClientCookie(clientToken);
-
-  return NextResponse.json({ ok: true, redirectTo: `/my?client=${clientToken}&profileSaved=1#profile` });
+  return NextResponse.json({ ok: true, redirectTo: "/my?profileSaved=1#profile" });
 }

@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 const COOKIE_NAME = "online_pen_admin";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 400;
+const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function secret() {
   const value = process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD;
@@ -19,7 +19,9 @@ export function adminToken() {
 }
 
 export function isAdmin() {
-  return cookies().get(COOKIE_NAME)?.value === adminToken();
+  const current = Buffer.from(cookies().get(COOKIE_NAME)?.value || "");
+  const expected = Buffer.from(adminToken());
+  return current.length === expected.length && timingSafeEqual(current, expected);
 }
 
 export function setAdminCookie() {

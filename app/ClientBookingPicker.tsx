@@ -1,21 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { createBooking } from "@/app/actions";
-import { businessDateKey, businessMonthKey, formatInBusinessTime } from "@/lib/timezone";
+import {
+  businessDateFromKey,
+  businessDateKey,
+  businessMonthKey,
+  formatInBusinessTime,
+  parseDateKey
+} from "@/lib/timezone";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-type WindowItem = {
+export type BookingWindow = {
   id: string;
   startAt: string;
-  busy: boolean;
+  availableServiceIds: string[];
 };
 
-type ServiceItem = {
+export type BookingServiceOption = {
   id: string;
   title: string;
   description?: string | null;
   durationMinutes: number;
   price: number;
+  isBundle?: boolean;
 };
 
 type ClientInfo = {
@@ -25,12 +32,11 @@ type ClientInfo = {
 };
 
 type Props = {
-  token: string;
   client: ClientInfo;
-  windows: WindowItem[];
-  services: ServiceItem[];
-  initialDate: string;
-  initialTime?: string;
+  windows: BookingWindow[];
+  services: BookingServiceOption[];
+  initialDate?: string;
+  previewMode?: boolean;
 };
 
 function upperFirst(text: string) {
@@ -49,8 +55,8 @@ function fmtDate(value: string | Date) {
   return upperFirst(formatInBusinessTime(value, { day: "numeric", month: "long", weekday: "long" }));
 }
 
-function fmtMonth(value: string | Date) {
-  return upperFirst(formatInBusinessTime(value, { month: "long", year: "numeric" }));
+function fmtMonth(key: string) {
+  return upperFirst(formatInBusinessTime(businessDateFromKey(`${key}-01`), { month: "long", year: "numeric" }));
 }
 
 function fmtTime(value: string | Date) {
@@ -58,31 +64,55 @@ function fmtTime(value: string | Date) {
 }
 
 function rub(value: number) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
+    maximumFractionDigits: 0
+  }).format(value);
 }
 
-function daysInMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+function daysInMonth(key: string) {
+  const { year, month } = parseDateKey(`${key}-01`);
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-function monthOffset(date: Date) {
-  const first = new Date(date.getFullYear(), date.getMonth(), 1);
-  return (first.getDay() + 6) % 7;
-}
-
-function monthStart(key: string) {
-  return new Date(`${key}-01T00:00:00`);
+function monthOffset(key: string) {
+  const { year, month } = parseDateKey(`${key}-01`);
+  return (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
 }
 
 function addMonths(key: string, offset: number) {
-  const date = monthStart(key);
-  date.setMonth(date.getMonth() + offset);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  const { year, month } = parseDateKey(`${key}-01`);
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export default function ClientBookingPicker({ token, client, windows, services, initialDate, initialTime = "" }: Props) {
+function focusSection(element: HTMLElement | null) {
+  if (!element) return;
+  window.setTimeout(() => {
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    element.focus({ preventScroll: true });
+  }, 80);
+}
+
+export default function ClientBookingPicker({
+  client,
+  windows,
+  services,
+  initialDate = "",
+  previewMode = false
+}: Props) {
+  const serviceRef = useRef<HTMLElement | null>(null);
+  const calendarRef = useRef<HTMLElement | null>(null);
+  const timeRef = useRef<HTMLElement | null>(null);
+  const reviewRef = useRef<HTMLElement | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedDateKey, setSelectedDateKey] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [previewSubmitted, setPreviewSubmitted] = useState(false);
+
   const windowsByDate = useMemo(() => {
-    const map = new Map<string, WindowItem[]>();
+    const map = new Map<string, BookingWindow[]>();
     for (const item of windows) {
       const key = dayKey(item.startAt);
       map.set(key, [...(map.get(key) || []), item]);
@@ -90,212 +120,256 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     return map;
   }, [windows]);
 
-  const freeDateKeys = useMemo(() => new Set(windows.filter((item) => !item.busy).map((item) => dayKey(item.startAt))), [windows]);
-  const activeDateKeys = useMemo(() => new Set(windows.map((item) => dayKey(item.startAt))), [windows]);
-  const firstFreeDate = useMemo(() => Array.from(freeDateKeys).sort()[0] || initialDate || dayKey(new Date()), [freeDateKeys, initialDate]);
-  const currentMonthKey = monthKey(new Date());
-  const [visibleMonthKey, setVisibleMonthKey] = useState(monthKey(initialDate || firstFreeDate));
-  const [selectedDateKey, setSelectedDateKey] = useState(initialDate || firstFreeDate);
-  const [draftServiceId, setDraftServiceId] = useState(services[0]?.id || "");
-  const [confirmedServiceId, setConfirmedServiceId] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const selectedService = services.find((service) => service.id === selectedServiceId);
+  const windowsForService = useMemo(
+    () => selectedServiceId
+      ? windows.filter((window) => window.availableServiceIds.includes(selectedServiceId))
+      : [],
+    [selectedServiceId, windows]
+  );
+  const freeDateKeys = useMemo(
+    () => new Set(windowsForService.map((window) => dayKey(window.startAt))),
+    [windowsForService]
+  );
+  const firstFreeDate = useMemo(
+    () => Array.from(freeDateKeys).sort()[0] || "",
+    [freeDateKeys]
+  );
+  const initialMonth = initialDate ? initialDate.slice(0, 7) : monthKey(new Date());
+  const [visibleMonthKey, setVisibleMonthKey] = useState(initialMonth);
+  const availableMonthKeys = useMemo(
+    () => Array.from(new Set(windowsForService.map((window) => monthKey(window.startAt)))).sort(),
+    [windowsForService]
+  );
+  const selectedDayWindows = selectedDateKey ? windowsByDate.get(selectedDateKey) || [] : [];
+  const selectedAvailableWindows = selectedDayWindows.filter((window) => window.availableServiceIds.includes(selectedServiceId));
+  const selectedWindow = selectedAvailableWindows.find((window) => window.startAt === selectedTime);
+  const maxMonthKey = availableMonthKeys[availableMonthKeys.length - 1] || visibleMonthKey;
+  const minMonthKey = availableMonthKeys[0] || visibleMonthKey;
+  const monthDays = Array.from({ length: daysInMonth(visibleMonthKey) }, (_, index) => index + 1);
 
-  const availableMonthKeys = useMemo(() => Array.from(new Set(windows.map((item) => monthKey(item.startAt)))).sort(), [windows]);
-  const maxMonthKey = availableMonthKeys[availableMonthKeys.length - 1] || currentMonthKey;
-  const visibleMonth = monthStart(visibleMonthKey);
-  const showPrev = visibleMonthKey > currentMonthKey;
-  const showNext = visibleMonthKey < maxMonthKey;
+  useEffect(() => {
+    if (selectedServiceId && !selectedDateKey) focusSection(calendarRef.current);
+  }, [selectedServiceId, selectedDateKey]);
 
-  const monthDays = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonthKey]);
-  const selectedWindows = useMemo(() => windowsByDate.get(selectedDateKey) || [], [windowsByDate, selectedDateKey]);
-  const selectedFreeCount = selectedWindows.filter((item) => !item.busy).length;
-  const selectedBusyCount = selectedWindows.length - selectedFreeCount;
-  const selectedWindow = selectedWindows.find((item) => item.startAt === selectedTime && !item.busy);
-  const draftService = services.find((service) => service.id === draftServiceId);
-  const confirmedService = services.find((service) => service.id === confirmedServiceId);
+  useEffect(() => {
+    if (selectedDateKey && !selectedTime) focusSection(timeRef.current);
+  }, [selectedDateKey, selectedTime]);
 
-  function chooseDate(key: string) {
-    setSelectedDateKey(key);
-    setVisibleMonthKey(monthKey(key));
-    setSelectedTime("");
-    setConfirmedServiceId("");
-  }
-
-  function changeMonth(nextKey: string) {
-    setVisibleMonthKey(nextKey);
-    const firstFreeInMonth = windows.find((item) => monthKey(item.startAt) === nextKey && !item.busy);
-    if (firstFreeInMonth) {
-      chooseDate(dayKey(firstFreeInMonth.startAt));
-      return;
-    }
-    const firstWindowInMonth = windows.find((item) => monthKey(item.startAt) === nextKey);
-    if (firstWindowInMonth) {
-      chooseDate(dayKey(firstWindowInMonth.startAt));
-      return;
-    }
-    setSelectedDateKey(`${nextKey}-01`);
-    setSelectedTime("");
-    setConfirmedServiceId("");
-  }
+  useEffect(() => {
+    if (selectedTime) focusSection(reviewRef.current);
+  }, [selectedTime]);
 
   function chooseService(id: string) {
-    setDraftServiceId(id);
-    setConfirmedServiceId("");
+    const optionWindows = windows.filter((window) => window.availableServiceIds.includes(id));
+    const preferredDate = initialDate && optionWindows.some((window) => dayKey(window.startAt) === initialDate)
+      ? initialDate
+      : dayKey(optionWindows[0]?.startAt || new Date());
+    setSelectedServiceId(id);
+    setSelectedDateKey("");
+    setSelectedTime("");
+    setPreviewSubmitted(false);
+    setVisibleMonthKey(preferredDate.slice(0, 7));
+  }
+
+  function chooseDate(key: string) {
+    if (!freeDateKeys.has(key)) return;
+    setSelectedDateKey(key);
+    setSelectedTime("");
+    setPreviewSubmitted(false);
+  }
+
+  function changeMonth(key: string) {
+    if (key < minMonthKey || key > maxMonthKey) return;
+    setVisibleMonthKey(key);
+    setSelectedDateKey("");
     setSelectedTime("");
   }
 
-  function confirmService() {
-    if (!draftServiceId) return;
-    setConfirmedServiceId(draftServiceId);
+  function changeService() {
+    setSelectedServiceId("");
+    setSelectedDateKey("");
     setSelectedTime("");
+    setPreviewSubmitted(false);
+    focusSection(serviceRef.current);
+  }
+
+  if (previewSubmitted && selectedService && selectedWindow) {
+    return (
+      <section className="client-v2-booking-success" id="booking-flow" role="status">
+        <span className="client-v2-success-icon" aria-hidden="true">✓</span>
+        <p className="client-v2-kicker">Заявка на запись отправлена</p>
+        <h2>Время временно за вами</h2>
+        <p>{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)} · {selectedService.title}</p>
+        <div className="client-v2-access-steps is-booking">
+          <span className="is-done"><i>✓</i><b>Время выбрано</b></span>
+          <span className="is-current"><i>2</i><b>Мастер проверяет</b></span>
+          <span><i>3</i><b>Запись подтверждена</b></span>
+        </div>
+        <small>Это демонстрационный экран: настоящая заявка не отправлялась.</small>
+        <button type="button" className="client-v2-button is-secondary" onClick={() => setPreviewSubmitted(false)}>Вернуться к выбору</button>
+      </section>
+    );
   }
 
   return (
-    <>
-      <section className="calendar-layout" id="windows">
-        <article className="calendar-card">
-          <h2>Ближайшие свободные даты</h2>
-          <div className="calendar-month-switcher">
-            {showPrev ? (
-              <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, -1))} aria-label="Предыдущий месяц">‹</button>
-            ) : <span className="month-arrow-placeholder" />}
-            <b>{fmtMonth(visibleMonth)}</b>
-            {showNext ? (
-              <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, 1))} aria-label="Следующий месяц">›</button>
-            ) : <span className="month-arrow-placeholder" />}
+    <section className="client-v2-flow" id="booking-flow">
+      <nav className="client-v2-progress" aria-label="Этапы записи">
+        <span className={selectedServiceId ? "is-done" : "is-current"}><i>{selectedServiceId ? "✓" : "1"}</i><b>Услуга</b></span>
+        <span className={selectedDateKey ? "is-done" : selectedServiceId ? "is-current" : ""}><i>{selectedDateKey ? "✓" : "2"}</i><b>Дата</b></span>
+        <span className={selectedTime ? "is-done" : selectedDateKey ? "is-current" : ""}><i>{selectedTime ? "✓" : "3"}</i><b>Время</b></span>
+        <span className={selectedTime ? "is-current" : ""}><i>4</i><b>Готово</b></span>
+      </nav>
+
+      <section className="client-v2-step" ref={serviceRef} tabIndex={-1}>
+        <div className="client-v2-step-heading">
+          <span>Шаг 1</span>
+          <div><h2>Что будем делать?</h2><p>От услуги зависит, какие даты и часы свободны.</p></div>
+        </div>
+
+        {services.length ? (
+          <div className="client-v2-service-grid">
+            {services.map((service) => (
+              <button
+                type="button"
+                key={service.id}
+                className={`client-v2-service ${selectedServiceId === service.id ? "is-selected" : ""}`}
+                onClick={() => chooseService(service.id)}
+                aria-pressed={selectedServiceId === service.id}
+              >
+                <span>
+                  <b>{service.title}</b>
+                  {service.isBundle ? <em>Одна длинная запись</em> : null}
+                </span>
+                {service.description ? <small>{service.description}</small> : null}
+                <strong>{service.durationMinutes} мин · {rub(service.price)}</strong>
+              </button>
+            ))}
           </div>
-          <div className="calendar-legend">
-            <span><i className="legend-dot blue-dot" /> свободно</span>
-            <span><i className="legend-dot gray-dot" /> занято</span>
+        ) : (
+          <div className="client-v2-empty">Сейчас нет услуг, открытых для онлайн-записи.</div>
+        )}
+      </section>
+
+      {selectedService ? (
+        <section className="client-v2-step" ref={calendarRef} tabIndex={-1}>
+          <div className="client-v2-step-heading">
+            <span>Шаг 2</span>
+            <div>
+              <h2>Выберите дату</h2>
+              <p>Показываем только дни, где целиком помещается «{selectedService.title}».</p>
+            </div>
+            <button type="button" className="client-v2-text-button" onClick={changeService}>Изменить услугу</button>
           </div>
-          <div className="calendar-head">{["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"].map((day) => <span key={day}>{day}</span>)}</div>
-          <div className="calendar-grid">
-            {Array.from({ length: monthOffset(visibleMonth) }).map((_, index) => <span className="day-btn muted" key={`empty-${index}`}></span>)}
-            {monthDays.map((day) => {
-              const key = `${visibleMonth.getFullYear()}-${String(visibleMonth.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const dayWindows = windowsByDate.get(key) || [];
-              const freeCount = dayWindows.filter((item) => !item.busy).length;
-              const busyCount = dayWindows.length - freeCount;
-              const isWorkDay = activeDateKeys.has(key);
-              const active = key === selectedDateKey;
-              return isWorkDay ? (
-                <button key={key} type="button" className={active ? "day-btn active" : "day-btn"} onClick={() => chooseDate(key)}>
-                  <span>{day}</span>
-                  <span className="day-dots">
-                    {freeCount > 0 ? <i className="dot blue-dot" title="Есть свободное окно" /> : null}
-                    {busyCount > 0 ? <i className="dot gray-dot" title="Есть занятое окно" /> : null}
-                  </span>
+
+          {firstFreeDate ? (
+            <div className="client-v2-calendar">
+              <div className="client-v2-calendar-top">
+                <button type="button" onClick={() => changeMonth(addMonths(visibleMonthKey, -1))} disabled={visibleMonthKey <= minMonthKey} aria-label="Предыдущий месяц">‹</button>
+                <b>{fmtMonth(visibleMonthKey)}</b>
+                <button type="button" onClick={() => changeMonth(addMonths(visibleMonthKey, 1))} disabled={visibleMonthKey >= maxMonthKey} aria-label="Следующий месяц">›</button>
+              </div>
+              <div className="client-v2-calendar-head">
+                {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => <span key={day}>{day}</span>)}
+              </div>
+              <div className="client-v2-calendar-grid">
+                {Array.from({ length: monthOffset(visibleMonthKey) }, (_, index) => <span key={`blank-${index}`} />)}
+                {monthDays.map((day) => {
+                  const key = `${visibleMonthKey}-${String(day).padStart(2, "0")}`;
+                  const available = freeDateKeys.has(key);
+                  const active = selectedDateKey === key;
+                  return available ? (
+                    <button
+                      type="button"
+                      key={key}
+                      className={active ? "is-selected" : ""}
+                      onClick={() => chooseDate(key)}
+                      aria-pressed={active}
+                    >
+                      <b>{day}</b><i />
+                    </button>
+                  ) : (
+                    <span className="is-disabled" key={key}><b>{day}</b></span>
+                  );
+                })}
+              </div>
+              <p className="client-v2-calendar-note"><i /> Розовой точкой отмечены дни, где есть подходящее время.</p>
+            </div>
+          ) : (
+            <div className="client-v2-empty">
+              <b>Для этой услуги пока нет подходящих окон.</b>
+              <span>Можно выбрать другую услугу или добавить себя в лист ожидания ниже.</span>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {selectedService && selectedDateKey ? (
+        <section className="client-v2-step" ref={timeRef} tabIndex={-1}>
+          <div className="client-v2-step-heading">
+            <span>Шаг 3</span>
+            <div><h2>Выберите время</h2><p>{fmtDate(businessDateFromKey(selectedDateKey))}</p></div>
+            <button type="button" className="client-v2-text-button" onClick={() => { setSelectedDateKey(""); setSelectedTime(""); }}>Изменить дату</button>
+          </div>
+          <div className="client-v2-time-grid">
+            {selectedDayWindows.map((window) => {
+              const available = window.availableServiceIds.includes(selectedService.id);
+              const active = selectedTime === window.startAt;
+              return available ? (
+                <button
+                  type="button"
+                  key={window.id}
+                  className={active ? "is-selected" : ""}
+                  onClick={() => { setSelectedTime(window.startAt); setPreviewSubmitted(false); }}
+                  aria-pressed={active}
+                >
+                  <b>{fmtTime(window.startAt)}</b>
+                  <span>{active ? "Выбрано" : "Свободно"}</span>
                 </button>
               ) : (
-                <span key={key} className="day-btn muted" aria-disabled="true"><span>{day}</span></span>
+                <span key={window.id}><b>{fmtTime(window.startAt)}</b><small>Не подходит</small></span>
               );
             })}
           </div>
-        </article>
+        </section>
+      ) : null}
 
-        <article className="selected-day-card card booking-step-card" id="selected-day">
-          <p className="muted">Выбранная дата</p>
-          <h2>{fmtDate(`${selectedDateKey}T00:00:00`)}</h2>
-          <p>Занято окон: {selectedBusyCount} · Свободно окон: {selectedFreeCount}</p>
+      {selectedService && selectedWindow ? (
+        <section className="client-v2-step client-v2-review" ref={reviewRef} tabIndex={-1}>
+          <div className="client-v2-step-heading">
+            <span>Шаг 4</span>
+            <div><h2>Всё верно?</h2><p>Проверьте заявку перед отправкой.</p></div>
+          </div>
 
-          {!confirmedService ? (
-            <div className="booking-step-panel">
-              <div className="flow-step-title">
-                <span>Шаг 1</span>
-                <h3>Основная услуга</h3>
-                <p>Сначала выберите услугу. Потом покажу свободное время под неё — без перезагрузки и лишней акробатики.</p>
-              </div>
+          <div className="client-v2-summary">
+            <div><span>Услуга</span><b>{selectedService.title}</b><small>{selectedService.durationMinutes} мин · {rub(selectedService.price)}</small></div>
+            <div><span>Дата и время</span><b>{fmtDate(selectedWindow.startAt)}</b><small>{fmtTime(selectedWindow.startAt)}</small></div>
+            <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b><small>{client.phone}</small></div>
+          </div>
 
-              <div className="service-check-grid service-choice-grid">
-                {services.map((service) => (
-                  <label className="service-check" key={service.id}>
-                    <input type="radio" name="serviceDraft" value={service.id} checked={(draftServiceId || services[0]?.id) === service.id} onChange={() => chooseService(service.id)} />
-                    <span>
-                      <b>{service.title}</b>
-                      {service.description ? <small className="service-description">{service.description}</small> : null}
-                      <small>{service.durationMinutes} мин · {rub(service.price)}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              {services.length === 0 ? <div className="notice">Нет услуг, доступных для записи. Проверьте настройки прайса у мастера.</div> : null}
-
-              <div className="service-choice-actions">
-                <button type="button" onClick={confirmService} disabled={!draftServiceId || services.length === 0}>Выбрать услугу</button>
-                {draftService ? <small>Выбрано: {draftService.title}</small> : null}
+          {previewMode ? (
+            <div className="client-v2-final-form">
+              <label>Комментарий, если нужно<textarea placeholder="Например: френч, ремонт ногтя или ограничение по времени" /></label>
+              <div className="client-v2-submit-row">
+                <p><b>После отправки мастер проверит заявку.</b><span>До ответа время будет временно занято за вами.</span></p>
+                <button type="button" onClick={() => setPreviewSubmitted(true)}>Отправить заявку</button>
               </div>
             </div>
           ) : (
-            <div className="booking-step-panel">
-              <div className="flow-step-title">
-                <span>Шаг 2</span>
-                <h3>Свободное время</h3>
-                <p>Услуга: <b>{confirmedService.title}</b>. Теперь выберите время.</p>
+            <form action={createBooking} className="client-v2-final-form">
+              <input type="hidden" name="startAt" value={selectedWindow.startAt} />
+              <input type="hidden" name="returnDate" value={selectedDateKey} />
+              <input type="hidden" name="returnTime" value={selectedWindow.startAt} />
+              <input type="hidden" name="serviceId" value={selectedService.id} />
+              <label>Комментарий, если нужно<textarea name="comment" placeholder="Например: френч, ремонт ногтя или ограничение по времени" /></label>
+              <div className="client-v2-submit-row">
+                <p><b>После отправки мастер проверит заявку.</b><span>До ответа время будет временно занято за вами.</span></p>
+                <button type="submit">Отправить заявку</button>
               </div>
-
-              <div className="time-grid">
-                {selectedWindows.map((window) => {
-                  const active = selectedTime === window.startAt;
-                  return window.busy ? (
-                    <span key={window.id} className="time-btn busy" aria-disabled="true"><b>{fmtTime(window.startAt)}</b><span>Занято</span></span>
-                  ) : (
-                    <button key={window.id} type="button" className={active ? "time-btn free active" : "time-btn free"} onClick={() => setSelectedTime(window.startAt)}>
-                      <b>{fmtTime(window.startAt)}</b><span>Свободно</span>
-                    </button>
-                  );
-                })}
-                {selectedWindows.length === 0 ? <div className="empty-state"><p>На эту дату открытых окон нет.</p></div> : null}
-              </div>
-
-              <button type="button" className="button secondary change-service-btn" onClick={() => { setConfirmedServiceId(""); setSelectedTime(""); }}>Изменить услугу</button>
-            </div>
+            </form>
           )}
-        </article>
-      </section>
-
-      {confirmedService && selectedWindow ? (
-        <section className="card booking-builder booking-final-card" id="booking-builder">
-          <div className="section-head">
-            <div>
-              <p className="muted">Шаг 3</p>
-              <h2>Услуга, время и отправка</h2>
-              <p>Проверьте данные перед отправкой. Записывайте себя, а не подругу, соседку и таинственную «ну она потом сама придёт».</p>
-            </div>
-          </div>
-
-          <form action={createBooking} className="booking-builder-form compact-booking-form">
-            <input type="hidden" name="clientToken" value={token} />
-            <input type="hidden" name="startAt" value={selectedWindow.startAt} />
-            <input type="hidden" name="returnDate" value={selectedDateKey} />
-            <input type="hidden" name="returnTime" value={selectedWindow.startAt} />
-            <input type="hidden" name="serviceId" value={confirmedService.id} />
-
-            <div className="selected-summary-panel">
-              <div><span>Дата и время</span><b>{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)}</b></div>
-              <div><span>Услуга</span><b>{confirmedService.title}</b><small>{confirmedService.durationMinutes} мин · {rub(confirmedService.price)}</small></div>
-              <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b><small>{client.phone}</small></div>
-            </div>
-
-            <p className="owner-warning">Проверьте, что запись оформляется именно на вас. Мастер ждёт человека из карточки, а не сюжетный поворот.</p>
-
-            <div className="notice final-check-note">
-              <b>После отправки заявки напишите мастеру.</b>
-              <p>Сайт ещё тестовый: он старается быть полезным, но иногда ведёт себя как стажёр на первом рабочем дне. Мастер проверит время вручную и подтвердит, что всё встало нормально.</p>
-            </div>
-
-            <label className="comment-box">Комментарий, если нужно<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
-
-            <div className="final-confirm-card">
-              <div>
-                <h3>Отправка заявки</h3>
-                <p>После отправки окно займётся за вами. Дальше дождитесь подтверждения мастера.</p>
-              </div>
-              <button type="submit">Подтвердить и отправить</button>
-            </div>
-          </form>
         </section>
       ) : null}
-    </>
+    </section>
   );
 }

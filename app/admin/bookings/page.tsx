@@ -1,5 +1,6 @@
 import { setBookingStatus } from "@/app/admin/actions";
 import { isAdmin } from "@/lib/admin";
+import { bookingDisplayComment, bookingDisplayTitle } from "@/lib/bookingDisplay";
 import { formatDateTime, rub } from "@/lib/format";
 import { bookingStatusLabel, statusClass } from "@/lib/statusLabels";
 import { prisma } from "@/lib/prisma";
@@ -42,9 +43,9 @@ export default async function AdminBookingsPage() {
             <tr key={booking.id}>
               <td>{formatDateTime(booking.startAt)}</td>
               <td>{booking.client.lastName} {booking.client.firstName}<br /><span className="small">{booking.client.phone}</span></td>
-              <td>{booking.service.title}<br /><span className="small">{rub(booking.finalPrice ?? booking.service.price)}</span></td>
+              <td>{bookingDisplayTitle(booking.service.title, booking.clientComment)}<br /><span className="small">{rub(booking.finalPrice ?? booking.service.price)}</span></td>
               <td><span className={`status ${statusClass(booking.status)}`}>{bookingStatusLabel(booking.status)}</span></td>
-              <td>{booking.clientComment || "—"}</td>
+              <td>{bookingDisplayComment(booking.clientComment) || "—"}</td>
               <td className="actions">
                 <a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a>
                 <form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin/bookings?done=1" /><button className="ok">Подтвердить</button></form>
