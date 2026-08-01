@@ -8,6 +8,7 @@ import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
 import { setClientCookie } from "@/lib/clientSession";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 
 function required(value: FormDataEntryValue | null, name: string) {
   const text = String(value || "").trim();
@@ -122,39 +123,55 @@ export async function createBooking(formData: FormData) {
   const minVisibleStart = getOnlineBookingMinStart(settings);
   if (startAt < minVisibleStart) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
 
-  const onlineWindow = await prisma.onlineWindow.findUnique({ where: { startAt } });
-  if (!onlineWindow) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
-
   const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  let bookingId = "";
 
-  const conflict = await prisma.booking.findFirst({
-    where: {
-      status: { in: ["PENDING", "CONFIRMED"] },
-      startAt: { lt: endAt },
-      endAt: { gt: startAt }
+  try {
+    bookingId = await prisma.$transaction(async (tx) => {
+      const onlineWindow = await tx.onlineWindow.findUnique({ where: { startAt } });
+      if (!onlineWindow) throw new Error("WINDOW_BUSY");
+
+      const [conflict, blocked] = await Promise.all([
+        tx.booking.findFirst({
+          where: {
+            status: { in: ["PENDING", "CONFIRMED"] },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt }
+          },
+          select: { id: true }
+        }),
+        tx.blockedSlot.findFirst({
+          where: { startAt: { lt: endAt }, endAt: { gt: startAt } },
+          select: { id: true }
+        })
+      ]);
+
+      if (conflict || blocked) throw new Error("WINDOW_BUSY");
+
+      const booking = await tx.booking.create({
+        data: {
+          clientId: client.id,
+          serviceId: service.id,
+          startAt,
+          endAt,
+          clientComment,
+          finalPrice: service.price,
+          status: "PENDING"
+        },
+        select: { id: true }
+      });
+      return booking.id;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    const retryConflict = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+    if (retryConflict || (error instanceof Error && error.message === "WINDOW_BUSY")) {
+      redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
     }
-  });
-
-  const blocked = await prisma.blockedSlot.findFirst({
-    where: { startAt: { lt: endAt }, endAt: { gt: startAt } }
-  });
-
-  if (conflict || blocked) redirect(myUrl(token, { date: returnDate, time: returnTime, busy: "1" }));
-
-  const booking = await prisma.booking.create({
-    data: {
-      clientId: client.id,
-      serviceId: service.id,
-      startAt,
-      endAt,
-      clientComment,
-      finalPrice: service.price,
-      status: "PENDING"
-    }
-  });
+    throw error;
+  }
 
   setClientCookie(token);
-  redirect(myUrl(token, { created: booking.id }));
+  redirect(myUrl(token, { created: bookingId }));
 }
 
 export async function rememberClientBooking(formData: FormData) {
