@@ -209,6 +209,117 @@
   padding: 14px !important;
 }
 
+.clientPageCompact :global(.booking-view-switch) {
+  display: grid !important;
+  gap: 12px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(128, 59, 88, .16) !important;
+  border-radius: 16px !important;
+  background: #ecebed !important;
+}
+
+.clientPageCompact :global(.booking-view-switch p) {
+  margin: 4px 0 0 !important;
+  color: #666168 !important;
+  font-size: 12px !important;
+}
+
+.clientPageCompact :global(.segmented-switch) {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  padding: 3px !important;
+  border-radius: 12px !important;
+  background: #d7d5d8 !important;
+}
+
+.clientPageCompact :global(.segmented-switch button) {
+  min-height: 40px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #5f5a60 !important;
+  box-shadow: none !important;
+}
+
+.clientPageCompact :global(.segmented-switch button.active) {
+  background: #d76591 !important;
+  color: #fff !important;
+}
+
+.clientPageCompact :global(.free-window-list-card) {
+  padding: 15px !important;
+  border-radius: 16px !important;
+}
+
+.clientPageCompact :global(.free-window-list) {
+  max-height: 360px !important;
+  overflow: auto !important;
+  margin-top: 12px !important;
+  border-block: 1px solid rgba(128, 59, 88, .12) !important;
+}
+
+.clientPageCompact :global(.free-window-row) {
+  display: grid !important;
+  grid-template-columns: 58px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: baseline !important;
+  padding: 11px 4px !important;
+  border-bottom: 1px solid rgba(128, 59, 88, .1) !important;
+}
+
+.clientPageCompact :global(.free-window-row.active) {
+  color: #9b315a !important;
+  background: rgba(215, 101, 145, .07) !important;
+}
+
+.clientPageCompact :global(.inline-times button) {
+  width: auto !important;
+  min-height: 0 !important;
+  padding: 2px !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #4f4b50 !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  font-weight: 650 !important;
+}
+
+.clientPageCompact :global(.inline-times button.active) {
+  background: #d76591 !important;
+  color: #fff !important;
+}
+
+.clientPageCompact :global(.compact-service-switch) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+  margin: 12px 0 !important;
+}
+
+.clientPageCompact :global(.compact-service-switch button) {
+  width: auto !important;
+  min-height: 42px !important;
+  padding: 8px 11px !important;
+  border: 1px solid #c5c1c6 !important;
+  border-radius: 10px !important;
+  background: #e8e7e9 !important;
+  color: #504b51 !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+
+.clientPageCompact :global(.compact-service-switch button.active) {
+  border-color: #d76591 !important;
+  background: #d76591 !important;
+  color: #fff !important;
+}
+
+.clientPageCompact :global(.compact-service-switch b),
+.clientPageCompact :global(.compact-service-switch small) {
+  display: block !important;
+}
+
 .clientPageCompact :global(.flow-step-title h3) {
   font-size: 16px !important;
   line-height: 1.1 !important;
