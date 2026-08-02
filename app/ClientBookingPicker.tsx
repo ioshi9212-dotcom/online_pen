@@ -96,9 +96,9 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const currentMonthKey = monthKey(new Date());
   const [visibleMonthKey, setVisibleMonthKey] = useState(monthKey(initialDate || firstFreeDate));
   const [selectedDateKey, setSelectedDateKey] = useState(initialDate || firstFreeDate);
-  const [draftServiceId, setDraftServiceId] = useState(services[0]?.id || "");
-  const [confirmedServiceId, setConfirmedServiceId] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [mode, setMode] = useState<"calendar" | "list">("calendar");
+  const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id || "");
+  const [selectedTime, setSelectedTime] = useState(initialTime);
 
   const availableMonthKeys = useMemo(() => Array.from(new Set(windows.map((item) => monthKey(item.startAt)))).sort(), [windows]);
   const maxMonthKey = availableMonthKeys[availableMonthKeys.length - 1] || currentMonthKey;
@@ -111,14 +111,16 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const selectedFreeCount = selectedWindows.filter((item) => !item.busy).length;
   const selectedBusyCount = selectedWindows.length - selectedFreeCount;
   const selectedWindow = selectedWindows.find((item) => item.startAt === selectedTime && !item.busy);
-  const draftService = services.find((service) => service.id === draftServiceId);
-  const confirmedService = services.find((service) => service.id === confirmedServiceId);
+  const selectedService = services.find((service) => service.id === selectedServiceId);
+  const groupedFreeWindows = useMemo(() => Array.from(windowsByDate.entries())
+    .map(([date, items]) => ({ date, items: items.filter((item) => !item.busy) }))
+    .filter((group) => group.items.length > 0)
+    .sort((a, b) => a.date.localeCompare(b.date)), [windowsByDate]);
 
   function chooseDate(key: string) {
     setSelectedDateKey(key);
     setVisibleMonthKey(monthKey(key));
     setSelectedTime("");
-    setConfirmedServiceId("");
   }
 
   function changeMonth(nextKey: string) {
@@ -135,23 +137,28 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     }
     setSelectedDateKey(`${nextKey}-01`);
     setSelectedTime("");
-    setConfirmedServiceId("");
   }
 
-  function chooseService(id: string) {
-    setDraftServiceId(id);
-    setConfirmedServiceId("");
-    setSelectedTime("");
-  }
-
-  function confirmService() {
-    if (!draftServiceId) return;
-    setConfirmedServiceId(draftServiceId);
-    setSelectedTime("");
+  function chooseWindow(window: WindowItem) {
+    setSelectedDateKey(dayKey(window.startAt));
+    setVisibleMonthKey(monthKey(window.startAt));
+    setSelectedTime(window.startAt);
   }
 
   return (
     <>
+      <section className="booking-view-switch" aria-label="Режим выбора времени">
+        <div>
+          <b>Как удобнее искать время?</b>
+          <p>Календарь — открыть конкретный день. Список — увидеть все ближайшие свободные окна сразу. Услуга время не прячет.</p>
+        </div>
+        <div className="segmented-switch">
+          <button type="button" className={mode === "calendar" ? "active" : ""} onClick={() => setMode("calendar")}>Календарь</button>
+          <button type="button" className={mode === "list" ? "active" : ""} onClick={() => setMode("list")}>Список</button>
+        </div>
+      </section>
+
+      {mode === "calendar" ? (
       <section className="calendar-layout" id="windows">
         <article className="calendar-card">
           <h2>Ближайшие свободные даты</h2>
@@ -198,41 +205,8 @@ export default function ClientBookingPicker({ token, client, windows, services, 
           <h2>{fmtDate(`${selectedDateKey}T00:00:00`)}</h2>
           <p>Занято окон: {selectedBusyCount} · Свободно окон: {selectedFreeCount}</p>
 
-          {!confirmedService ? (
-            <div className="booking-step-panel">
-              <div className="flow-step-title">
-                <span>Шаг 1</span>
-                <h3>Основная услуга</h3>
-                <p>Сначала выберите услугу. Потом покажу свободное время под неё — без перезагрузки и лишней акробатики.</p>
-              </div>
-
-              <div className="service-check-grid service-choice-grid">
-                {services.map((service) => (
-                  <label className="service-check" key={service.id}>
-                    <input type="radio" name="serviceDraft" value={service.id} checked={(draftServiceId || services[0]?.id) === service.id} onChange={() => chooseService(service.id)} />
-                    <span>
-                      <b>{service.title}</b>
-                      {service.description ? <small className="service-description">{service.description}</small> : null}
-                      <small>{service.durationMinutes} мин · {rub(service.price)}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              {services.length === 0 ? <div className="notice">Нет услуг, доступных для записи. Проверьте настройки прайса у мастера.</div> : null}
-
-              <div className="service-choice-actions">
-                <button type="button" onClick={confirmService} disabled={!draftServiceId || services.length === 0}>Выбрать услугу</button>
-                {draftService ? <small>Выбрано: {draftService.title}</small> : null}
-              </div>
-            </div>
-          ) : (
-            <div className="booking-step-panel">
-              <div className="flow-step-title">
-                <span>Шаг 2</span>
-                <h3>Свободное время</h3>
-                <p>Услуга: <b>{confirmedService.title}</b>. Теперь выберите время.</p>
-              </div>
+          <div className="booking-step-panel">
+              <div className="flow-step-title"><span>Шаг 1</span><h3>Выберите время</h3><p>Свободное и занятое видно сразу. Услугу отметите ниже — она не должна играть с вами в прятки.</p></div>
 
               <div className="time-grid">
                 {selectedWindows.map((window) => {
@@ -240,40 +214,66 @@ export default function ClientBookingPicker({ token, client, windows, services, 
                   return window.busy ? (
                     <span key={window.id} className="time-btn busy" aria-disabled="true"><b>{fmtTime(window.startAt)}</b><span>Занято</span></span>
                   ) : (
-                    <button key={window.id} type="button" className={active ? "time-btn free active" : "time-btn free"} onClick={() => setSelectedTime(window.startAt)}>
+                    <button key={window.id} type="button" className={active ? "time-btn free active" : "time-btn free"} onClick={() => chooseWindow(window)}>
                       <b>{fmtTime(window.startAt)}</b><span>Свободно</span>
                     </button>
                   );
                 })}
                 {selectedWindows.length === 0 ? <div className="empty-state"><p>На эту дату открытых окон нет.</p></div> : null}
               </div>
-
-              <button type="button" className="button secondary change-service-btn" onClick={() => { setConfirmedServiceId(""); setSelectedTime(""); }}>Изменить услугу</button>
-            </div>
-          )}
+          </div>
         </article>
       </section>
+      ) : (
+        <section className="free-window-list-card card" id="windows">
+          <div className="flow-step-title"><span>Шаг 1</span><h2>Ближайшие свободные окна</h2><p>Только свободное время. Нажмите на время в нужной строке — без обхода каждого дня календаря.</p></div>
+          <div className="free-window-list">
+            {groupedFreeWindows.map((group) => (
+              <div className={selectedDateKey === group.date ? "free-window-row active" : "free-window-row"} key={group.date}>
+                <b>{formatInBusinessTime(`${group.date}T00:00:00`, { day: "2-digit", weekday: "short" }).replace(".", "")}</b>
+                <span className="inline-times">
+                  {group.items.map((window, index) => (
+                    <span key={window.id}>
+                      <button type="button" className={selectedTime === window.startAt ? "active" : ""} onClick={() => chooseWindow(window)}>{fmtTime(window.startAt)}</button>{index < group.items.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            ))}
+            {groupedFreeWindows.length === 0 ? <div className="empty-state">Свободных окон пока нет.</div> : null}
+          </div>
+        </section>
+      )}
 
-      {confirmedService && selectedWindow ? (
+      {selectedWindow ? (
         <section className="card booking-builder booking-final-card" id="booking-builder">
           <div className="section-head">
             <div>
-              <p className="muted">Шаг 3</p>
-              <h2>Услуга, время и отправка</h2>
-              <p>Проверьте данные перед отправкой. Записывайте себя, а не подругу, соседку и таинственную «ну она потом сама придёт».</p>
+              <p className="muted">Шаг 2</p>
+              <h2>Что будем делать</h2>
+              <p>Выберите одну основную услугу. Если нужны маникюр и педикюр — оформите две записи на два соседних времени.</p>
             </div>
           </div>
+
+          <div className="compact-service-switch" role="radiogroup" aria-label="Основная услуга">
+            {services.map((service) => (
+              <button key={service.id} type="button" role="radio" aria-checked={selectedServiceId === service.id} className={selectedServiceId === service.id ? "active" : ""} onClick={() => setSelectedServiceId(service.id)}>
+                <b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small>
+              </button>
+            ))}
+          </div>
+          {services.length === 0 ? <div className="notice danger-notice">Нет услуг, доступных для записи.</div> : null}
 
           <form action={createBooking} className="booking-builder-form compact-booking-form">
             <input type="hidden" name="clientToken" value={token} />
             <input type="hidden" name="startAt" value={selectedWindow.startAt} />
             <input type="hidden" name="returnDate" value={selectedDateKey} />
             <input type="hidden" name="returnTime" value={selectedWindow.startAt} />
-            <input type="hidden" name="serviceId" value={confirmedService.id} />
+            <input type="hidden" name="serviceId" value={selectedService?.id || ""} />
 
             <div className="selected-summary-panel">
               <div><span>Дата и время</span><b>{fmtDate(selectedWindow.startAt)}, {fmtTime(selectedWindow.startAt)}</b></div>
-              <div><span>Услуга</span><b>{confirmedService.title}</b><small>{confirmedService.durationMinutes} мин · {rub(confirmedService.price)}</small></div>
+              <div><span>Услуга</span><b>{selectedService?.title || "Выберите услугу"}</b>{selectedService ? <small>{selectedService.durationMinutes} мин · {rub(selectedService.price)}</small> : null}</div>
               <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b><small>{client.phone}</small></div>
             </div>
 
@@ -289,9 +289,9 @@ export default function ClientBookingPicker({ token, client, windows, services, 
             <div className="final-confirm-card">
               <div>
                 <h3>Отправка заявки</h3>
-                <p>После отправки окно займётся за вами. Дальше дождитесь подтверждения мастера.</p>
+                <p>Сразу после отправки окно закрепится за вами и исчезнет у других клиентов. Запись при этом ещё должна быть подтверждена мастером.</p>
               </div>
-              <button type="submit">Подтвердить и отправить</button>
+              <button type="submit" disabled={!selectedService}>Подтвердить и отправить</button>
             </div>
           </form>
         </section>

@@ -226,7 +226,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
         <h1>Свободные окна и запись</h1>
-        <p className="lead">{client.firstName}, выберите дату, одну основную услугу и время. Допы можно написать в комментарии.</p>
+        <p className="lead">{client.firstName}, сначала найдите удобное время, затем отметьте основную услугу. Допы можно написать в комментарии.</p>
       </section>
 
       <section className="client-note-stack" aria-label="Важные подсказки">
@@ -238,9 +238,9 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       </section>
 
       <section className="info-cards instruction-cards">
-        <article className="info-card"><h3>1. Календарь</h3><p>Серые числа — день недоступен. Белые — можно открыть. Розовая точка — есть свободное место, серая — часть времени уже занята.</p></article>
-        <article className="info-card"><h3>2. Услуга</h3><p>Сначала выберите услугу. После кнопки «Выбрать услугу» появится свободное время для этой даты.</p></article>
-        <article className="info-card"><h3>3. Заявка</h3><p>Выберите время, проверьте свои данные и отправьте заявку. Окно займётся за вами до ответа мастера.</p></article>
+        <article className="info-card"><h3>1. Найдите время</h3><p>В календаре откройте день или переключитесь на список всех ближайших окон. Розовая точка — есть свободное, серая — есть занятое.</p></article>
+        <article className="info-card"><h3>2. Отметьте услугу</h3><p>После выбора времени отметьте одну основную услугу компактным переключателем.</p></article>
+        <article className="info-card"><h3>3. Отправьте</h3><p>Окно сразу закрепится за вами и пропадёт у других клиентов. Останется дождаться подтверждения мастера.</p></article>
       </section>
 
       <ClientBookingPicker
