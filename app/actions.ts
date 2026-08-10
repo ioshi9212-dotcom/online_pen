@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
 import { setClientCookie } from "@/lib/clientSession";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 
@@ -252,10 +253,49 @@ export async function cancelClientBooking(formData: FormData) {
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client) redirect("/login");
 
-  await prisma.booking.updateMany({
+  const booking = await prisma.booking.findFirst({
     where: { id: bookingId, clientId: client.id, status: { in: ["PENDING", "CONFIRMED"] } },
-    data: { status: "CANCELLED_BY_CLIENT", cancelledAt: new Date() }
+    select: { id: true, startAt: true, endAt: true }
   });
+
+  if (booking) {
+    await prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { status: "CANCELLED_BY_CLIENT", cancelledAt: new Date() }
+      });
+
+      if (booking.startAt <= new Date()) return;
+
+      const [conflict, blocked] = await Promise.all([
+        tx.booking.findFirst({
+          where: {
+            id: { not: booking.id },
+            status: { in: ["PENDING", "CONFIRMED"] },
+            startAt: { lt: booking.endAt },
+            endAt: { gt: booking.startAt }
+          },
+          select: { id: true }
+        }),
+        tx.blockedSlot.findFirst({
+          where: { startAt: { lt: booking.endAt }, endAt: { gt: booking.startAt } },
+          select: { id: true }
+        })
+      ]);
+
+      if (!conflict && !blocked) {
+        await tx.onlineWindow.upsert({
+          where: { startAt: booking.startAt },
+          create: { startAt: booking.startAt, note: "Освободилось после отмены клиентом" },
+          update: { note: "Освободилось после отмены клиентом" }
+        });
+      }
+    });
+  }
+
+  revalidatePath("/my");
+  revalidatePath("/admin");
+  revalidatePath("/admin/schedule");
 
   setClientCookie(token);
   if (afterCancel === "reschedule") redirect(`/my?client=${token}&cancelled=1&reschedule=1#windows`);
