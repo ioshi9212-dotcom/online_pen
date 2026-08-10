@@ -101,6 +101,17 @@ function statusClass(status: string) {
   return "admin-status";
 }
 
+function isLateClientCancellation(booking: { status: string; startAt: Date; cancelledAt: Date | null }) {
+  if (booking.status !== "CANCELLED_BY_CLIENT" || !booking.cancelledAt) return false;
+  const noticeMs = booking.startAt.getTime() - booking.cancelledAt.getTime();
+  return noticeMs >= 0 && noticeMs <= 48 * 60 * 60 * 1000;
+}
+
+function shouldShowDayBooking(booking: { status: string; startAt: Date; cancelledAt: Date | null; adminComment: string }) {
+  if (["PENDING", "CONFIRMED"].includes(booking.status)) return true;
+  return isLateClientCancellation(booking) && !isClientCancelSeen(booking.adminComment);
+}
+
 function parseWaitDates(value: string | null | undefined) {
   try {
     const dates = JSON.parse(value || "[]") as string[];
@@ -314,14 +325,14 @@ export default async function AdminPage() {
     prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.booking.findMany({ where: { startAt: { gt: now, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
     prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
-    prisma.booking.findMany({ where: { startAt: { gt: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 80 }),
+    prisma.booking.findMany({ where: { startAt: { gt: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 80 }),
     prisma.onlineWindow.findMany({ where: { startAt: { gte: now, lt: horizon } }, orderBy: { startAt: "asc" }, take: 300 }),
     prisma.booking.findMany({ where: { startAt: { gte: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
   ]);
 
-  const todayBookings = rawTodayBookings.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
-  const tomorrowBookings = rawTomorrowBookings.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
-  const upcomingBookings = upcomingBookingsRaw.filter((booking) => booking.status !== "CANCELLED_BY_CLIENT" || !isClientCancelSeen(booking.adminComment));
+  const todayBookings = rawTodayBookings.filter(shouldShowDayBooking);
+  const tomorrowBookings = rawTomorrowBookings.filter(shouldShowDayBooking);
+  const upcomingBookings = upcomingBookingsRaw;
   const requestCount = pendingClients.length + pendingBookings.length;
   const busySet = new Set(busyBookings.map((booking) => booking.startAt.toISOString()));
   const openWindowGroups = Object.values(
