@@ -1,0 +1,375 @@
+/*
+  Canonical mobile layer for Online Pen.
+  This file is imported last and owns responsive behavior for phone layouts.
+  Keep page-specific desktop styling elsewhere; mobile overrides belong here.
+*/
+
+:root {
+  --mobile-breakpoint: 760px;
+  --mobile-page-x: 12px;
+  --mobile-page-top: 12px;
+  --mobile-nav-height: 72px;
+  --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --mobile-safe-top: env(safe-area-inset-top, 0px);
+}
+
+.master-bottom-nav,
+.admin-global-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    padding: 0;
+  }
+
+  body,
+  .app-shell,
+  .site-frame,
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell,
+  .site-frame,
+  .container {
+    margin: 0 !important;
+    padding-left: var(--mobile-page-x) !important;
+    padding-right: var(--mobile-page-x) !important;
+  }
+
+  /* Prevent common desktop sizing from creating horizontal scroll. */
+  main,
+  section,
+  article,
+  aside,
+  nav,
+  form,
+  fieldset,
+  .card,
+  .panel,
+  .admin-card,
+  .admin-home-panel,
+  .calendar-card,
+  .selected-day-card,
+  .booking-card,
+  .client-card,
+  .price-card,
+  .profile-form,
+  .admin-route-frame,
+  .master-main,
+  .admin-workdesk {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* iOS zooms focused form controls below 16px. */
+  input,
+  select,
+  textarea {
+    max-width: 100% !important;
+    font-size: 16px !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  select,
+  textarea {
+    width: 100%;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+
+  button,
+  .button,
+  .btn,
+  .primary-link,
+  input[type="submit"] {
+    touch-action: manipulation;
+  }
+
+  /* Master shell */
+  .admin-route-frame {
+    width: 100%;
+    min-height: 100dvh;
+    padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-safe-bottom) + 18px);
+  }
+
+  .master-dashboard {
+    display: block !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+  }
+
+  .master-sidebar,
+  .master-desktop-header,
+  .master-desktop-summary {
+    display: none !important;
+  }
+
+  .master-main,
+  .admin-workdesk,
+  .master-main.master-mobile-workdesk,
+  .admin-workdesk.master-mobile-workdesk {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: var(--mobile-page-top) var(--mobile-page-x) 18px !important;
+  }
+
+  .master-mobile-topbar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    padding-top: var(--mobile-safe-top);
+  }
+
+  .master-mobile-topbar > * {
+    min-width: 0;
+  }
+
+  .master-new-booking {
+    flex: 0 0 auto;
+    min-height: 40px !important;
+    white-space: nowrap;
+  }
+
+  /* Single canonical bottom navigation for all admin routes. */
+  .master-bottom-nav.admin-global-bottom-nav,
+  .admin-global-bottom-nav {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(8px + var(--mobile-safe-bottom)) !important;
+    z-index: 1000 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    width: auto !important;
+    max-width: none !important;
+    min-height: 60px !important;
+    margin: 0 !important;
+    padding: 6px !important;
+    border: 1px solid rgba(128, 59, 88, .16) !important;
+    border-radius: 16px !important;
+    background: rgba(255, 255, 255, .94) !important;
+    box-shadow: 0 12px 34px rgba(58, 38, 48, .16) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .admin-global-bottom-nav a {
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 6px 3px !important;
+    display: grid !important;
+    align-content: center !important;
+    justify-items: center !important;
+    gap: 3px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: rgba(58, 50, 57, .65) !important;
+    text-align: center;
+  }
+
+  .admin-global-bottom-nav a.active,
+  .admin-global-bottom-nav a[aria-current="page"] {
+    background: rgba(184, 95, 130, .13) !important;
+    color: #8b3e5d !important;
+  }
+
+  .admin-global-bottom-nav a span {
+    font-size: 17px !important;
+    line-height: 1 !important;
+  }
+
+  .admin-global-bottom-nav a b {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+    font-weight: 600 !important;
+  }
+
+  /* Cards and rows should collapse, never overflow. */
+  .master-mobile-day-stack,
+  .master-booking-list,
+  .admin-row-list,
+  .master-upcoming-list,
+  .client-list,
+  .service-list {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .master-booking-link {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 46px minmax(0, 1fr) auto 14px !important;
+  }
+
+  .master-booking-main,
+  .master-booking-main b,
+  .master-booking-main small {
+    min-width: 0;
+  }
+
+  .master-booking-main b,
+  .master-booking-main small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .master-booking-actions-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .master-booking-actions-panel form,
+  .master-booking-actions-panel button,
+  .master-booking-actions-panel a {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Calendar keeps seven days visible without sideways scrolling. */
+  #calendar,
+  #calendar .calendar-grid,
+  .calendar-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #calendar .calendar-grid,
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  }
+
+  #calendar .calendar-day,
+  #calendar .calendar-empty,
+  .calendar-day,
+  .calendar-empty {
+    min-width: 0 !important;
+    overflow: hidden;
+  }
+
+  #calendar .actions,
+  .calendar-card .actions,
+  .selected-day-card .actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  #calendar .actions > *,
+  .calendar-card .actions > *,
+  .selected-day-card .actions > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Dense two-column blocks become one column on narrow phones. */
+  @media (max-width: 420px) {
+    .master-mobile-request-grid,
+    .two-col,
+    .two-column,
+    .form-grid,
+    .admin-grid,
+    .settings-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .master-booking-link {
+      grid-template-columns: 42px minmax(0, 1fr) 12px !important;
+    }
+
+    .master-booking-link .admin-status,
+    .master-booking-link .status {
+      grid-column: 2;
+      justify-self: start;
+      margin-top: 2px;
+    }
+
+    .master-booking-link i {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+    }
+
+    .master-booking-actions-panel {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* Client header becomes compact instead of retaining desktop width. */
+  .top-menu.compact-client-menu,
+  .compact-client-menu {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 0 12px !important;
+    padding: calc(10px + var(--mobile-safe-top)) 10px 10px !important;
+    display: grid !important;
+    gap: 8px !important;
+  }
+
+  .compact-client-menu .brand {
+    min-width: 0;
+    font-size: 18px !important;
+  }
+
+  .compact-client-links {
+    width: 100%;
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  .compact-client-links a,
+  .compact-client-links .primary-link {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Accessible touch targets. */
+  summary,
+  a,
+  button,
+  label {
+    -webkit-tap-highlight-color: rgba(184, 95, 130, .12);
+  }
+
+  button,
+  .button,
+  .btn,
+  .primary-link,
+  input[type="submit"] {
+    min-height: 44px;
+  }
+}
