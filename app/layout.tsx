@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import ConfirmDangerActions from "./ConfirmDangerActions";
@@ -9,6 +9,7 @@ import "./soft-square-ui.css";
 import "./unified-design.css";
 import "./avatar-upload.css";
 import "./pull-refresh.css";
+import "./mobile-system.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
@@ -26,6 +27,13 @@ export const metadata: Metadata = {
     shortcut: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
   }
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#F3A9BE"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
