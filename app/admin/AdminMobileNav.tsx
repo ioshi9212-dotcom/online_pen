@@ -5,8 +5,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 const items = [
   { label: "Главная", href: "/admin", icon: "⌂", key: "home" },
   { label: "Календарь", href: "/admin/schedule?view=calendar", icon: "□", key: "calendar" },
-  { label: "Настройки", href: "/admin/settings", icon: "⚙", key: "settings" },
-  { label: "База клиентов", href: "/admin/my-clients", icon: "◇", key: "clients" }
+  { label: "Клиенты", href: "/admin/my-clients", icon: "◇", key: "clients" },
+  { label: "Настройки", href: "/admin/settings", icon: "⚙", key: "settings" }
 ];
 
 function activeKey(pathname: string, view: string | null) {
@@ -28,12 +28,20 @@ export default function AdminMobileNav() {
 
   return (
     <nav className="master-bottom-nav admin-global-bottom-nav" aria-label="Нижнее меню мастера">
-      {items.map((item) => (
-        <a key={item.key} className={current === item.key ? "active" : ""} href={item.href}>
-          <span>{item.icon}</span>
-          <b>{item.label}</b>
-        </a>
-      ))}
+      {items.map((item) => {
+        const active = current === item.key;
+        return (
+          <a
+            key={item.key}
+            className={active ? "active" : ""}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+          >
+            <span aria-hidden="true">{item.icon}</span>
+            <b>{item.label}</b>
+          </a>
+        );
+      })}
     </nav>
   );
 }
