@@ -1,0 +1,19 @@
+meta:
+  environment: nodejs
+  toolchain:
+    name: npm
+    version: 20.19.0
+build:
+  skip: false
+  additionalCommands: npm run build
+  artifacts:
+    "*": /
+run:
+  scriptName: null
+  scriptArguments: null
+  nodeArguments: null
+  command: npm run start
+  persistenceMount: /data
+  containerPort: "3000"
+  singleton: false
+  zeroDowntime: true
