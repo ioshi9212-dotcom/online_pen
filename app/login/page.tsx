@@ -15,13 +15,13 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <p className="muted">Для тех, кто уже оставлял заявку</p>
-        <h1>Я уже зарегистрирована</h1>
-        <p>Введите телефон и дату рождения. Если мастер уже подтвердил заявку — откроется кабинет. Если нет — покажем экран ожидания.</p>
+        <p className="muted">Вход для клиентов</p>
+        <h1>Войти</h1>
+        <p>Введите телефон и дату рождения. Если доступ уже подтверждён, сразу откроется личный кабинет. Если заявка ещё на проверке, покажем её статус.</p>
 
         <div className="notice test-version-note">
-          <b>Тестовая версия сайта.</b>
-          <p>Он старается, честно. Но после записи всё равно напишите мастеру — пусть человек проверит то, что робот красиво наобещал.</p>
+          <b>После записи дождитесь подтверждения.</b>
+          <p>Заявка на время сначала попадёт мастеру. Когда запись будет подтверждена, её статус изменится в личном кабинете.</p>
         </div>
 
         {searchParams.error === "wrong_birthdate" ? <div className="notice danger-status">Дата рождения не совпала. Проверь цифры.</div> : null}
@@ -29,8 +29,8 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
           <label>Телефон<input name="phone" required placeholder="+7..." /></label>
           <label>Дата рождения<input name="birthDate" required type="date" /></label>
           <div className="actions">
-            <button type="submit">Войти / проверить статус</button>
-            <a className="button secondary" href="/register">Я ещё не зарегистрирована</a>
+            <button type="submit">Войти</button>
+            <a className="button secondary" href="/register">Я новый клиент</a>
           </div>
         </form>
       </section>
