@@ -1035,3 +1035,26 @@ body:has(.price-page) .beauty-menu-row {
     text-align: center !important;
   }
 }
+
+
+/* Remap legacy theme variables inside client-facing routes so old components
+   that still consume --blue/--beauty-* inherit the v2 palette. */
+body:has(.public-page),
+body:has(.auth-page),
+body:has(.client-page),
+body:has(.pending-page),
+body:has(.price-page) {
+  --blue: var(--client-accent);
+  --blue-dark: var(--client-accent-dark);
+  --beauty-rose: var(--client-accent);
+  --beauty-rose-dark: var(--client-accent-dark);
+  --beauty-text: var(--client-text);
+  --beauty-muted: var(--client-muted);
+  --beauty-line: var(--client-line);
+  --ui-rose: var(--client-accent);
+  --ui-rose-dark: var(--client-accent-dark);
+  --ui-text: var(--client-text);
+  --ui-muted: var(--client-muted);
+  --ui-line: var(--client-line);
+  --ui-line-strong: var(--client-line-strong);
+}
