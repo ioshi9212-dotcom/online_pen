@@ -643,3 +643,279 @@ body:has(.client-page) .beauty-master-entry small {
     grid-template-columns: 1fr 1fr !important;
   }
 }
+
+
+/* ===== Audit pass: legacy-conflict fixes and remaining client routes ===== */
+
+/* avatar-upload.css used to inject a second, outdated warning via pseudo-element. */
+.client-page .client-start-warning::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* my-page-compact.module.css is intentionally very specific.
+   These selectors keep the v2 typography/touch sizes authoritative. */
+.client-page.client-page-compact .instruction-cards .info-card p,
+.client-page.client-page-compact .booking-view-switch p,
+.client-page.client-page-compact .flow-step-title p,
+.client-page.client-page-compact .waitlist-active-list p,
+.client-page.client-page-compact .price-list.price-compact-list .price-row p {
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+.client-page.client-page-compact .booking-view-switch {
+  padding: 16px !important;
+  border-color: var(--client-line) !important;
+  background: var(--client-surface) !important;
+}
+
+.client-page.client-page-compact .segmented-switch {
+  padding: 3px !important;
+  border: 1px solid var(--client-line) !important;
+  background: var(--client-surface-soft) !important;
+}
+
+.client-page.client-page-compact .segmented-switch button {
+  min-height: 44px !important;
+  background: transparent !important;
+  color: var(--client-muted) !important;
+  font-size: 14px !important;
+}
+
+.client-page.client-page-compact .segmented-switch button.active {
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+  box-shadow: 0 2px 8px rgba(40, 34, 38, .07) !important;
+}
+
+.client-page.client-page-compact .calendar-legend .blue-dot,
+.client-page.client-page-compact .calendar-grid .day-btn .day-dots .blue-dot {
+  background: var(--client-accent) !important;
+}
+
+.client-page.client-page-compact .compact-service-switch {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.client-page.client-page-compact .compact-service-switch button {
+  width: 100% !important;
+  min-height: 52px !important;
+  padding: 10px 12px !important;
+  border: 1px solid var(--client-line-strong) !important;
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+  font-size: 14px !important;
+}
+
+.client-page.client-page-compact .compact-service-switch button.active {
+  border-color: var(--client-accent) !important;
+  background: var(--client-accent) !important;
+  color: #fff !important;
+}
+
+.client-page.client-page-compact .waitlist-compact-form label {
+  font-size: 15px !important;
+}
+
+.client-page.client-page-compact .waitlist-compact-form input,
+.client-page.client-page-compact .waitlist-compact-form select,
+.client-page.client-page-compact .waitlist-compact-form textarea {
+  min-height: 48px !important;
+  padding: 11px 13px !important;
+  font-size: 16px !important;
+}
+
+.client-page.client-page-compact .waitlist-compact-form button,
+.client-page.client-page-compact .waitlist-active-list button,
+.client-page.client-page-compact .final-confirm-card button,
+.client-page.client-page-compact #bookings button,
+.client-page.client-page-compact #profile .button {
+  min-height: 46px !important;
+  padding: 10px 13px !important;
+  font-size: 14px !important;
+}
+
+.client-page.client-page-compact .price-list.price-compact-list .price-row b {
+  font-size: 15px !important;
+  font-weight: 650 !important;
+}
+
+.client-page.client-page-compact .price-list.price-compact-list .price-row strong {
+  color: var(--client-text) !important;
+  font-size: 16px !important;
+}
+
+.client-page.client-page-compact .booking-card h3 {
+  color: var(--client-text) !important;
+}
+
+.client-page.client-page-compact .inline-times button {
+  min-height: 40px !important;
+  padding: 7px 9px !important;
+  border: 1px solid var(--client-line) !important;
+  border-radius: 9px !important;
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+}
+
+.client-page.client-page-compact .inline-times button.active {
+  border-color: var(--client-accent) !important;
+  background: var(--client-accent) !important;
+  color: #fff !important;
+}
+
+/* Pending and standalone price pages are client-facing too. */
+body:has(.pending-page),
+body:has(.price-page) {
+  background: var(--client-bg) !important;
+  color: var(--client-text) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-weight: 400 !important;
+}
+
+body:has(.pending-page) .app-shell,
+body:has(.price-page) .app-shell {
+  width: min(1180px, calc(100% - 40px)) !important;
+  margin: 0 auto !important;
+  padding: 20px 0 48px !important;
+  background: transparent !important;
+}
+
+.pending-page,
+.price-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  gap: 16px !important;
+}
+
+.pending-page .hero,
+.price-page .hero,
+.price-page .card,
+.pending-page .notice,
+.price-page .notice,
+.price-page .pretty-price-card,
+.price-page .pretty-addon-row {
+  border: 1px solid var(--client-line) !important;
+  border-radius: var(--client-radius) !important;
+  background: var(--client-surface) !important;
+  box-shadow: var(--client-shadow) !important;
+  color: var(--client-text) !important;
+}
+
+.pending-page .hero,
+.price-page .hero {
+  min-height: 0 !important;
+  padding: 28px 30px !important;
+}
+
+.pending-page .hero::before,
+.pending-page .hero::after,
+.price-page .hero::before,
+.price-page .hero::after {
+  display: none !important;
+}
+
+.pending-page h1,
+.price-page h1 {
+  margin: 0 0 10px !important;
+  font-size: clamp(30px, 4.4vw, 46px) !important;
+  line-height: 1.05 !important;
+  font-weight: 650 !important;
+  letter-spacing: -.035em !important;
+}
+
+.pending-page h2,
+.price-page h2 {
+  font-size: clamp(22px, 2.8vw, 30px) !important;
+  font-weight: 630 !important;
+}
+
+.pending-page p,
+.price-page p,
+.pending-page small,
+.price-page small {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.pending-page button,
+.pending-page .button,
+.price-page button,
+.price-page .button {
+  min-height: 46px !important;
+  padding: 11px 16px !important;
+  border-radius: var(--client-radius-small) !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+}
+
+.pending-page .button:not(.secondary),
+.price-page .button:not(.secondary) {
+  border-color: var(--client-accent) !important;
+  background: var(--client-accent) !important;
+  color: #fff !important;
+}
+
+.pending-page .button.secondary,
+.price-page .button.secondary {
+  border: 1px solid var(--client-line-strong) !important;
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+}
+
+@media (max-width: 760px) {
+  .client-page.client-page-compact .compact-service-switch {
+    grid-template-columns: 1fr !important;
+  }
+
+  .client-page.client-page-compact .inline-times button {
+    min-height: 44px !important;
+    padding: 8px 10px !important;
+  }
+
+  .client-page.client-page-compact .waitlist-compact-form button,
+  .client-page.client-page-compact .waitlist-active-list button,
+  .client-page.client-page-compact .final-confirm-card button,
+  .client-page.client-page-compact #bookings button,
+  .client-page.client-page-compact #profile .button {
+    min-height: 48px !important;
+    font-size: 15px !important;
+  }
+
+  body:has(.pending-page) .app-shell,
+  body:has(.price-page) .app-shell {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: max(10px, env(safe-area-inset-top, 0px)) 12px calc(32px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .pending-page .hero,
+  .price-page .hero,
+  .price-page .card {
+    padding: 17px !important;
+  }
+
+  .pending-page h1,
+  .price-page h1 {
+    font-size: 28px !important;
+    line-height: 1.08 !important;
+  }
+
+  .pending-page .actions,
+  .price-page .hero .actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .pending-page .actions > *,
+  .price-page .hero .actions > * {
+    width: 100% !important;
+    min-height: 48px !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+}
