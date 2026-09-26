@@ -41,7 +41,7 @@ export default function SiteHeader() {
               <span>Кабинет мастера</span>
               <span className="beauty-menu-arrow" aria-hidden="true">›</span>
             </a>
-            <small>Клиентам туда нельзя. Там скучно, пароли и ответственность.</small>
+            <small>Вход для мастера</small>
           </div>
         </nav>
       </header>
