@@ -10,13 +10,14 @@ import "./unified-design.css";
 import "./avatar-upload.css";
 import "./pull-refresh.css";
 import "./mobile-system.css";
+import "./client-ui-v2.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
   description: "Онлайн-запись к мастеру",
   applicationName: "Онлайн-запись",
   manifest: "/site.webmanifest",
-  themeColor: "#F3A9BE",
+  themeColor: "#f4f4f5",
   appleWebApp: {
     capable: true,
     title: "Запись",
@@ -33,7 +34,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#F3A9BE"
+  themeColor: "#f4f4f5"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
