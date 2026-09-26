@@ -1,0 +1,645 @@
+/*
+  Client UI v2
+  Visual-only layer. Imported last on purpose.
+  Keeps routes, forms, buttons and booking logic intact.
+*/
+
+:root {
+  --client-bg: #f4f4f5;
+  --client-surface: #ffffff;
+  --client-surface-soft: #f8f7f8;
+  --client-text: #29272b;
+  --client-muted: #747078;
+  --client-line: #e4e0e3;
+  --client-line-strong: #d4cdd1;
+  --client-accent: #9a6476;
+  --client-accent-dark: #754657;
+  --client-accent-soft: #f2e9ed;
+  --client-danger: #a64d5b;
+  --client-radius: 16px;
+  --client-radius-small: 11px;
+  --client-shadow: 0 10px 32px rgba(45, 38, 42, .055);
+}
+
+body:has(.public-page),
+body:has(.auth-page),
+body:has(.client-page) {
+  background: var(--client-bg) !important;
+  color: var(--client-text) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-weight: 400 !important;
+}
+
+body:has(.public-page) .app-shell,
+body:has(.auth-page) .app-shell,
+body:has(.client-page) .app-shell {
+  width: min(1180px, calc(100% - 40px)) !important;
+  margin: 0 auto !important;
+  padding: 20px 0 48px !important;
+  background: transparent !important;
+}
+
+/* Client header: same actions, quieter hierarchy. */
+body:has(.public-page) .beauty-top-card,
+body:has(.auth-page) .beauty-top-card,
+body:has(.client-page) .beauty-top-card {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 0 16px !important;
+  padding: 14px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  border: 1px solid var(--client-line) !important;
+  border-radius: var(--client-radius) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  box-shadow: var(--client-shadow) !important;
+  overflow: visible !important;
+}
+
+body:has(.public-page) .beauty-top-card::before,
+body:has(.public-page) .beauty-top-card::after,
+body:has(.auth-page) .beauty-top-card::before,
+body:has(.auth-page) .beauty-top-card::after,
+body:has(.client-page) .beauty-top-card::before,
+body:has(.client-page) .beauty-top-card::after {
+  display: none !important;
+}
+
+body:has(.public-page) .beauty-brand,
+body:has(.auth-page) .beauty-brand,
+body:has(.client-page) .beauty-brand {
+  min-width: max-content !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: var(--client-text) !important;
+  text-decoration: none !important;
+}
+
+body:has(.public-page) .beauty-brand b,
+body:has(.auth-page) .beauty-brand b,
+body:has(.client-page) .beauty-brand b {
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  font-weight: 650 !important;
+  color: var(--client-text) !important;
+}
+
+body:has(.public-page) .beauty-brand-icon,
+body:has(.auth-page) .beauty-brand-icon,
+body:has(.client-page) .beauty-brand-icon {
+  width: 34px !important;
+  height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  background: var(--client-accent) !important;
+  color: #fff !important;
+}
+
+body:has(.public-page) .compact-client-links,
+body:has(.auth-page) .compact-client-links,
+body:has(.client-page) .compact-client-links {
+  width: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+body:has(.public-page) .beauty-menu-row,
+body:has(.auth-page) .beauty-menu-row,
+body:has(.client-page) .beauty-menu-row {
+  width: auto !important;
+  min-height: 42px !important;
+  padding: 9px 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  border: 1px solid var(--client-line) !important;
+  border-radius: 11px !important;
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  font-size: 14px !important;
+  font-weight: 550 !important;
+}
+
+body:has(.public-page) .beauty-master-entry,
+body:has(.auth-page) .beauty-master-entry,
+body:has(.client-page) .beauty-master-entry {
+  width: auto !important;
+  display: grid !important;
+  gap: 2px !important;
+}
+
+body:has(.public-page) .beauty-master-entry small,
+body:has(.auth-page) .beauty-master-entry small,
+body:has(.client-page) .beauty-master-entry small {
+  max-width: 220px !important;
+  margin: 0 !important;
+  color: var(--client-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+/* Main client surfaces */
+.public-page,
+.auth-page,
+.client-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  gap: 16px !important;
+  color: var(--client-text) !important;
+}
+
+.public-page .hero,
+.auth-card,
+.client-page .hero,
+.client-page .card,
+.public-page .card,
+.client-page .calendar-card,
+.client-page .selected-day-card,
+.client-page .booking-view-switch,
+.client-page .info-card,
+.client-page .notice,
+.auth-page .notice {
+  border: 1px solid var(--client-line) !important;
+  border-radius: var(--client-radius) !important;
+  background: var(--client-surface) !important;
+  box-shadow: var(--client-shadow) !important;
+  color: var(--client-text) !important;
+}
+
+.public-page .hero,
+.client-page .hero {
+  min-height: 0 !important;
+  padding: 28px 30px !important;
+  background: var(--client-surface) !important;
+}
+
+.public-page .hero::before,
+.public-page .hero::after,
+.client-page .hero::before,
+.client-page .hero::after {
+  display: none !important;
+}
+
+.public-page h1,
+.auth-page h1,
+.client-page h1 {
+  max-width: 760px !important;
+  margin: 0 0 10px !important;
+  color: var(--client-text) !important;
+  font-size: clamp(30px, 4.4vw, 46px) !important;
+  line-height: 1.05 !important;
+  font-weight: 650 !important;
+  letter-spacing: -.035em !important;
+}
+
+.public-page h2,
+.auth-page h2,
+.client-page h2 {
+  color: var(--client-text) !important;
+  font-size: clamp(22px, 2.8vw, 30px) !important;
+  line-height: 1.12 !important;
+  font-weight: 630 !important;
+  letter-spacing: -.025em !important;
+}
+
+.public-page h3,
+.auth-page h3,
+.client-page h3 {
+  color: var(--client-text) !important;
+  font-weight: 620 !important;
+}
+
+.public-page p,
+.auth-page p,
+.client-page p,
+.public-page small,
+.auth-page small,
+.client-page small,
+.public-page label,
+.auth-page label,
+.client-page label {
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+}
+
+.public-page .muted,
+.auth-page .muted,
+.client-page .muted,
+.public-page .lead,
+.auth-page .lead,
+.client-page .lead {
+  color: var(--client-muted) !important;
+}
+
+.public-page .lead,
+.client-page .lead {
+  max-width: 680px !important;
+  margin: 0 !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+}
+
+.public-page .actions,
+.auth-page .actions,
+.client-page .actions {
+  gap: 9px !important;
+}
+
+/* Buttons: no actions removed, only a clearer hierarchy. */
+.public-page button,
+.public-page .button,
+.public-page .primary-link,
+.auth-page button,
+.auth-page .button,
+.auth-page .primary-link,
+.client-page button,
+.client-page .button,
+.client-page .primary-link {
+  min-height: 46px !important;
+  padding: 11px 16px !important;
+  border-radius: var(--client-radius-small) !important;
+  font-size: 15px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+.public-page button:not(.secondary):not(.danger):not(.month-arrow):not(.day-btn):not(.time-btn),
+.public-page .button:not(.secondary):not(.danger),
+.auth-page button:not(.secondary):not(.danger),
+.auth-page .button:not(.secondary):not(.danger),
+.client-page button:not(.secondary):not(.danger):not(.month-arrow):not(.day-btn):not(.time-btn),
+.client-page .button:not(.secondary):not(.danger) {
+  border-color: var(--client-accent) !important;
+  background: var(--client-accent) !important;
+  color: #fff !important;
+}
+
+.public-page .button.secondary,
+.public-page button.secondary,
+.auth-page .button.secondary,
+.auth-page button.secondary,
+.client-page .button.secondary,
+.client-page button.secondary,
+.client-page .month-arrow {
+  border: 1px solid var(--client-line-strong) !important;
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+}
+
+.client-page button.danger,
+.client-page .button.danger {
+  border: 1px solid #ead4d9 !important;
+  background: #fff7f8 !important;
+  color: var(--client-danger) !important;
+}
+
+/* Forms */
+.auth-page input,
+.auth-page textarea,
+.auth-page select,
+.client-page input,
+.client-page textarea,
+.client-page select {
+  min-height: 48px !important;
+  padding: 11px 13px !important;
+  border: 1px solid var(--client-line-strong) !important;
+  border-radius: var(--client-radius-small) !important;
+  background: #fff !important;
+  color: var(--client-text) !important;
+  font-size: 16px !important;
+  line-height: 1.35 !important;
+}
+
+.auth-page label,
+.client-page label {
+  gap: 7px !important;
+  color: var(--client-text) !important;
+  font-weight: 550 !important;
+}
+
+/* Public instructions */
+.public-text-steps {
+  padding: 8px 4px !important;
+  gap: 12px !important;
+}
+
+.public-text-step-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.public-text-step-list > div {
+  min-width: 0 !important;
+  padding: 16px !important;
+  border: 1px solid var(--client-line) !important;
+  border-left: 1px solid var(--client-line) !important;
+  border-radius: 14px !important;
+  background: var(--client-surface) !important;
+}
+
+.public-text-step-list > div b {
+  display: block !important;
+  color: var(--client-text) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+}
+
+.public-text-step-list > div p {
+  margin-top: 5px !important;
+  color: var(--client-muted) !important;
+  font-size: 14px !important;
+}
+
+.public-price-row {
+  border-color: var(--client-line) !important;
+  border-radius: 12px !important;
+  background: var(--client-surface-soft) !important;
+  box-shadow: none !important;
+}
+
+/* Booking controls */
+.client-page .booking-view-switch {
+  padding: 16px !important;
+}
+
+.client-page .segmented-switch {
+  padding: 3px !important;
+  border: 1px solid var(--client-line) !important;
+  border-radius: 12px !important;
+  background: var(--client-surface-soft) !important;
+}
+
+.client-page .segmented-switch button {
+  min-height: 42px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--client-muted) !important;
+}
+
+.client-page .segmented-switch button.active {
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+  box-shadow: 0 2px 8px rgba(40, 34, 38, .07) !important;
+}
+
+.client-page .calendar-grid .day-btn {
+  border-radius: 10px !important;
+}
+
+.client-page .calendar-grid button.day-btn.active {
+  border-color: var(--client-accent) !important;
+  background: var(--client-accent-soft) !important;
+  color: var(--client-text) !important;
+  outline: none !important;
+}
+
+.client-page .blue-dot {
+  background: var(--client-accent) !important;
+}
+
+.client-page .time-btn.free {
+  border-color: var(--client-line-strong) !important;
+  background: var(--client-surface) !important;
+  color: var(--client-text) !important;
+}
+
+.client-page .time-btn.free.active {
+  border-color: var(--client-accent) !important;
+  background: var(--client-accent) !important;
+  color: #fff !important;
+}
+
+.client-page .client-start-warning,
+.client-page .combo-service-note,
+.client-page .final-check-note {
+  background: var(--client-surface-soft) !important;
+  color: var(--client-text) !important;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --client-radius: 14px;
+  }
+
+  body:has(.public-page) .app-shell,
+  body:has(.auth-page) .app-shell,
+  body:has(.client-page) .app-shell {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: max(10px, env(safe-area-inset-top, 0px)) 12px calc(32px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  body:has(.public-page) .beauty-top-card,
+  body:has(.auth-page) .beauty-top-card,
+  body:has(.client-page) .beauty-top-card {
+    padding: 11px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  body:has(.public-page) .beauty-brand,
+  body:has(.auth-page) .beauty-brand,
+  body:has(.client-page) .beauty-brand {
+    min-width: 0 !important;
+  }
+
+  body:has(.public-page) .compact-client-links,
+  body:has(.auth-page) .compact-client-links,
+  body:has(.client-page) .compact-client-links {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  body:has(.public-page) .beauty-menu-row,
+  body:has(.auth-page) .beauty-menu-row,
+  body:has(.client-page) .beauty-menu-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 46px !important;
+    justify-content: center !important;
+    padding: 10px !important;
+    font-size: 14px !important;
+  }
+
+  body:has(.public-page) .beauty-master-entry,
+  body:has(.auth-page) .beauty-master-entry,
+  body:has(.client-page) .beauty-master-entry {
+    width: 100% !important;
+  }
+
+  body:has(.public-page) .beauty-master-entry small,
+  body:has(.auth-page) .beauty-master-entry small,
+  body:has(.client-page) .beauty-master-entry small {
+    max-width: none !important;
+    padding: 0 4px !important;
+    text-align: center !important;
+  }
+
+  .public-page,
+  .auth-page,
+  .client-page {
+    gap: 12px !important;
+  }
+
+  .public-page .hero,
+  .client-page .hero,
+  .auth-card,
+  .client-page .card,
+  .public-page .card,
+  .client-page .calendar-card,
+  .client-page .selected-day-card {
+    padding: 17px !important;
+  }
+
+  .public-page h1,
+  .auth-page h1,
+  .client-page h1 {
+    font-size: 28px !important;
+    line-height: 1.08 !important;
+    letter-spacing: -.025em !important;
+  }
+
+  .public-page h2,
+  .auth-page h2,
+  .client-page h2 {
+    font-size: 21px !important;
+    line-height: 1.15 !important;
+  }
+
+  .public-page p,
+  .auth-page p,
+  .client-page p,
+  .public-page small,
+  .auth-page small,
+  .client-page small,
+  .public-page label,
+  .auth-page label,
+  .client-page label {
+    font-size: 15px !important;
+    line-height: 1.45 !important;
+  }
+
+  .public-page .lead,
+  .client-page .lead {
+    font-size: 16px !important;
+  }
+
+  .public-page button,
+  .public-page .button,
+  .public-page .primary-link,
+  .auth-page button,
+  .auth-page .button,
+  .auth-page .primary-link,
+  .client-page button,
+  .client-page .button,
+  .client-page .primary-link {
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    font-size: 15px !important;
+  }
+
+  .public-page .hero .actions,
+  .auth-page .actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+
+  .public-page .hero .actions > *,
+  .auth-page .actions > * {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .public-text-step-list {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .public-text-step-list > div {
+    padding: 14px !important;
+  }
+
+  .client-page .booking-view-switch {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .client-page .segmented-switch {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .client-page .calendar-layout {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .client-page .calendar-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+  }
+
+  .client-page .calendar-grid .day-btn {
+    min-width: 0 !important;
+    min-height: 43px !important;
+    padding: 5px 2px !important;
+    font-size: 13px !important;
+  }
+
+  .client-page .time-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .client-page .time-btn {
+    min-width: 0 !important;
+    min-height: 52px !important;
+  }
+
+  .client-page .compact-service-switch {
+    grid-template-columns: 1fr !important;
+  }
+
+  .client-page .selected-summary-panel {
+    grid-template-columns: 1fr !important;
+  }
+
+  .public-price-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  body:has(.public-page) .compact-client-links,
+  body:has(.auth-page) .compact-client-links,
+  body:has(.client-page) .compact-client-links {
+    grid-template-columns: 1fr !important;
+  }
+
+  .public-page h1,
+  .auth-page h1,
+  .client-page h1 {
+    font-size: 26px !important;
+  }
+
+  .client-page .time-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
