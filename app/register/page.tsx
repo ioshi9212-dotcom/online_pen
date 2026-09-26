@@ -6,13 +6,13 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <p className="muted">Новая заявка</p>
-        <h1>Регистрация</h1>
-        <p>После подтверждения мастера откроется личный кабинет со свободными окнами.</p>
+        <p className="muted">Первый вход</p>
+        <h1>Новый клиент</h1>
+        <p>Заполните форму один раз. После подтверждения откроется личный кабинет со свободными окнами.</p>
 
         <div className="notice test-version-note">
-          <b>Тестовая версия сайта.</b>
-          <p>Если что-то выглядит слишком умно или слишком странно — это не магия, это сайт ещё учится быть взрослым. После записи лучше напишите мастеру, чтобы она всё проверила.</p>
+          <b>Что будет дальше?</b>
+          <p>Я проверю заявку и открою доступ. После этого вы сможете входить по телефону и дате рождения без повторной регистрации.</p>
         </div>
 
         {rejected ? (
@@ -21,7 +21,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
           </div>
         ) : (
           <div className="notice">
-            Уже отправляли заявку? Не заполняйте заново — нажмите “Я уже зарегистрирована” и проверьте статус.
+            Уже отправляли заявку? Не заполняйте форму заново. Нажмите «Войти» и проверьте статус.
           </div>
         )}
         <form action={registerClient} className="grid">
@@ -36,7 +36,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
           <label>Комментарий<textarea name="comment" /></label>
           <div className="actions">
             <button type="submit">Отправить заявку</button>
-            <a className="button secondary" href="/login">Я уже зарегистрирована</a>
+            <a className="button secondary" href="/login">Войти</a>
           </div>
         </form>
       </section>
