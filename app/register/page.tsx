@@ -8,11 +8,11 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
       <section className="auth-card">
         <p className="muted">Новая заявка</p>
         <h1>Регистрация</h1>
-        <p>После подтверждения мастера откроется личный кабинет со свободными окнами.</p>
+        <p>Заполните форму. Мастер подтвердит заявку и откроет доступ к записи.</p>
 
         <div className="notice test-version-note">
-          <b>Тестовая версия сайта.</b>
-          <p>Если что-то выглядит слишком умно или слишком странно — это не магия, это сайт ещё учится быть взрослым. После записи лучше напишите мастеру, чтобы она всё проверила.</p>
+          <b>Сайт в тестовом режиме</b>
+          <p>После записи напишите мастеру для проверки.</p>
         </div>
 
         {rejected ? (
@@ -21,22 +21,22 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
           </div>
         ) : (
           <div className="notice">
-            Уже отправляли заявку? Не заполняйте заново — нажмите “Я уже зарегистрирована” и проверьте статус.
+            Уже оставляли заявку? Нажмите «Войти», чтобы проверить статус.
           </div>
         )}
         <form action={registerClient} className="grid">
           <div className="grid-2">
-            <label>Имя<input name="firstName" required /></label>
-            <label>Фамилия<input name="lastName" required /></label>
+            <label>Имя<input name="firstName" autoComplete="given-name" required /></label>
+            <label>Фамилия<input name="lastName" autoComplete="family-name" required /></label>
           </div>
           <div className="grid-2">
-            <label>Телефон<input name="phone" required defaultValue={searchParams.phone || ""} /></label>
+            <label>Телефон<input name="phone" type="tel" autoComplete="tel" required defaultValue={searchParams.phone || ""} /></label>
             <label>Дата рождения<input name="birthDate" required type="date" /></label>
           </div>
-          <label>Комментарий<textarea name="comment" /></label>
+          <label>Комментарий — необязательно<textarea name="comment" /></label>
           <div className="actions">
             <button type="submit">Отправить заявку</button>
-            <a className="button secondary" href="/login">Я уже зарегистрирована</a>
+            <a className="button secondary" href="/login">Войти</a>
           </div>
         </form>
       </section>

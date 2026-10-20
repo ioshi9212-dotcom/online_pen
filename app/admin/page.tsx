@@ -246,7 +246,7 @@ function BookingList({ title, date, bookings }: { title: string; date: Date; boo
             </details>
           );
         })}
-        {bookings.length === 0 ? <div className="admin-empty">Записей нет. Редкий подарок расписанию.</div> : null}
+        {bookings.length === 0 ? <div className="admin-empty">Записей пока нет.</div> : null}
       </div>
     </article>
   );
@@ -348,7 +348,7 @@ export default async function AdminPage() {
     <main className="master-dashboard">
       <Sidebar requestCount={requestCount} waitlistCount={waitlist.length} />
       <section className="master-main admin-workdesk master-mobile-workdesk">
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           .master-open-windows-panel { padding: 16px 18px !important; overflow: visible; }
           .master-open-windows-title { margin: 0 0 8px; font-size: 20px; line-height: 1.2; font-weight: 500; color: #2d2530; }
           .master-open-windows-list { display: grid; gap: 0; }
@@ -380,10 +380,10 @@ export default async function AdminPage() {
           .master-request-card[open] .master-request-arrow::before { content: "⌃"; }
           .master-request-static-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
           @media (max-width: 760px) { .master-open-windows-panel { padding: 14px 16px !important; } .master-open-windows-title { font-size: 19px; } .master-open-window-line { padding: 7px 0; font-size: 14px; } .master-request-title { font-size: 16px; } .master-upcoming-card { padding: 12px !important; } .master-upcoming-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 6px 0; } .master-upcoming-main b { font-size: 12px !important; } .master-upcoming-row .button { min-height: 25px !important; padding: 5px 7px !important; font-size: 11px !important; } }
-        `}</style>
+        ` }} />
 
         <header className="master-mobile-topbar"><div><b>Главная</b><span>{fmtTopDate(today)}</span></div></header>
-        <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Сегодня, завтра, ближайшие записи, заявки, ждуны и список свободных окон. Без лишней гирлянды.</p></div></header>
+        <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Расписание, ближайшие записи и заявки клиентов.</p></div></header>
 
         <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{upcomingBookings.length}</b><span>впереди</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlist.length}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>
         <section className="master-mobile-day-stack"><BookingList title="Сегодня" date={today} bookings={todayBookings} /><BookingList title="Завтра" date={tomorrow} bookings={tomorrowBookings} /></section>
@@ -409,7 +409,7 @@ export default async function AdminPage() {
           )}
         </section>
 
-        <section className="admin-home-panel master-waitlist-card" id="waitlist"><div className="admin-panel-head"><div><h2>Ждуны</h2><p>{waitlist.length ? "Клиенты ждут окно" : "Список ожидания пуст"}</p></div><span className="badge">{waitlist.length}</span></div><div className="admin-row-list">{waitlist.map((entry) => { const dates = parseWaitDates(entry.desiredDates); return <div className="admin-wait-row" key={entry.id}><b>{entry.client.lastName} {entry.client.firstName}</b><small>{waitModeText(entry.mode)}</small>{dates.length ? <div className="admin-wait-dates">{dates.map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}{entry.note ? <small>{entry.note}</small> : null}<div className="master-wait-actions"><a className="button secondary" href={`/admin/manage?clientId=${entry.clientId}`}>Записать</a><form action={closeWaitlistEntry}><input type="hidden" name="id" value={entry.id} /><button type="submit" className="secondary">Убрать</button></form></div></div>; })}{waitlist.length === 0 ? <div className="admin-empty">Ждунов нет. Невероятно, но красиво.</div> : null}</div></section>
+        <section className="admin-home-panel master-waitlist-card" id="waitlist"><div className="admin-panel-head"><div><h2>Ждуны</h2><p>{waitlist.length ? "Клиенты ждут окно" : "Список ожидания пуст"}</p></div><span className="badge">{waitlist.length}</span></div><div className="admin-row-list">{waitlist.map((entry) => { const dates = parseWaitDates(entry.desiredDates); return <div className="admin-wait-row" key={entry.id}><b>{entry.client.lastName} {entry.client.firstName}</b><small>{waitModeText(entry.mode)}</small>{dates.length ? <div className="admin-wait-dates">{dates.map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}{entry.note ? <small>{entry.note}</small> : null}<div className="master-wait-actions"><a className="button secondary" href={`/admin/manage?clientId=${entry.clientId}`}>Записать</a><form action={closeWaitlistEntry}><input type="hidden" name="id" value={entry.id} /><button type="submit" className="secondary">Убрать</button></form></div></div>; })}{waitlist.length === 0 ? <div className="admin-empty">Лист ожидания пуст.</div> : null}</div></section>
         <OpenWindowsStory groups={openWindowGroups} />
       </section>
     </main>

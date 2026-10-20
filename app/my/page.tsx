@@ -51,7 +51,7 @@ function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
 }
 
 function noticeText(searchParams: SearchParams) {
-  if (searchParams.profileSaved) return "Профиль сохранён. Фото тоже, если сайт опять не решил стать драмой.";
+  if (searchParams.profileSaved) return "Профиль сохранён.";
   if (searchParams.created) return "Заявка отправлена. Окно занято за вами, ждите подтверждения мастера.";
   if (searchParams.remembered) return "Отметила: вы помните про запись. Мастер теперь тоже видит эту отметку.";
   if (searchParams.rememberError === "early") return "Кнопка подтверждения появится только с 9:00 за день до записи.";
@@ -173,8 +173,8 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <section className="client-top-stack" aria-label="Важное">
         <div className="notice client-start-warning">
-          <b>Онлайн-запись работает в тестовом режиме.</b>
-          <p>Сайт уже почти самостоятельный, но я всё равно проверяю записи руками. Если записались — лучше напишите мне. Робот молодец, но без присмотра пока не герой.</p>
+          <b>Сайт в тестовом режиме</b>
+          <p>После записи напишите мастеру для проверки.</p>
         </div>
 
         {upcomingBooking ? (
@@ -191,11 +191,11 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
             <div className="upcoming-booking-note">
               {clientRemembered ? (
-                <p><b>Вы отметили, что помните про запись.</b> Отлично, сайт выдохнул, мастер увидит отметку.</p>
+                <p><b>Вы помните про запись.</b> Мастер видит вашу отметку.</p>
               ) : canClientRemember ? (
-                <p><b>Подтвердите, что помните про запись.</b> Кнопка доступна с 9:00 за день до визита. Это не подтверждение мастера, а ваша отметка: «да, я приду».</p>
+                <p><b>Отметьте, что помните про запись.</b> Это ваша отметка «Я приду». Саму запись подтверждает мастер.</p>
               ) : (
-                <p><b>Кнопка «Помню про запись» появится {rememberOpensLabel(upcomingBooking.startAt)}.</b> Раньше не показываю, чтобы никто не подтверждал запись за сто лет до события и потом не забывал, как обычно делают взрослые люди.</p>
+                <p>Кнопка «Помню про запись» появится {rememberOpensLabel(upcomingBooking.startAt)}.</p>
               )}
             </div>
 
@@ -225,22 +225,22 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
-        <h1>Свободные окна и запись</h1>
-        <p className="lead">{client.firstName}, сначала найдите удобное время, затем отметьте основную услугу. Допы можно написать в комментарии.</p>
+        <h1>Записаться</h1>
+        <p className="lead">{client.firstName}, выберите время и основную услугу. Дополнения укажите в комментарии.</p>
       </section>
 
       <section className="client-note-stack" aria-label="Важные подсказки">
-        <div className="notice combo-service-note">
-          <b>Маникюр + педикюр в один день.</b>
-          <p>Шаг записи — 2,5 часа. Для двух услуг выбирайте два соседних свободных времени: например, маникюр на 12:00 и педикюр на 14:30. Это не значит, что вы будете сидеть и ждать до 14:30 — мастер просто увидит, что нужно оставить под вас длинное окно.</p>
-          <p>Если свободно 12:00, а следующее только 17:00, значит середина уже занята: маникюр и педикюр вместе в это окно не влезают, как бы сайт ни делал вид, что он оптимист.</p>
-        </div>
+        <details className="notice combo-service-note">
+          <summary>Маникюр + педикюр в один день</summary>
+          <p>Оформите две записи на соседние свободные окна с шагом 2,5 часа. Например: маникюр в 12:00, педикюр в 14:30.</p>
+          <p>Паузы между услугами не будет. Если соседнее время занято, выберите другой день.</p>
+        </details>
       </section>
 
       <section className="info-cards instruction-cards">
-        <article className="info-card"><h3>1. Найдите время</h3><p>В календаре откройте день или переключитесь на список всех ближайших окон. Розовая точка — есть свободное, серая — есть занятое.</p></article>
-        <article className="info-card"><h3>2. Отметьте услугу</h3><p>После выбора времени отметьте одну основную услугу компактным переключателем.</p></article>
-        <article className="info-card"><h3>3. Отправьте</h3><p>Окно сразу закрепится за вами и пропадёт у других клиентов. Останется дождаться подтверждения мастера.</p></article>
+        <article className="info-card"><h3>1. Время</h3><p>Выберите свободное окно в календаре или списке.</p></article>
+        <article className="info-card"><h3>2. Услуга</h3><p>Отметьте одну основную услугу.</p></article>
+        <article className="info-card"><h3>3. Заявка</h3><p>Отправьте и дождитесь подтверждения мастера.</p></article>
       </section>
 
       <ClientBookingPicker

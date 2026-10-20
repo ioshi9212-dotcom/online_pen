@@ -149,8 +149,8 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     <>
       <section className="booking-view-switch" aria-label="Режим выбора времени">
         <div>
-          <b>Как удобнее искать время?</b>
-          <p>Календарь — открыть конкретный день. Список — увидеть все ближайшие свободные окна сразу. Услуга время не прячет.</p>
+          <b>Свободное время</b>
+          <p>Выберите день или посмотрите все окна списком.</p>
         </div>
         <div className="segmented-switch">
           <button type="button" className={mode === "calendar" ? "active" : ""} onClick={() => setMode("calendar")}>Календарь</button>
@@ -161,7 +161,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
       {mode === "calendar" ? (
       <section className="calendar-layout" id="windows">
         <article className="calendar-card">
-          <h2>Ближайшие свободные даты</h2>
+          <h2>Выберите день</h2>
           <div className="calendar-month-switcher">
             {showPrev ? (
               <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, -1))} aria-label="Предыдущий месяц">‹</button>
@@ -203,10 +203,10 @@ export default function ClientBookingPicker({ token, client, windows, services, 
         <article className="selected-day-card card booking-step-card" id="selected-day">
           <p className="muted">Выбранная дата</p>
           <h2>{fmtDate(`${selectedDateKey}T00:00:00`)}</h2>
-          <p>Занято окон: {selectedBusyCount} · Свободно окон: {selectedFreeCount}</p>
+          <p>{selectedFreeCount} свободно · {selectedBusyCount} занято</p>
 
           <div className="booking-step-panel">
-              <div className="flow-step-title"><span>Шаг 1</span><h3>Выберите время</h3><p>Свободное и занятое видно сразу. Услугу отметите ниже — она не должна играть с вами в прятки.</p></div>
+              <div className="flow-step-title"><span>Шаг 1</span><h3>Выберите время</h3><p>Нажмите на свободное окно.</p></div>
 
               <div className="time-grid">
                 {selectedWindows.map((window) => {
@@ -226,7 +226,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
       </section>
       ) : (
         <section className="free-window-list-card card" id="windows">
-          <div className="flow-step-title"><span>Шаг 1</span><h2>Ближайшие свободные окна</h2><p>Только свободное время. Нажмите на время в нужной строке — без обхода каждого дня календаря.</p></div>
+          <div className="flow-step-title"><span>Шаг 1</span><h2>Свободные окна</h2><p>Нажмите на удобное время.</p></div>
           <div className="free-window-list">
             {groupedFreeWindows.map((group) => (
               <div className={selectedDateKey === group.date ? "free-window-row active" : "free-window-row"} key={group.date}>
@@ -250,7 +250,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
           <div className="section-head">
             <div>
               <p className="muted">Шаг 2</p>
-              <h2>Что будем делать</h2>
+              <h2>Выберите услугу</h2>
               <p>Выберите одну основную услугу. Если нужны маникюр и педикюр — оформите две записи на два соседних времени.</p>
             </div>
           </div>
@@ -277,21 +277,21 @@ export default function ClientBookingPicker({ token, client, windows, services, 
               <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b><small>{client.phone}</small></div>
             </div>
 
-            <p className="owner-warning">Проверьте, что запись оформляется именно на вас. Мастер ждёт человека из карточки, а не сюжетный поворот.</p>
+            <p className="owner-warning">Проверьте имя, услугу и время записи.</p>
 
             <div className="notice final-check-note">
-              <b>После отправки заявки напишите мастеру.</b>
-              <p>Сайт ещё тестовый: он старается быть полезным, но иногда ведёт себя как стажёр на первом рабочем дне. Мастер проверит время вручную и подтвердит, что всё встало нормально.</p>
+              <b>После заявки напишите мастеру</b>
+              <p>Сайт в тестовом режиме. Мастер проверит и подтвердит запись.</p>
             </div>
 
             <label className="comment-box">Комментарий, если нужно<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
 
             <div className="final-confirm-card">
               <div>
-                <h3>Отправка заявки</h3>
-                <p>Сразу после отправки окно закрепится за вами и исчезнет у других клиентов. Запись при этом ещё должна быть подтверждена мастером.</p>
+                <h3>Всё верно?</h3>
+                <p>Окно закрепится за вами. Запись подтвердит мастер.</p>
               </div>
-              <button type="submit" disabled={!selectedService}>Подтвердить и отправить</button>
+              <button type="submit" disabled={!selectedService}>Отправить заявку</button>
             </div>
           </form>
         </section>

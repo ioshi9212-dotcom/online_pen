@@ -237,7 +237,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
       <section className="card schedule-top-card">
         <p className="eyebrow">Кабинет мастера</p>
         <h1>{view === "mode" ? "Настройки записи" : "Календарь"}</h1>
-        <p>{view === "mode" ? "Здесь задаётся базовый режим записи: шаг времени, рабочий день и насколько близкие онлайн-окна видны клиентам." : "Нажми на день — ниже сразу откроются окна для клиентов и ручная запись."}</p>
+        <p>{view === "mode" ? "Шаг времени, рабочие часы и доступность онлайн-записи." : "Выберите день, чтобы открыть время для клиентов."}</p>
         <div className="actions schedule-tabs">
           <a className={view === "calendar" ? "button" : "button secondary"} href={`/admin/schedule?view=calendar&month=${month.key}&date=${selectedDateKey || todayKey}`}>Календарь</a>
           <a className={view === "mode" ? "button" : "button secondary"} href="/admin/schedule?view=mode">Настройки записи</a>
@@ -250,7 +250,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
       {view === "mode" ? (
         <section className="card" id="mode">
           <h2>Настройки записи</h2>
-          <p>Здесь задаётся базовый шаг времени, обычный рабочий день и какие ближайшие онлайн-окна скрывать от клиентов.</p>
+          <p>Укажите шаг времени, рабочие часы и ближайшие доступные окна.</p>
           <form action={saveScheduleMode} className="grid">
             <div className="grid-3">
               <label>Шаг времени<select name="stepMinutes" defaultValue={String(stepMinutes)}><option value="15">15 минут</option><option value="30">30 минут</option><option value="45">45 минут</option><option value="60">1 час</option><option value="90">1,5 часа</option><option value="150">2,5 часа</option></select></label>
