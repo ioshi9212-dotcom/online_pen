@@ -360,14 +360,14 @@
     .app-shell :is(.month-arrow, .calendar-arrow-button) { width: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; font-size: 24px !important; }
     .app-shell .calendar-legend { gap: 14px !important; margin: 14px 0 !important; font-size: 12px !important; }
     .app-shell .calendar-head { font-size: 11px !important; color: var(--ui-muted) !important; }
-    .app-shell .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #fff !important; color: var(--ui-text) !important; border-color: transparent !important; outline: none !important; font-size: 14px !important; }
+    .app-shell .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #fff !important; color: var(--ui-text) !important; border-color: transparent !important; font-size: 14px !important; }
     .app-shell .calendar-grid .day-btn.muted { color: #b4aab0 !important; }
     .app-shell .calendar-grid .day-btn.active { background: var(--ui-rose) !important; border-color: var(--ui-rose) !important; color: #fff !important; }
     .app-shell .calendar-grid .day-btn.active .blue-dot { background: #fff !important; }
     .app-shell .calendar-grid .day-btn.active .gray-dot { background: #e1c8d2 !important; }
     main.client-page-compact .time-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
     .app-shell .time-grid .time-btn { min-height: 58px !important; padding: 10px 6px !important; background: #f7f1f4 !important; border-color: #e2ccd6 !important; color: var(--ui-rose-dark) !important; }
-    .app-shell .time-grid .time-btn.active { background: var(--ui-rose) !important; color: #fff !important; border-color: var(--ui-rose) !important; outline: none !important; }
+    .app-shell .time-grid .time-btn.active { background: var(--ui-rose) !important; color: #fff !important; border-color: var(--ui-rose) !important; }
     .app-shell .time-grid .time-btn.busy { background: #f3f1f2 !important; border-color: #ece7ea !important; color: #968a91 !important; }
     .app-shell .time-btn span { color: inherit !important; font-size: 11px !important; }
     .app-shell .time-btn b { font-size: 16px !important; }
@@ -473,6 +473,14 @@
     .app-shell .schedule-paint-actions .paint-mode-btn { min-width: 0 !important; padding: 10px 4px !important; font-size: 12px !important; }
     .master-main, .admin-workdesk { background: transparent !important; }
     .profile-avatar-upload { min-width: 0 !important; }
+
+    /* Keep focus distinct from selection, including already selected days. */
+    .app-shell .calendar-grid .day-btn:focus-visible,
+    .app-shell .time-grid .time-btn:focus-visible,
+    .app-shell #calendar .calendar-day:focus-visible {
+      outline: 3px solid var(--ui-rose) !important;
+      outline-offset: 3px !important;
+    }
 
     a, button, label, summary { -webkit-tap-highlight-color: #9b4c681a !important; }
 
