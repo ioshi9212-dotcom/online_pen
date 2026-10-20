@@ -1,14 +1,11 @@
 /*
-  Canonical mobile layer for Online Pen.
-  This file is imported last and owns responsive behavior for phone layouts.
-  Keep page-specific desktop styling elsewhere; mobile overrides belong here.
+  Canonical phone layout. Imported after the shared desktop styles.
+  Keep mobile sizing and visual rules here rather than adding CSS patch files.
+  The cascade layer keeps legacy unlayered !important rules from winning.
 */
-
 :root {
-  --mobile-breakpoint: 760px;
-  --mobile-page-x: 12px;
-  --mobile-page-top: 12px;
-  --mobile-nav-height: 72px;
+  --mobile-page-x: 14px;
+  --mobile-nav-height: 80px;
   --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
   --mobile-safe-top: env(safe-area-inset-top, 0px);
 }
@@ -18,358 +15,481 @@
   display: none;
 }
 
-@media (max-width: 760px) {
-  html {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-    -webkit-text-size-adjust: 100%;
-  }
+@layer online-pen-mobile {
 
-  body {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    overflow-x: hidden;
-    padding: 0;
-  }
+  @media (max-width: 760px) {
+    :root {
+      --ui-bg: #f7f5f4 !important;
+      --ui-card: #ffffff !important;
+      --ui-card-solid: #ffffff !important;
+      --ui-soft: #f8f4f5 !important;
+      --ui-line: #e7dfe3 !important;
+      --ui-line-strong: #d5c7ce !important;
+      --ui-text: #302a2e !important;
+      --ui-muted: #756b71 !important;
+      --ui-rose: #9b4c68 !important;
+      --ui-rose-dark: #843b56 !important;
+      --beauty-rose: var(--ui-rose) !important;
+      --beauty-rose-dark: var(--ui-rose-dark) !important;
+      --beauty-text: var(--ui-text) !important;
+      --beauty-muted: var(--ui-muted) !important;
+      --beauty-line: var(--ui-line) !important;
+      --bg: var(--ui-bg) !important;
+      --panel: var(--ui-card-solid) !important;
+      --panel-soft: var(--ui-soft) !important;
+      --line: var(--ui-line) !important;
+      --line-strong: var(--ui-line-strong) !important;
+      --text: var(--ui-text) !important;
+      --muted: var(--ui-muted) !important;
+      --blue: var(--ui-rose) !important;
+      --blue-dark: var(--ui-rose-dark) !important;
+      --control-radius: 12px !important;
+      --card-radius-soft: 18px !important;
+    }
 
-  body,
-  .app-shell,
-  .site-frame,
-  .container {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
+    html, body {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      overflow-x: hidden !important;
+      -webkit-text-size-adjust: 100% !important;
+    }
 
-  .app-shell,
-  .site-frame,
-  .container {
-    margin: 0 !important;
-    padding-left: var(--mobile-page-x) !important;
-    padding-right: var(--mobile-page-x) !important;
-  }
+    html, body, .app-shell, .site-frame, .master-dashboard {
+      background: var(--ui-bg) !important;
+      color: var(--ui-text) !important;
+      font-weight: 400 !important;
+    }
 
-  /* Prevent common desktop sizing from creating horizontal scroll. */
-  main,
-  section,
-  article,
-  aside,
-  nav,
-  form,
-  fieldset,
-  .card,
-  .panel,
-  .admin-card,
-  .admin-home-panel,
-  .calendar-card,
-  .selected-day-card,
-  .booking-card,
-  .client-card,
-  .price-card,
-  .profile-form,
-  .admin-route-frame,
-  .master-main,
-  .admin-workdesk {
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
+    body { margin: 0 !important; padding: 0 !important; }
 
-  img,
-  svg,
-  video,
-  canvas {
-    max-width: 100%;
-    height: auto;
-  }
+    body, .app-shell, .site-frame, .container {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
 
-  /* iOS zooms focused form controls below 16px. */
-  input,
-  select,
-  textarea {
-    max-width: 100% !important;
-    font-size: 16px !important;
-  }
+    .app-shell, .site-frame, .container {
+      margin: 0 !important;
+      padding: 0 var(--mobile-page-x) !important;
+    }
 
-  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
-  select,
-  textarea {
-    width: 100%;
-  }
+    main, section, article, aside, nav, form, fieldset,
+    .card, .panel, .calendar-card, .selected-day-card,
+    .admin-route-frame, .master-main, .admin-workdesk {
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
 
-  textarea {
-    resize: vertical;
-  }
+    img, svg, video, canvas { max-width: 100% !important; }
+    img, video, canvas { height: auto !important; }
 
-  button,
-  .button,
-  .btn,
-  .primary-link,
-  input[type="submit"] {
-    touch-action: manipulation;
-  }
+    .page, .client-page, .auth-page, .admin-settings-page,
+    .master-main.master-mobile-workdesk {
+      gap: 14px !important;
+    }
 
-  /* Master shell */
-  .admin-route-frame {
-    width: 100%;
-    min-height: 100dvh;
-    padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-safe-bottom) + 18px);
-  }
+    .app-shell :is(h1, .hero h1, .auth-card h1, .profile-hero h1, .schedule-top-card h1) {
+      font-family: inherit !important;
+      color: var(--ui-text) !important;
+      margin: 0 0 8px !important;
+      font-size: 28px !important;
+      font-weight: 650 !important;
+      line-height: 1.16 !important;
+      letter-spacing: -.025em !important;
+    }
 
-  .master-dashboard {
-    display: block !important;
-    width: 100% !important;
-    min-height: 100dvh !important;
-  }
+    .app-shell :is(h2, .card h2, .section-head h2, .master-day-head h2) {
+      font-family: inherit !important;
+      color: var(--ui-text) !important;
+      font-size: 20px !important;
+      font-weight: 600 !important;
+      line-height: 1.25 !important;
+      letter-spacing: -.015em !important;
+    }
 
-  .master-sidebar,
-  .master-desktop-header,
-  .master-desktop-summary {
-    display: none !important;
-  }
+    .app-shell :is(h3, .card h3, .flow-step-title h3) {
+      font-family: inherit !important;
+      color: var(--ui-text) !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      line-height: 1.3 !important;
+    }
 
-  .master-main,
-  .admin-workdesk,
-  .master-main.master-mobile-workdesk,
-  .admin-workdesk.master-mobile-workdesk {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: var(--mobile-page-top) var(--mobile-page-x) 18px !important;
-  }
+    .app-shell :is(p, .lead, .hero .lead, label) {
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+    }
 
-  .master-mobile-topbar {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    min-width: 0;
-    padding-top: var(--mobile-safe-top);
-  }
+    .app-shell :is(b, strong, label) { font-weight: 500 !important; }
+    .app-shell small { font-size: 12px !important; line-height: 1.4 !important; }
+    .app-shell p { margin: 6px 0 0 !important; color: var(--ui-muted) !important; }
+    .app-shell :is(.muted, .eyebrow) { color: var(--ui-muted) !important; }
+    .app-shell .eyebrow { margin: 0 0 8px !important; text-transform: none !important; }
 
-  .master-mobile-topbar > * {
-    min-width: 0;
-  }
+    .app-shell :is(.card, .hero, .auth-card, .calendar-card, .selected-day-card,
+    .info-card, .notice, .empty-state, .mini-card, .booking-card, .admin-home-panel,
+    .admin-home-header, .profile-form, .profile-hero, .service-hero-card,
+    .services-toolbar, .service-list-panel, .booking-view-switch, .selected-summary-panel,
+    .final-confirm-card, .upcoming-booking-card) {
+      border-color: var(--ui-line) !important;
+      border-radius: var(--card-radius-soft) !important;
+      background: var(--ui-card-solid) !important;
+      box-shadow: none !important;
+    }
 
-  .master-new-booking {
-    flex: 0 0 auto;
-    min-height: 40px !important;
-    white-space: nowrap;
-  }
+    .app-shell :is(.card, .hero, .auth-card, .calendar-card, .selected-day-card, .admin-home-panel) {
+      padding: 18px !important;
+    }
 
-  /* Single canonical bottom navigation for all admin routes. */
-  .master-bottom-nav.admin-global-bottom-nav,
-  .admin-global-bottom-nav {
-    position: fixed !important;
-    left: 10px !important;
-    right: 10px !important;
-    bottom: calc(8px + var(--mobile-safe-bottom)) !important;
-    z-index: 1000 !important;
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    gap: 4px !important;
-    width: auto !important;
-    max-width: none !important;
-    min-height: 60px !important;
-    margin: 0 !important;
-    padding: 6px !important;
-    border: 1px solid rgba(128, 59, 88, .16) !important;
-    border-radius: 16px !important;
-    background: rgba(255, 255, 255, .94) !important;
-    box-shadow: 0 12px 34px rgba(58, 38, 48, .16) !important;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-  }
+    /* Plain surfaces replace the old decorative header and hero illustrations. */
+    .beauty-top-card::before, .beauty-top-card::after,
+    .public-page .hero::before, .public-page .hero::after,
+    .client-page .hero::before, .client-page .hero::after,
+    .auth-card::before, .auth-card::after,
+    .client-start-warning::before, .client-start-warning::after {
+      display: none !important;
+      content: none !important;
+    }
 
-  .admin-global-bottom-nav a {
-    min-width: 0 !important;
-    min-height: 48px !important;
-    padding: 6px 3px !important;
-    display: grid !important;
-    align-content: center !important;
-    justify-items: center !important;
-    gap: 3px !important;
-    border: 0 !important;
-    border-radius: 10px !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    color: rgba(58, 50, 57, .65) !important;
-    text-align: center;
-  }
+    .app-shell :is(button, .button, .btn, .primary-link, input[type="submit"]) {
+      min-height: 46px !important;
+      max-width: 100% !important;
+      padding: 11px 14px !important;
+      border-radius: var(--control-radius) !important;
+      font-size: 14px !important;
+      line-height: 1.3 !important;
+      font-weight: 550 !important;
+      white-space: normal !important;
+      box-shadow: none !important;
+      touch-action: manipulation !important;
+    }
 
-  .admin-global-bottom-nav a.active,
-  .admin-global-bottom-nav a[aria-current="page"] {
-    background: rgba(184, 95, 130, .13) !important;
-    color: #8b3e5d !important;
-  }
+    .app-shell :where(button:not(.secondary):not(.danger):not(.month-arrow):not(.day-btn):not(.time-btn):not(.calendar-day):not(.schedule-time-button)),
+    .app-shell .button:not(.secondary):not(.danger),
+    .app-shell .primary-link {
+      background: var(--ui-rose) !important;
+      border-color: var(--ui-rose) !important;
+      color: #fff !important;
+    }
 
-  .admin-global-bottom-nav a span {
-    font-size: 17px !important;
-    line-height: 1 !important;
-  }
+    .app-shell :is(button.secondary, .button.secondary, .btn-secondary, .month-arrow) {
+      background: #fff !important;
+      border-color: var(--ui-line-strong) !important;
+      color: var(--ui-rose-dark) !important;
+    }
 
-  .admin-global-bottom-nav a b {
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 10px !important;
-    line-height: 1.05 !important;
-    font-weight: 600 !important;
-  }
+    .app-shell :is(button.danger, .button.danger) {
+      background: #fff5f5 !important;
+      border-color: #efd4d8 !important;
+      color: #a13d4e !important;
+    }
 
-  /* Cards and rows should collapse, never overflow. */
-  .master-mobile-day-stack,
-  .master-booking-list,
-  .admin-row-list,
-  .master-upcoming-list,
-  .client-list,
-  .service-list {
-    width: 100%;
-    min-width: 0;
-  }
+    .app-shell :is(button, .button, .primary-link):disabled {
+      opacity: .5 !important;
+      cursor: not-allowed !important;
+    }
 
-  .master-booking-link {
-    width: 100%;
-    min-width: 0;
-    grid-template-columns: 46px minmax(0, 1fr) auto 14px !important;
-  }
+    .app-shell :is(button, .button, .menu-links a):hover { transform: none !important; }
+    .app-shell :is(a, button, summary, input, select, textarea):focus-visible {
+      outline: 3px solid var(--ui-rose) !important;
+      outline-offset: 3px !important;
+    }
 
-  .master-booking-main,
-  .master-booking-main b,
-  .master-booking-main small {
-    min-width: 0;
-  }
+    .app-shell :is(input, select, textarea) {
+      max-width: 100% !important;
+      padding: 12px !important;
+      border-radius: var(--control-radius) !important;
+      border-color: var(--ui-line-strong) !important;
+      background: #fff !important;
+      font-size: 16px !important;
+      font-weight: 400 !important;
+    }
 
-  .master-booking-main b,
-  .master-booking-main small {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+    .app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    .app-shell select, .app-shell textarea { width: 100% !important; min-width: 0 !important; min-height: 48px !important; }
+    .app-shell textarea { min-height: 88px !important; resize: vertical !important; }
+    .app-shell input:is([type="checkbox"], [type="radio"]) { accent-color: var(--ui-rose) !important; }
+    .app-shell .grid { gap: 14px !important; }
+    .app-shell .actions { gap: 8px !important; }
+    .auth-card .actions, .public-page .hero .actions { display: grid !important; grid-template-columns: 1fr !important; }
+    .auth-card .actions > *, .public-page .hero .actions > * { width: 100% !important; }
+    .auth-card .notice { margin: 14px 0 !important; }
+    .auth-card form { margin-top: 18px !important; }
+    .auth-page { padding-top: 0 !important; }
 
-  .master-booking-actions-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
+    /* The same links remain visible in a single compact row. */
+    .top-menu.compact-client-menu.beauty-top-card {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 14px !important;
+      width: 100% !important;
+      min-height: 0 !important;
+      height: auto !important;
+      margin: 0 0 18px !important;
+      padding: calc(18px + var(--mobile-safe-top)) 0 16px !important;
+      border: 0 !important;
+      border-bottom: 1px solid var(--ui-line) !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
 
-  .master-booking-actions-panel form,
-  .master-booking-actions-panel button,
-  .master-booking-actions-panel a {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
+    .top-menu .brand.beauty-brand {
+      gap: 10px !important;
+      font-size: 18px !important;
+      line-height: 1.2 !important;
+    }
+    .top-menu .brand.beauty-brand b { font-weight: 650 !important; }
+    .top-menu .beauty-brand-icon {
+      width: 36px !important;
+      height: 36px !important;
+      border-radius: 11px !important;
+      background: var(--ui-rose) !important;
+    }
+    .beauty-menu-icon svg, .beauty-brand-icon svg { display: block !important; width: 18px !important; height: 18px !important; }
 
-  /* Calendar keeps seven days visible without sideways scrolling. */
-  #calendar,
-  #calendar .calendar-grid,
-  .calendar-grid {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
+    .compact-client-links.beauty-menu-links {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-column: 1 / -1 !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .compact-client-links:has(> a[href="/logout"]) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    .compact-client-links .master-menu-entry { min-width: 0 !important; width: 100% !important; }
+    .compact-client-links a.beauty-menu-row,
+    .compact-client-links .primary-link.beauty-menu-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 7px !important;
+      width: 100% !important;
+      min-height: 44px !important;
+      padding: 9px 6px !important;
+      border: 1px solid var(--ui-line) !important;
+      border-radius: 12px !important;
+      background: #fff !important;
+      color: var(--ui-muted) !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+    }
+    .compact-client-links .beauty-menu-row span { font-weight: inherit !important; }
+    .compact-client-links .beauty-menu-arrow { display: none !important; }
 
-  #calendar .calendar-grid,
-  .calendar-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
-  }
+    .public-page .hero { min-height: 0 !important; }
+    .public-page .hero .lead { max-width: none !important; }
+    .public-page .hero .actions { margin-top: 20px !important; }
+    .public-text-steps { padding: 6px 4px !important; }
+    .public-text-step-list { gap: 14px !important; margin-top: 14px !important; }
+    .public-text-step-list > div { padding: 0 !important; }
+    .public-text-step-list b { display: block !important; font-size: 14px !important; }
+    .public-text-step-list p { margin-top: 3px !important; }
+    .app-shell :is(.public-price-row, .price-row, .service-row, .pretty-addon-row) {
+      border-color: var(--ui-line) !important;
+      background: #fff !important;
+      box-shadow: none !important;
+    }
+    .public-price-row { gap: 12px !important; }
+    .public-price-row > div { min-width: 0 !important; }
+    .public-price-row strong { white-space: nowrap !important; }
 
-  #calendar .calendar-day,
-  #calendar .calendar-empty,
-  .calendar-day,
-  .calendar-empty {
-    min-width: 0 !important;
-    overflow: hidden;
-  }
-
-  #calendar .actions,
-  .calendar-card .actions,
-  .selected-day-card .actions {
-    grid-template-columns: 1fr !important;
-  }
-
-  #calendar .actions > *,
-  .calendar-card .actions > *,
-  .selected-day-card .actions > * {
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-
-  /* Dense two-column blocks become one column on narrow phones. */
-  @media (max-width: 420px) {
-    .master-mobile-request-grid,
-    .two-col,
-    .two-column,
-    .form-grid,
-    .admin-grid,
-    .settings-grid {
+    /* Short guidance stays readable without competing with the calendar. */
+    .app-shell :is(.test-version-note, .client-start-warning, .combo-service-note, .final-check-note) {
+      padding: 14px 16px !important;
+      background: #f4edef !important;
+      border-color: #e7d9df !important;
+      color: var(--ui-text) !important;
+    }
+    .app-shell :is(.test-version-note, .client-start-warning, .combo-service-note, .final-check-note) :is(b, p) {
+      color: var(--ui-text) !important;
+      font-size: 13px !important;
+      line-height: 1.45 !important;
+    }
+    .app-shell :is(.test-version-note, .client-start-warning, .final-check-note) b { margin-bottom: 2px !important; }
+    .combo-service-note summary {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 10px !important;
+      min-height: 20px !important;
+      list-style: none !important;
+      cursor: pointer !important;
+      font-size: 13px !important;
+      font-weight: 550 !important;
+    }
+    .combo-service-note summary::-webkit-details-marker { display: none !important; }
+    .combo-service-note summary::after { content: "+" !important; font-size: 20px !important; color: var(--ui-rose) !important; }
+    .combo-service-note[open] summary::after { content: "−" !important; }
+    .combo-service-note p { margin-top: 10px !important; }
+    .app-shell .instruction-cards {
+      display: grid !important;
       grid-template-columns: 1fr !important;
+      gap: 10px !important;
+      padding: 4px !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    main.client-page-compact .instruction-cards .info-card {
+      display: grid !important;
+      grid-template-columns: 76px minmax(0, 1fr) !important;
+      gap: 10px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    main.client-page-compact .instruction-cards :is(h3, p) { margin: 0 !important; font-size: 13px !important; line-height: 1.4 !important; }
+    main.client-page-compact .instruction-cards h3 { color: var(--ui-rose-dark) !important; }
+
+    main.client-page-compact .booking-view-switch { padding: 16px !important; background: #fff !important; }
+    main.client-page-compact .booking-view-switch > div > b { font-size: 15px !important; }
+    main.client-page-compact .booking-view-switch p { font-size: 13px !important; }
+    main.client-page-compact .segmented-switch { padding: 4px !important; background: #f3eef0 !important; }
+    main.client-page-compact .segmented-switch button { min-height: 44px !important; border: 0 !important; background: transparent !important; color: var(--ui-muted) !important; }
+    main.client-page-compact .segmented-switch button.active { background: #fff !important; color: var(--ui-rose-dark) !important; box-shadow: 0 1px 4px #302a2e12 !important; }
+
+    .calendar-layout, .schedule-day-grid { display: grid !important; grid-template-columns: 1fr !important; gap: 14px !important; }
+    .calendar-card, .selected-day-card { min-height: 0 !important; }
+    .calendar-grid, #calendar .calendar-grid { width: 100% !important; min-width: 0 !important; grid-template-columns: repeat(7, minmax(0, 1fr)) !important; }
+    .app-shell .calendar-grid { gap: 4px !important; }
+    .calendar-grid > *, #calendar .calendar-grid > * { min-width: 0 !important; max-width: 100% !important; }
+    main.client-page-compact #windows .calendar-card h2 { max-width: none !important; font-size: 20px !important; line-height: 1.25 !important; }
+    .app-shell .calendar-month-switcher { grid-template-columns: 44px minmax(0, 1fr) 44px !important; gap: 8px !important; }
+    .app-shell .calendar-month-switcher :is(b, .calendar-month-title) { font-size: 16px !important; font-weight: 550 !important; }
+    .app-shell :is(.month-arrow, .calendar-arrow-button) { width: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; font-size: 24px !important; }
+    .app-shell .calendar-legend { gap: 14px !important; margin: 14px 0 !important; font-size: 12px !important; }
+    .app-shell .calendar-head { font-size: 11px !important; color: var(--ui-muted) !important; }
+    .app-shell .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #fff !important; color: var(--ui-text) !important; border-color: transparent !important; outline: none !important; font-size: 14px !important; }
+    .app-shell .calendar-grid .day-btn.muted { color: #b4aab0 !important; }
+    .app-shell .calendar-grid .day-btn.active { background: var(--ui-rose) !important; border-color: var(--ui-rose) !important; color: #fff !important; }
+    .app-shell .calendar-grid .day-btn.active .blue-dot { background: #fff !important; }
+    .app-shell .calendar-grid .day-btn.active .gray-dot { background: #e1c8d2 !important; }
+    main.client-page-compact .time-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+    .app-shell .time-grid .time-btn { min-height: 58px !important; padding: 10px 6px !important; background: #f7f1f4 !important; border-color: #e2ccd6 !important; color: var(--ui-rose-dark) !important; }
+    .app-shell .time-grid .time-btn.active { background: var(--ui-rose) !important; color: #fff !important; border-color: var(--ui-rose) !important; outline: none !important; }
+    .app-shell .time-grid .time-btn.busy { background: #f3f1f2 !important; border-color: #ece7ea !important; color: #968a91 !important; }
+    .app-shell .time-btn span { color: inherit !important; font-size: 11px !important; }
+    .app-shell .time-btn b { font-size: 16px !important; }
+    main.client-page-compact .flow-step-title p { font-size: 13px !important; line-height: 1.45 !important; }
+    main.client-page-compact .compact-service-switch { display: grid !important; grid-template-columns: 1fr !important; gap: 8px !important; }
+    main.client-page-compact .compact-service-switch button { width: 100% !important; min-height: 64px !important; justify-content: space-between !important; gap: 12px !important; padding: 13px 14px !important; border: 1px solid var(--ui-line-strong) !important; background: #fff !important; color: var(--ui-text) !important; }
+    main.client-page-compact .compact-service-switch button.active { border-color: var(--ui-rose) !important; background: #f7edf1 !important; color: var(--ui-rose-dark) !important; }
+    main.client-page-compact .compact-service-switch button small { color: inherit !important; text-align: right !important; }
+    main.client-page-compact .inline-times { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; font-size: 0 !important; }
+    main.client-page-compact .inline-times button { min-width: 60px !important; min-height: 44px !important; padding: 8px 10px !important; border: 1px solid var(--ui-line) !important; border-radius: 10px !important; background: #fff !important; color: var(--ui-rose-dark) !important; font-size: 14px !important; }
+    main.client-page-compact .inline-times button.active { background: var(--ui-rose) !important; color: #fff !important; border-color: var(--ui-rose) !important; }
+    main.client-page-compact .free-window-row { align-items: start !important; padding: 12px 0 !important; }
+    main.client-page-compact .free-window-row > b { padding-top: 12px !important; }
+    main.client-page-compact .selected-summary-panel { gap: 12px !important; background: var(--ui-soft) !important; padding: 16px !important; }
+    main.client-page-compact .final-confirm-card { display: grid !important; grid-template-columns: 1fr !important; gap: 14px !important; }
+    main.client-page-compact .final-confirm-card button { width: 100% !important; min-height: 48px !important; font-size: 15px !important; }
+    main.client-page-compact .upcoming-booking-head { grid-template-columns: 1fr !important; }
+    main.client-page-compact .upcoming-booking-head .status { justify-self: start !important; }
+    main.client-page-compact .upcoming-booking-head h2 { font-size: 22px !important; line-height: 1.25 !important; }
+    main.client-page-compact :is(#bookings, #price) h2 { font-size: 20px !important; }
+    main.client-page-compact .client-collapse-summary h2 { font-size: 20px !important; line-height: 1.25 !important; }
+    main.client-page-compact :is(#bookings button, #profile .button, .waitlist-compact-form button, .waitlist-active-list button) { min-height: 44px !important; font-size: 14px !important; }
+    main.client-page-compact .waitlist-compact-form :is(input, select, textarea) { font-size: 16px !important; min-height: 48px !important; }
+    .app-shell :is(.status, .admin-status) { font-size: 11px !important; font-weight: 500 !important; line-height: 1.25 !important; }
+
+    /* Master: retain the same cards, expandable actions and four destinations. */
+    .admin-route-frame { width: 100% !important; min-height: 100dvh !important; padding-top: calc(18px + var(--mobile-safe-top)) !important; padding-bottom: calc(var(--mobile-nav-height) + var(--mobile-safe-bottom) + 24px) !important; }
+    .master-dashboard { display: block !important; width: 100% !important; min-height: 0 !important; padding-top: 0 !important; }
+    .master-sidebar, .master-desktop-header, .master-desktop-summary { display: none !important; }
+    .master-main.master-mobile-workdesk, .admin-workdesk.master-mobile-workdesk { width: 100% !important; max-width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; }
+    .master-mobile-topbar { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; padding: 0 2px 6px !important; }
+    .master-mobile-topbar > * { min-width: 0 !important; }
+    .master-mobile-topbar b { font-size: 26px !important; font-weight: 650 !important; line-height: 1.2 !important; }
+    .master-mobile-topbar span { margin-top: 5px !important; font-size: 13px !important; line-height: 1.4 !important; }
+    .master-mobile-day-stack { gap: 14px !important; }
+    .master-day-head { align-items: start !important; gap: 12px !important; margin-bottom: 14px !important; }
+    .master-day-head > span { max-width: 140px !important; font-size: 12px !important; line-height: 1.4 !important; }
+    .master-day-head h2 em { font-size: 12px !important; vertical-align: middle !important; }
+    .master-booking-list, .admin-row-list, .master-upcoming-list { width: 100% !important; min-width: 0 !important; }
+    .master-booking-details { background: #fff !important; border-color: var(--ui-line) !important; box-shadow: none !important; }
+    .master-booking-link { width: 100% !important; min-width: 0 !important; grid-template-columns: 46px minmax(0, 1fr) 14px !important; gap: 8px !important; padding: 12px 10px !important; }
+    .master-booking-main, .master-booking-main b, .master-booking-main small { min-width: 0 !important; }
+    .app-shell .master-booking-main b { font-size: 14px !important; font-weight: 550 !important; white-space: normal !important; overflow-wrap: anywhere !important; }
+    .app-shell .master-booking-main small { display: block !important; margin-top: 3px !important; font-size: 12px !important; line-height: 1.4 !important; white-space: normal !important; }
+    .master-booking-link time { align-self: start !important; margin-top: 2px !important; font-variant-numeric: tabular-nums !important; }
+    .master-booking-link .admin-status { grid-column: 2 !important; justify-self: start !important; }
+    .master-booking-link i { grid-column: 3 !important; grid-row: 1 / span 2 !important; }
+    .app-shell .master-booking-actions-panel { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; padding: 0 10px 12px !important; }
+    .master-booking-actions-panel form, .master-booking-actions-panel button, .master-booking-actions-panel a { width: 100% !important; min-width: 0 !important; }
+    .master-reminder-hint { font-size: 12px !important; }
+    .app-shell .master-upcoming-row .button { min-height: 44px !important; padding: 8px 10px !important; font-size: 13px !important; }
+    .app-shell .master-upcoming-main b { font-size: 13px !important; line-height: 1.4 !important; }
+    .master-upcoming-more summary { min-height: 44px !important; }
+    .master-request-card summary { min-height: 48px !important; }
+    .master-mobile-request-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+    .app-shell .admin-empty { padding: 12px 0 !important; font-size: 13px !important; line-height: 1.45 !important; }
+
+    .master-bottom-nav.admin-global-bottom-nav {
+      position: fixed !important;
+      left: 10px !important;
+      right: 10px !important;
+      bottom: calc(8px + var(--mobile-safe-bottom)) !important;
+      z-index: 1000 !important;
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 2px !important;
+      width: auto !important;
+      max-width: none !important;
+      min-height: 68px !important;
+      margin: 0 !important;
+      padding: 5px !important;
+      border: 1px solid var(--ui-line) !important;
+      border-radius: 20px !important;
+      background: #fff !important;
+      box-shadow: 0 4px 24px #302a2e0d !important;
+    }
+    .admin-global-bottom-nav a { display: grid !important; align-content: center !important; justify-items: center !important; gap: 5px !important; min-width: 0 !important; min-height: 56px !important; padding: 7px 2px !important; border: 0 !important; border-radius: 14px !important; background: transparent !important; color: var(--ui-muted) !important; box-shadow: none !important; text-align: center !important; }
+    .admin-global-bottom-nav a[aria-current="page"] { background: #f5eaf0 !important; color: var(--ui-rose-dark) !important; }
+    .admin-global-bottom-nav a span { display: flex !important; line-height: 1 !important; }
+    .admin-global-bottom-nav a svg { display: block !important; width: 21px !important; height: 21px !important; }
+    .admin-global-bottom-nav a b { width: 100% !important; font-size: 10.5px !important; line-height: 1.2 !important; font-weight: 550 !important; white-space: nowrap !important; }
+
+    /* Scheduling colors still distinguish day types and selected windows. */
+    .app-shell #calendar .calendar-day { overflow: hidden !important; min-height: 54px !important; padding: 7px 2px !important; border-color: var(--ui-line) !important; box-shadow: none !important; }
+    .app-shell #calendar .calendar-day.day-working { background: #eef5ef !important; color: #386444 !important; }
+    .app-shell #calendar .calendar-day.day-off { background: #f4f1f2 !important; color: #8b7c84 !important; }
+    .app-shell #calendar .calendar-day.day-special { background: #fbf2e6 !important; color: #87612d !important; }
+    .app-shell #calendar .calendar-day.paint-off { background: #fae9e9 !important; color: #a13d4e !important; }
+    .app-shell #calendar .calendar-day.paint-working { background: #e4f2e8 !important; color: #386444 !important; }
+    .app-shell #calendar .calendar-day.paint-special { background: #fff0d9 !important; color: #87612d !important; }
+    .app-shell #calendar .calendar-day:is(.selected, .paint-selected) { outline: 2px solid var(--ui-rose) !important; outline-offset: -2px !important; }
+    .app-shell #selected-day .time-column-list { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; grid-template-rows: none !important; grid-auto-flow: row !important; gap: 7px !important; }
+    .app-shell #selected-day .schedule-time-button { min-height: 44px !important; padding: 8px 4px !important; font-size: 13px !important; }
+    .app-shell #selected-day .schedule-time-button:not(.ok) { background: #fff !important; border-color: var(--ui-line-strong) !important; color: var(--ui-rose-dark) !important; }
+    .app-shell #selected-day .schedule-time-button.ok { background: #edf5ee !important; border-color: #bfd3c3 !important; color: #386444 !important; }
+    #calendar .actions, .calendar-card .actions, .selected-day-card .actions { grid-template-columns: 1fr !important; }
+    .settings-card-head { flex-wrap: wrap !important; }
+    .settings-card-head > div { min-width: 0 !important; flex: 1 1 150px !important; }
+    .app-shell .settings-card-head .button { min-height: 44px !important; }
+    .schedule-top-actions { flex-wrap: wrap !important; }
+    .schedule-paint-actions { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 7px !important; }
+    .schedule-paint-actions .schedule-paint-label { grid-column: 1 / -1 !important; width: auto !important; }
+    .app-shell .schedule-paint-actions .paint-mode-btn { min-width: 0 !important; padding: 10px 4px !important; font-size: 12px !important; }
+    .master-main, .admin-workdesk { background: transparent !important; }
+    .profile-avatar-upload { min-width: 0 !important; }
+
+    a, button, label, summary { -webkit-tap-highlight-color: #9b4c681a !important; }
+
+    @media (max-width: 420px) {
+      .two-col, .two-column, .form-grid, .admin-grid, .settings-grid, .grid-2 { grid-template-columns: 1fr !important; }
     }
 
-    .master-booking-link {
-      grid-template-columns: 42px minmax(0, 1fr) 12px !important;
-    }
-
-    .master-booking-link .admin-status,
-    .master-booking-link .status {
-      grid-column: 2;
-      justify-self: start;
-      margin-top: 2px;
-    }
-
-    .master-booking-link i {
-      grid-column: 3;
-      grid-row: 1 / span 2;
-    }
-
-    .master-booking-actions-panel {
-      grid-template-columns: 1fr !important;
+    @media (max-width: 350px) {
+      :root { --mobile-page-x: 10px !important; }
+      .app-shell :is(.card, .hero, .auth-card, .calendar-card, .selected-day-card, .admin-home-panel) { padding: 15px !important; }
+      .compact-client-links a.beauty-menu-row { gap: 5px !important; font-size: 12px !important; }
+      .app-shell .master-booking-actions-panel { grid-template-columns: 1fr !important; }
+      .app-shell .admin-global-bottom-nav a b { font-size: 10px !important; }
     }
   }
+}
 
-  /* Client header becomes compact instead of retaining desktop width. */
-  .top-menu.compact-client-menu,
-  .compact-client-menu {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 0 12px !important;
-    padding: calc(10px + var(--mobile-safe-top)) 10px 10px !important;
-    display: grid !important;
-    gap: 8px !important;
-  }
-
-  .compact-client-menu .brand {
-    min-width: 0;
-    font-size: 18px !important;
-  }
-
-  .compact-client-links {
-    width: 100%;
-    min-width: 0;
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 6px !important;
-  }
-
-  .compact-client-links a,
-  .compact-client-links .primary-link {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* Accessible touch targets. */
-  summary,
-  a,
-  button,
-  label {
-    -webkit-tap-highlight-color: rgba(184, 95, 130, .12);
-  }
-
-  button,
-  .button,
-  .btn,
-  .primary-link,
-  input[type="submit"] {
-    min-height: 44px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }

@@ -341,7 +341,7 @@ export default function ScheduleClient(props: Props) {
         <div className="schedule-calendar-head">
           <div>
             <h2>Календарь</h2>
-            <p>Нажми дату, чтобы открыть окна для записи. Кнопки ниже — для быстрой отметки дней.</p>
+            <p>Выберите день. Кнопками ниже можно отметить рабочие и выходные дни.</p>
           </div>
           <div className="calendar-month-switcher" aria-label="Переключение месяца">
             <a className="button secondary calendar-arrow-button" href={`/admin/schedule?view=calendar&month=${props.prevKey}#calendar`} aria-label="Предыдущий месяц">‹</a>
@@ -372,9 +372,9 @@ export default function ScheduleClient(props: Props) {
         {paintMode ? (
           <div className="notice paint-save-box" style={{ marginTop: 12 }}>
             <b>Режим: {modeLabels[paintMode]}</b>
-            <p style={{ margin: "6px 0 12px" }}>Выбрано дат: {paintDates.length}. Нажми “Готово”, чтобы сохранить эти дни.</p>
+            <p style={{ margin: "6px 0 12px" }}>Выбрано дат: {paintDates.length}. Нажмите «Сохранить даты».</p>
             <button type="button" onClick={savePaintDates} disabled={paintDates.length === 0 || isPaintPending || paintSaveState === "saving"}>
-              {isPaintPending || paintSaveState === "saving" ? "Сохраняю…" : "Готово — сохранить даты"}
+              {isPaintPending || paintSaveState === "saving" ? "Сохраняю…" : "Сохранить даты"}
             </button>
           </div>
         ) : null}
@@ -413,8 +413,8 @@ export default function ScheduleClient(props: Props) {
 
           <div className="grid-2 schedule-day-grid">
             <div className="time-control-panel">
-              <h3 className="schedule-section-title">Выбери время, чтобы открыть для записи</h3>
-              <p className="schedule-section-note">Нажми время сверху — оно уйдёт в список открытых окон ниже.</p>
+              <h3 className="schedule-section-title">Выберите свободное время</h3>
+              <p className="schedule-section-note">Нажмите время, затем «Сохранить окна».</p>
 
               <div className="time-list time-column-list">
                 {visibleTopTimes.map((item) => <button type="button" className="schedule-time-button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
@@ -428,7 +428,7 @@ export default function ScheduleClient(props: Props) {
               </div>
 
               {onlineSaveText ? <div className={`notice ${onlineSaveState === "error" ? "danger-notice" : "ok-notice"}`}>{onlineSaveText}</div> : null}
-              <button className="save-online-button" type="button" onClick={saveOnlineTimes} disabled={onlineSaveState === "saving"}>{onlineSaveState === "saving" ? "Сохраняю…" : "Готово — сохранить онлайн-окна"}</button>
+              <button className="save-online-button" type="button" onClick={saveOnlineTimes} disabled={onlineSaveState === "saving"}>{onlineSaveState === "saving" ? "Сохраняю…" : "Сохранить окна"}</button>
             </div>
 
             <div className="open-online-card">
@@ -452,7 +452,7 @@ export default function ScheduleClient(props: Props) {
             </div>
           </div>
         </section>
-      ) : <section className="card"><h2>Выбери день</h2><p>Нажми на дату в календаре, чтобы открыть список времени и выбор онлайн-окон.</p></section>}
+      ) : <section className="card"><h2>Выберите день</h2><p>Нажмите дату в календаре, чтобы выбрать окна для клиентов.</p></section>}
     </div>
   );
 }

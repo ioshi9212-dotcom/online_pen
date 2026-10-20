@@ -1,13 +1,14 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
+import UiIcon, { type UiIconName } from "../UiIcon";
 
 const items = [
-  { label: "Главная", href: "/admin", icon: "⌂", key: "home" },
-  { label: "Календарь", href: "/admin/schedule?view=calendar", icon: "□", key: "calendar" },
-  { label: "Клиенты", href: "/admin/my-clients", icon: "◇", key: "clients" },
-  { label: "Настройки", href: "/admin/settings", icon: "⚙", key: "settings" }
-];
+  { label: "Главная", href: "/admin", icon: "home", key: "home" },
+  { label: "Календарь", href: "/admin/schedule?view=calendar", icon: "calendar", key: "calendar" },
+  { label: "Клиенты", href: "/admin/my-clients", icon: "clients", key: "clients" },
+  { label: "Настройки", href: "/admin/settings", icon: "settings", key: "settings" }
+] satisfies Array<{ label: string; href: string; icon: UiIconName; key: string }>;
 
 function activeKey(pathname: string, view: string | null) {
   if (pathname === "/admin") return "home";
@@ -37,7 +38,7 @@ export default function AdminMobileNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
           >
-            <span aria-hidden="true">{item.icon}</span>
+            <span aria-hidden="true"><UiIcon name={item.icon} /></span>
             <b>{item.label}</b>
           </a>
         );
