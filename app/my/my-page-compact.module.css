@@ -503,7 +503,8 @@
 .clientPageCompact :global(.waitlist-compact-form label) { gap: 5px !important; }
 .clientPageCompact :global(.waitlist-compact-form textarea) { min-height: 72px !important; }
 .clientPageCompact :global(.waitlist-active-list) { margin-top: 12px !important; }
-.clientPageCompact :global(.price-compact-card) { padding: 15px 17px !important; }
+.clientPageCompact :global(.price-compact-card) { padding: 0 !important; }
+.clientPageCompact :global(.price-compact-card .client-collapse-summary h2) { margin: 0 !important; }
 .clientPageCompact :global(.price-compact-card h2),
 .clientPageCompact :global(#bookings h2),
 .clientPageCompact :global(#profile h2) {
@@ -560,5 +561,5 @@
   .clientPageCompact:global(.client-page-compact) :global(.final-confirm-card button) { width: 100% !important; }
   .clientPageCompact :global(.client-collapse-card) { padding: 0 !important; }
   .clientPageCompact :global(.client-collapse-body) { padding: 0 16px 16px !important; }
-  .clientPageCompact :global(.price-compact-card) { padding: 15px 16px !important; }
+  .clientPageCompact :global(.price-compact-card) { padding: 0 !important; }
 }
