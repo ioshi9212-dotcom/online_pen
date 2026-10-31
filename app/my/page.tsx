@@ -171,10 +171,16 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
     <main className={`page client-page client-page-compact ${styles.clientPageCompact}`}>
       {note ? <div className={searchParams.busy || searchParams.bookingError || searchParams.rememberError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
 
-      <section className="client-top-stack" aria-label="Важное">
-        <div className="notice client-start-warning">
-          <b>Сайт в тестовом режиме</b>
-          <p>После записи напишите мастеру для проверки.</p>
+      <section className="hero client-booking-intro">
+        <p className="muted">Онлайн-запись</p>
+        <h1>Выберите удобное время</h1>
+        <p className="lead">Выберите дату и время, затем услугу. Дополнения укажите в комментарии.</p>
+      </section>
+
+      <section className="client-top-stack" aria-label="Важная информация">
+        <div className="notice client-start-warning" role="note">
+          <b>Онлайн-запись работает в тестовом режиме</b>
+          <p>После отправки заявки напишите мне. Я проверю и подтвержу запись.</p>
         </div>
 
         {upcomingBooking ? (
@@ -223,24 +229,11 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         ) : null}
       </section>
 
-      <section className="hero">
-        <p className="muted">Онлайн-запись</p>
-        <h1>Записаться</h1>
-        <p className="lead">{client.firstName}, выберите время и основную услугу. Дополнения укажите в комментарии.</p>
-      </section>
-
-      <section className="client-note-stack" aria-label="Важные подсказки">
+      <section className="client-note-stack" aria-label="Дополнительные услуги">
         <details className="notice combo-service-note">
-          <summary>Маникюр + педикюр в один день</summary>
-          <p>Оформите две записи на соседние свободные окна с шагом 2,5 часа. Например: маникюр в 12:00, педикюр в 14:30.</p>
-          <p>Паузы между услугами не будет. Если соседнее время занято, выберите другой день.</p>
+          <summary>Маникюр и педикюр в один день?</summary>
+          <p>Выберите два соседних свободных времени, например 12:00 и 14:30, и оформите две записи. Если окна не идут подряд, выберите другой день.</p>
         </details>
-      </section>
-
-      <section className="info-cards instruction-cards">
-        <article className="info-card"><h3>1. Время</h3><p>Выберите свободное окно в календаре или списке.</p></article>
-        <article className="info-card"><h3>2. Услуга</h3><p>Отметьте одну основную услугу.</p></article>
-        <article className="info-card"><h3>3. Заявка</h3><p>Отправьте и дождитесь подтверждения мастера.</p></article>
       </section>
 
       <ClientBookingPicker
@@ -254,7 +247,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <section className="card" id="bookings">
         <h2>Мои записи</h2>
-        {activeBookings.length === 0 ? <div className="empty-state">Активных записей пока нет.</div> : (
+        {activeBookings.length === 0 ? <div className="empty-state">У вас пока нет активных записей.</div> : (
           <div className="grid">
             {activeBookings.map((booking) => (
               <article className="booking-card" key={booking.id}>
@@ -274,7 +267,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <details className="card client-collapse-card" id="waitlist">
         <summary className="client-collapse-summary">
           <span>
-            <small>{client.waitlist.length ? `${client.waitlist.length} активн.` : "если нужное время занято"}</small>
+            <small>{client.waitlist.length ? `${client.waitlist.length} активн.` : "Если нужное время занято"}</small>
             <h2>Лист ожидания</h2>
           </span>
           <i aria-hidden="true">⌄</i>
@@ -282,6 +275,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         <div className="client-collapse-body">
           <form action={joinWaitlist} className="grid waitlist-compact-form">
             <input type="hidden" name="clientToken" value={token} />
+            <p className="waitlist-help">Если удобное время занято, оставьте заявку. Я напишу, если появится окно.</p>
             <label>Как искать окно<select name="waitMode"><option value="NEAREST">Ближайшее свободное</option><option value="DATES">Конкретные даты</option></select></label>
             <label>Даты, если нужны конкретные<input name="desiredDates" type="date" /></label>
             <label>Комментарий<textarea name="note" placeholder="Например: могу после 16:00, кроме пятницы" /></label>
