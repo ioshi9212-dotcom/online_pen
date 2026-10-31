@@ -124,7 +124,6 @@ export default function ScheduleClient(props: Props) {
 
   function toggleDate(key: string) {
     if (!paintMode) {
-      if (dirty && !window.confirm("Есть несохранённые окна. Перейти к другому дню и потерять изменения?")) return;
       window.location.assign(new URL(`/admin/schedule?view=calendar&month=${props.monthKey}&date=${key}#selected-day`, window.location.origin).href);
       return;
     }

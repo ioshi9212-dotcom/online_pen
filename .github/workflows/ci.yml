@@ -1,7 +1,7 @@
 name: Online Pen checks
 on:
   push:
-    branches: [main, 'fix/**']
+    branches: [main]
   pull_request:
 permissions:
   contents: read
