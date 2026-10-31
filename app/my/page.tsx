@@ -301,9 +301,12 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         </div>
       </details>
 
-      <section className="card price-compact-card" id="price">
-        <h2>Прайс</h2>
-        <div className="price-list price-compact-list">
+      <details className="card client-collapse-card price-compact-card" id="price">
+        <summary className="client-collapse-summary">
+          <span><h2>Прайс</h2></span>
+          <i aria-hidden="true">⌄</i>
+        </summary>
+        <div className="client-collapse-body price-list price-compact-list">
           {priceServices.map((service) => (
             <article className="price-row" key={service.id}>
               <div><b>{service.title}</b>{service.description ? <p>{service.description}</p> : null}</div>
@@ -311,7 +314,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             </article>
           ))}
         </div>
-      </section>
+      </details>
 
       <section className="card client-profile-card" id="profile">
         <div className="profile-avatar-upload">
