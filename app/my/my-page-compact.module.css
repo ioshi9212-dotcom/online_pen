@@ -390,6 +390,7 @@
 .clientPageCompact :global(.booking-final-card) {
   width: min(100%, 760px) !important;
   margin-inline: auto !important;
+  scroll-margin-top: 18px !important;
 }
 .clientPageCompact :global(.booking-final-card .section-head) {
   display: block !important;
