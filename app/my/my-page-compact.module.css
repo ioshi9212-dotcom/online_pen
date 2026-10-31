@@ -1,442 +1,566 @@
-.clientPageCompact :global(#windows .calendar-card h2) {
-  font-size: clamp(20px, 5.4vw, 27px) !important;
-  line-height: 1 !important;
-  max-width: 280px !important;
-}
-
-.clientPageCompact :global(.instruction-cards .info-card p) {
-  font-size: 12.5px !important;
-  line-height: 1.25 !important;
-}
-
-.clientPageCompact :global(.calendar-legend .blue-dot),
-.clientPageCompact :global(.calendar-grid .day-btn .day-dots .blue-dot) {
-  background: var(--beauty-rose, #be6386) !important;
-}
-
-.clientPageCompact :global(.client-collapse-card) {
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-.clientPageCompact :global(.client-collapse-summary) {
-  list-style: none !important;
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
+/*
+ * Client booking interface. All client-page presentation lives here.
+ * Desktop and mobile share the same neutral surfaces and rose outline.
+ * Admin screens intentionally remain outside this scope.
+ */
+.clientPageCompact {
+  --booking-bg: #f1f2f4;
+  --booking-card: #f8f8f9;
+  --booking-control: #e5e7ea;
+  --booking-control-active: #e7d5dc;
+  --booking-border: #b77a91;
+  --booking-border-strong: #82425d;
+  --booking-text: #2e3036;
+  --booking-muted: #676b73;
+  --booking-radius: 14px;
+  --booking-control-radius: 10px;
+  color: var(--booking-text) !important;
   gap: 14px !important;
-  padding: 14px 16px !important;
 }
 
-.clientPageCompact :global(.client-collapse-summary::-webkit-details-marker) {
-  display: none !important;
-}
-
-.clientPageCompact :global(.client-collapse-summary span) {
+.clientPageCompact :global(.client-top-stack),
+.clientPageCompact :global(.client-note-stack) {
   display: grid !important;
-  gap: 3px !important;
-  min-width: 0 !important;
-}
-
-.clientPageCompact :global(.client-collapse-summary small) {
-  color: var(--beauty-muted, #6f6570) !important;
-  font-size: 11.5px !important;
-  line-height: 1.1 !important;
-}
-
-.clientPageCompact :global(.client-collapse-summary h2) {
-  margin: 0 !important;
-  font-size: clamp(23px, 6vw, 34px) !important;
-  line-height: 1 !important;
-}
-
-.clientPageCompact :global(.client-collapse-summary i) {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  border-radius: 10px !important;
-  display: grid !important;
-  place-items: center !important;
-  border: 1px solid rgba(128, 59, 88, .16) !important;
-  color: #8a3e5e !important;
-  background: rgba(255,255,255,.72) !important;
-  font-style: normal !important;
-  font-size: 20px !important;
-  transition: transform .18s ease !important;
-}
-
-.clientPageCompact :global(.client-collapse-card[open] .client-collapse-summary i) {
-  transform: rotate(180deg) !important;
-}
-
-.clientPageCompact :global(.client-collapse-body) {
-  padding: 0 16px 16px !important;
-}
-
-.clientPageCompact :global(.waitlist-compact-form) {
   gap: 10px !important;
 }
 
-.clientPageCompact :global(.waitlist-compact-form label) {
-  gap: 5px !important;
-  font-size: 13px !important;
+.clientPageCompact :global(.hero),
+.clientPageCompact :global(.card),
+.clientPageCompact :global(.calendar-card),
+.clientPageCompact :global(.selected-day-card),
+.clientPageCompact :global(.booking-view-switch),
+.clientPageCompact :global(.client-start-warning),
+.clientPageCompact :global(.combo-service-note),
+.clientPageCompact :global(.empty-state) {
+  border: 1px solid rgba(130, 66, 93, .26) !important;
+  border-radius: var(--booking-radius) !important;
+  background: var(--booking-card) !important;
+  color: var(--booking-text) !important;
+  box-shadow: none !important;
+  background-image: none !important;
 }
 
-.clientPageCompact :global(.waitlist-compact-form input),
-.clientPageCompact :global(.waitlist-compact-form select),
-.clientPageCompact :global(.waitlist-compact-form textarea) {
-  min-height: 40px !important;
-  border-radius: 10px !important;
-  padding: 9px 11px !important;
-  font-size: 14px !important;
+.clientPageCompact :global(.hero),
+.clientPageCompact :global(.card),
+.clientPageCompact :global(.calendar-card),
+.clientPageCompact :global(.selected-day-card) {
+  padding: clamp(15px, 3.5vw, 20px) !important;
 }
 
-.clientPageCompact :global(.waitlist-compact-form textarea) {
-  min-height: 72px !important;
+.clientPageCompact :global(.hero::before),
+.clientPageCompact :global(.hero::after),
+.clientPageCompact :global(.client-start-warning::before),
+.clientPageCompact :global(.client-start-warning::after) {
+  display: none !important;
+  content: none !important;
 }
 
-.clientPageCompact :global(.waitlist-compact-form button) {
-  min-height: 40px !important;
-  border-radius: 10px !important;
-  padding: 9px 14px !important;
+.clientPageCompact :global(.client-booking-intro) {
+  min-height: 0 !important;
+  padding: 18px 20px !important;
 }
 
-.clientPageCompact :global(.waitlist-active-list) {
-  margin-top: 12px !important;
-  gap: 8px !important;
-}
-
-.clientPageCompact :global(.waitlist-active-list .mini-card) {
-  padding: 12px !important;
-  border-radius: 13px !important;
-}
-
-.clientPageCompact :global(.waitlist-active-list h3) {
-  margin: 0 !important;
-  font-size: 15px !important;
-  line-height: 1.15 !important;
-}
-
-.clientPageCompact :global(.waitlist-active-list p) {
-  margin: 5px 0 0 !important;
-  font-size: 12.5px !important;
-  line-height: 1.25 !important;
-}
-
-.clientPageCompact :global(.waitlist-active-list button) {
-  min-height: 34px !important;
-  border-radius: 10px !important;
-  padding: 7px 10px !important;
+.clientPageCompact :global(.client-booking-intro .muted) {
+  margin: 0 0 5px !important;
+  color: var(--booking-border-strong) !important;
   font-size: 12px !important;
 }
 
-.clientPageCompact :global(.price-compact-card) {
-  padding: 15px 16px !important;
+.clientPageCompact :global(.client-booking-intro h1) {
+  margin: 0 !important;
+  font-size: clamp(24px, 4vw, 30px) !important;
+  line-height: 1.17 !important;
+  font-weight: 650 !important;
 }
 
-.clientPageCompact :global(.price-compact-card h2) {
-  margin: 0 0 10px !important;
-  font-size: clamp(26px, 7vw, 36px) !important;
-  line-height: 1 !important;
+.clientPageCompact :global(.client-booking-intro .lead) {
+  margin: 8px 0 0 !important;
+  max-width: 56ch !important;
+  color: var(--booking-muted) !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
 }
 
-.clientPageCompact :global(.price-list.price-compact-list) {
+.clientPageCompact :global(.client-start-warning) {
+  padding: 12px 16px !important;
+  border-color: #c9a1b0 !important;
+  background: #f0e9ed !important;
+}
+
+.clientPageCompact :global(.client-start-warning b) {
+  display: block !important;
+  color: var(--booking-border-strong) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.clientPageCompact :global(.client-start-warning p) {
+  margin: 4px 0 0 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  color: var(--booking-text) !important;
+}
+
+.clientPageCompact :global(.combo-service-note) {
+  padding: 11px 15px !important;
+  background: #e9eaed !important;
+}
+.clientPageCompact :global(.combo-service-note summary) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  list-style: none !important;
+  color: var(--booking-border-strong) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+.clientPageCompact :global(.combo-service-note summary::-webkit-details-marker) { display: none !important; }
+.clientPageCompact :global(.combo-service-note summary::after) { content: "+" !important; font-size: 20px !important; line-height: 1 !important; }
+.clientPageCompact :global(.combo-service-note[open] summary::after) { content: "−" !important; }
+.clientPageCompact :global(.combo-service-note p) {
+  margin: 9px 0 0 !important;
+  color: var(--booking-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+/* All interactive choices use flat gray fills and defined corners. */
+.clientPageCompact :global(button),
+.clientPageCompact :global(.button),
+.clientPageCompact :global(input:not([type="hidden"])),
+.clientPageCompact :global(select),
+.clientPageCompact :global(textarea) {
+  border-radius: var(--booking-control-radius) !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+.clientPageCompact :global(button:not(.danger)),
+.clientPageCompact :global(.button:not(.danger)) {
+  background: var(--booking-control) !important;
+  border: 1px solid var(--booking-border) !important;
+  color: var(--booking-text) !important;
+  font-weight: 550 !important;
+}
+.clientPageCompact :global(button:focus-visible),
+.clientPageCompact :global(.button:focus-visible),
+.clientPageCompact :global(summary:focus-visible) {
+  outline: 3px solid var(--booking-border-strong) !important;
+  outline-offset: 2px !important;
+}
+.clientPageCompact :global(button:disabled) {
+  opacity: .5 !important;
+  cursor: not-allowed !important;
+}
+.clientPageCompact :global(input:not([type="hidden"])),
+.clientPageCompact :global(select),
+.clientPageCompact :global(textarea) {
+  border: 1px solid var(--booking-border) !important;
+  background: #f9fafb !important;
+  color: var(--booking-text) !important;
+}
+
+/* Calendar / list controls. */
+.clientPageCompact:global(.client-page-compact) :global(.booking-view-switch) {
   display: grid !important;
-  gap: 0 !important;
+  gap: 10px !important;
+  padding: 14px 16px !important;
+}
+.clientPageCompact :global(.booking-view-switch > div > b) {
+  color: var(--booking-text) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
+}
+.clientPageCompact :global(.booking-view-switch p) {
+  margin: 3px 0 0 !important;
+  color: var(--booking-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+.clientPageCompact :global(.segmented-switch) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.segmented-switch button) {
+  min-height: 44px !important;
+  border: 1px solid var(--booking-border) !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-text) !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.segmented-switch button.active) {
+  background: var(--booking-control-active) !important;
+  border-color: var(--booking-border-strong) !important;
+  color: var(--booking-border-strong) !important;
+  box-shadow: none !important;
+}
+.clientPageCompact :global(.calendar-layout) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 14px !important;
+}
+.clientPageCompact :global(.calendar-card h2),
+.clientPageCompact :global(.selected-day-card h2) {
+  margin: 0 0 12px !important;
+  font-family: inherit !important;
+  font-size: clamp(20px, 3vw, 25px) !important;
+  font-weight: 650 !important;
+  line-height: 1.25 !important;
+  color: var(--booking-text) !important;
+}
+.clientPageCompact :global(.calendar-month-switcher) {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+  gap: 6px !important;
+  align-items: center !important;
+  margin: 10px 0 !important;
+}
+.clientPageCompact :global(.calendar-month-switcher b) {
+  text-align: center !important;
+  font-size: clamp(15px, 2vw, 18px) !important;
+  font-weight: 650 !important;
+}
+.clientPageCompact :global(.calendar-month-switcher .month-arrow) {
+  width: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-border-strong) !important;
+}
+.clientPageCompact :global(.calendar-legend) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  margin: 12px 0 !important;
+  color: var(--booking-muted) !important;
+  font-size: 12px !important;
+}
+.clientPageCompact :global(.blue-dot) { background: #af5b7d !important; }
+.clientPageCompact :global(.gray-dot) { background: #9499a3 !important; }
+.clientPageCompact :global(.calendar-head),
+.clientPageCompact :global(.calendar-grid) {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 5px !important;
+}
+.clientPageCompact :global(.calendar-head) {
+  margin-bottom: 8px !important;
+  color: var(--booking-muted) !important;
+  font-size: 11px !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.calendar-grid .day-btn) {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  aspect-ratio: 1 / 1 !important;
+  padding: 4px 1px !important;
+  border: 1px solid #d4d6dc !important;
+  border-radius: 9px !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-text) !important;
+  font-size: 14px !important;
+  box-shadow: none !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.calendar-grid .day-btn.muted) {
+  background: #eef0f3 !important;
+  border-color: #e3e5e9 !important;
+  color: #a0a4ac !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.calendar-grid .day-btn.active) {
+  border: 2px solid var(--booking-border-strong) !important;
+  background: var(--booking-control-active) !important;
+  color: var(--booking-text) !important;
+  outline: none !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.calendar-grid .day-btn.active .blue-dot) { background: #af5b7d !important; }
+.clientPageCompact:global(.client-page-compact) :global(.calendar-grid .day-btn.active .gray-dot) { background: #9499a3 !important; }
+
+/* Time slots remain two-column buttons on phones, with their status visible. */
+.clientPageCompact :global(.selected-day-card > .muted) {
+  margin: 0 0 6px !important;
+  color: var(--booking-muted) !important;
+  font-size: 12px !important;
+}
+.clientPageCompact :global(.selected-day-card > p:not(.muted)) {
+  color: var(--booking-muted) !important;
+  font-size: 13px !important;
+}
+.clientPageCompact :global(.booking-step-panel) {
+  display: grid !important;
+  gap: 12px !important;
+  margin-top: 16px !important;
+}
+.clientPageCompact :global(.flow-step-title) { display: grid !important; gap: 3px !important; }
+.clientPageCompact :global(.flow-step-title > span),
+.clientPageCompact :global(.section-head .muted) {
+  color: var(--booking-border-strong) !important;
+  font-size: 12px !important;
+}
+.clientPageCompact :global(.flow-step-title h3),
+.clientPageCompact :global(.flow-step-title h2) {
+  margin: 0 !important;
+  color: var(--booking-text) !important;
+  font-size: 18px !important;
+  font-weight: 650 !important;
+  line-height: 1.25 !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.time-grid) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.time-grid .time-btn) {
+  display: grid !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+  min-height: 70px !important;
+  padding: 10px !important;
+  border: 1px solid var(--booking-border) !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-text) !important;
+  box-shadow: none !important;
+}
+.clientPageCompact :global(.time-grid .time-btn b) {
+  font-size: 18px !important;
+  font-weight: 650 !important;
+}
+.clientPageCompact :global(.time-grid .time-btn span) {
+  color: inherit !important;
+  font-size: 12px !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.time-grid .time-btn.active) {
+  background: var(--booking-control-active) !important;
+  border: 2px solid var(--booking-border-strong) !important;
+  color: var(--booking-border-strong) !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.time-grid .time-btn.busy) {
+  background: #eff0f2 !important;
+  border-color: #d8dbe0 !important;
+  color: #8d929c !important;
 }
 
-.clientPageCompact :global(.price-list.price-compact-list .price-row) {
+/* Free-window list and selected service. */
+.clientPageCompact :global(.free-window-list) {
+  max-height: 400px !important;
+  overflow: auto !important;
+  margin-top: 12px !important;
+}
+.clientPageCompact :global(.free-window-row) {
+  display: grid !important;
+  grid-template-columns: 75px minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 8px !important;
+  padding: 12px 3px !important;
+  border-bottom: 1px solid #dadce1 !important;
+}
+.clientPageCompact :global(.free-window-row.active) { background: #eee7eb !important; }
+.clientPageCompact :global(.free-window-row > b) {
+  padding-top: 11px !important;
+  font-size: 13px !important;
+}
+.clientPageCompact :global(.inline-times) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+  font-size: 0 !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.inline-times button) {
+  min-width: 66px !important;
+  min-height: 42px !important;
+  padding: 8px !important;
+  border: 1px solid var(--booking-border) !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-text) !important;
+  font-size: 13px !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.inline-times button.active) {
+  background: var(--booking-control-active) !important;
+  color: var(--booking-border-strong) !important;
+  border-color: var(--booking-border-strong) !important;
+}
+.clientPageCompact :global(.booking-final-card) {
+  width: min(100%, 760px) !important;
+  margin-inline: auto !important;
+  scroll-margin-top: 18px !important;
+}
+.clientPageCompact :global(.booking-final-card .section-head) {
+  display: block !important;
+  text-align: left !important;
+}
+.clientPageCompact :global(.booking-final-card .section-head h2) {
+  margin: 3px 0 0 !important;
+  font-size: 22px !important;
+  font-weight: 650 !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.compact-service-switch) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 14px 0 !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.compact-service-switch button) {
+  display: grid !important;
+  gap: 5px !important;
+  width: 100% !important;
+  min-height: 62px !important;
+  padding: 11px 12px !important;
+  text-align: left !important;
+  border: 1px solid var(--booking-border) !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-text) !important;
+}
+.clientPageCompact:global(.client-page-compact) :global(.compact-service-switch button.active) {
+  border: 2px solid var(--booking-border-strong) !important;
+  background: var(--booking-control-active) !important;
+  color: var(--booking-border-strong) !important;
+}
+.clientPageCompact :global(.compact-service-switch b) { font-size: 14px !important; font-weight: 650 !important; }
+.clientPageCompact :global(.compact-service-switch small) {
+  display: block !important;
+  color: var(--booking-muted) !important;
+  font-size: 12px !important;
+  text-align: left !important;
+}
+
+.clientPageCompact :global(.selected-summary-panel) {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  border: 1px solid #c8adb9 !important;
+  border-radius: 12px !important;
+  padding: 13px !important;
+  background: #e9eaed !important;
+}
+.clientPageCompact :global(.selected-summary-panel > div) { min-width: 0 !important; display: grid !important; gap: 4px !important; }
+.clientPageCompact :global(.selected-summary-panel span) { color: var(--booking-muted) !important; font-size: 12px !important; }
+.clientPageCompact :global(.selected-summary-panel b) { font-size: 13px !important; overflow-wrap: anywhere !important; }
+.clientPageCompact :global(.selected-summary-panel small) { font-size: 12px !important; }
+.clientPageCompact :global(.comment-box) { display: grid !important; gap: 7px !important; margin: 12px 0 !important; }
+.clientPageCompact :global(.comment-box textarea) { min-height: 80px !important; font-size: 14px !important; }
+.clientPageCompact :global(.final-confirm-card) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  border: 1px solid #c8adb9 !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+  background: #ececef !important;
+  box-shadow: none !important;
+}
+.clientPageCompact :global(.final-confirm-card h3) { margin: 0 !important; font-size: 16px !important; font-weight: 650 !important; }
+.clientPageCompact :global(.final-confirm-card p) { margin: 4px 0 0 !important; color: var(--booking-muted) !important; font-size: 12px !important; line-height: 1.4 !important; }
+.clientPageCompact:global(.client-page-compact) :global(.final-confirm-card button) {
+  min-height: 46px !important;
+  border: 1px solid var(--booking-border-strong) !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: #a35b79 !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+/* Client records, price, waitlist and profile. */
+.clientPageCompact :global(.client-collapse-card) { padding: 0 !important; overflow: hidden !important; }
+.clientPageCompact :global(.client-collapse-summary) {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 15px 17px !important;
+  list-style: none !important;
+  cursor: pointer !important;
+}
+.clientPageCompact :global(.client-collapse-summary::-webkit-details-marker) { display: none !important; }
+.clientPageCompact :global(.client-collapse-summary h2) { margin: 0 !important; font-size: 21px !important; font-weight: 650 !important; }
+.clientPageCompact :global(.client-collapse-summary small) { display: block !important; color: var(--booking-muted) !important; font-size: 12px !important; }
+.clientPageCompact :global(.client-collapse-summary i) {
+  display: grid !important;
+  place-items: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px !important;
+  border: 1px solid var(--booking-border) !important;
+  border-radius: var(--booking-control-radius) !important;
+  background: var(--booking-control) !important;
+  color: var(--booking-border-strong) !important;
+  font-size: 19px !important;
+  font-style: normal !important;
+}
+.clientPageCompact :global(.client-collapse-card[open] .client-collapse-summary i) { transform: rotate(180deg) !important; }
+.clientPageCompact :global(.client-collapse-body) { padding: 0 17px 17px !important; }
+.clientPageCompact :global(.waitlist-help) { margin: 0 0 4px !important; font-size: 13px !important; line-height: 1.45 !important; }
+.clientPageCompact :global(.waitlist-compact-form) { gap: 10px !important; }
+.clientPageCompact :global(.waitlist-compact-form label) { gap: 5px !important; }
+.clientPageCompact :global(.waitlist-compact-form textarea) { min-height: 72px !important; }
+.clientPageCompact :global(.waitlist-active-list) { margin-top: 12px !important; }
+.clientPageCompact :global(.price-compact-card) { padding: 0 !important; }
+.clientPageCompact :global(.price-compact-card .client-collapse-summary h2) { margin: 0 !important; }
+.clientPageCompact :global(.price-compact-card h2),
+.clientPageCompact :global(#bookings h2),
+.clientPageCompact :global(#profile h2) {
+  margin: 0 0 10px !important;
+  font-size: 21px !important;
+  font-weight: 650 !important;
+}
+.clientPageCompact :global(.price-compact-list) { display: grid !important; gap: 0 !important; }
+.clientPageCompact :global(.price-compact-list .price-row) {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
   align-items: start !important;
   gap: 12px !important;
-  padding: 9px 0 !important;
-  border-bottom: 1px solid rgba(128, 59, 88, .11) !important;
-}
-
-.clientPageCompact :global(.price-list.price-compact-list .price-row:last-child) {
-  border-bottom: 0 !important;
-}
-
-.clientPageCompact :global(.price-list.price-compact-list .price-row b) {
-  display: block !important;
-  font-size: 14.5px !important;
-  line-height: 1.12 !important;
-  font-weight: 800 !important;
-}
-
-.clientPageCompact :global(.price-list.price-compact-list .price-row p) {
-  margin: 3px 0 0 !important;
-  font-size: 11.5px !important;
-  line-height: 1.2 !important;
-}
-
-.clientPageCompact :global(.price-list.price-compact-list .price-row strong) {
-  font-size: 15px !important;
-  line-height: 1.05 !important;
-  white-space: nowrap !important;
-  color: var(--beauty-rose-dark, #803b58) !important;
-}
-
-.clientPageCompact :global(.history-compact-list) {
-  display: grid !important;
-  gap: 7px !important;
-}
-
-.clientPageCompact :global(.history-compact-list p) {
-  margin: 0 !important;
-  padding: 8px 0 !important;
-  border-bottom: 1px solid rgba(128, 59, 88, .11) !important;
-  font-size: 13px !important;
-  line-height: 1.3 !important;
-}
-
-.clientPageCompact :global(.history-compact-list p:last-child) {
-  border-bottom: 0 !important;
-}
-
-.clientPageCompact :global(.selected-day-card),
-.clientPageCompact :global(.calendar-card),
-.clientPageCompact :global(#bookings),
-.clientPageCompact :global(#price),
-.clientPageCompact :global(#profile),
-.clientPageCompact :global(.client-collapse-card) {
-  border-radius: 16px !important;
-}
-
-.clientPageCompact :global(.booking-step-card) {
-  padding: 14px !important;
-}
-
-.clientPageCompact :global(.booking-view-switch) {
-  display: grid !important;
-  gap: 12px !important;
-  padding: 14px !important;
-  border: 1px solid rgba(128, 59, 88, .16) !important;
-  border-radius: 16px !important;
-  background: #ecebed !important;
-}
-
-.clientPageCompact :global(.booking-view-switch p) {
-  margin: 4px 0 0 !important;
-  color: #666168 !important;
-  font-size: 12px !important;
-}
-
-.clientPageCompact :global(.segmented-switch) {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  padding: 3px !important;
-  border-radius: 12px !important;
-  background: #d7d5d8 !important;
-}
-
-.clientPageCompact :global(.segmented-switch button) {
-  min-height: 40px !important;
+  padding: 10px 0 !important;
   border: 0 !important;
-  border-radius: 9px !important;
+  border-bottom: 1px solid #dadce1 !important;
+  border-radius: 0 !important;
   background: transparent !important;
-  color: #5f5a60 !important;
   box-shadow: none !important;
 }
-
-.clientPageCompact :global(.segmented-switch button.active) {
-  background: #d76591 !important;
-  color: #fff !important;
-}
-
-.clientPageCompact :global(.free-window-list-card) {
-  padding: 15px !important;
-  border-radius: 16px !important;
-}
-
-.clientPageCompact :global(.free-window-list) {
-  max-height: 360px !important;
-  overflow: auto !important;
-  margin-top: 12px !important;
-  border-block: 1px solid rgba(128, 59, 88, .12) !important;
-}
-
-.clientPageCompact :global(.free-window-row) {
-  display: grid !important;
-  grid-template-columns: 58px minmax(0, 1fr) !important;
-  gap: 10px !important;
-  align-items: baseline !important;
-  padding: 11px 4px !important;
-  border-bottom: 1px solid rgba(128, 59, 88, .1) !important;
-}
-
-.clientPageCompact :global(.free-window-row.active) {
-  color: #9b315a !important;
-  background: rgba(215, 101, 145, .07) !important;
-}
-
-.clientPageCompact :global(.inline-times button) {
-  width: auto !important;
-  min-height: 0 !important;
-  padding: 2px !important;
-  border: 0 !important;
-  border-radius: 4px !important;
-  background: transparent !important;
-  color: #4f4b50 !important;
-  box-shadow: none !important;
-  font: inherit !important;
-  font-weight: 650 !important;
-}
-
-.clientPageCompact :global(.inline-times button.active) {
-  background: #d76591 !important;
-  color: #fff !important;
-}
-
-.clientPageCompact :global(.compact-service-switch) {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 7px !important;
-  margin: 12px 0 !important;
-}
-
-.clientPageCompact :global(.compact-service-switch button) {
-  width: auto !important;
-  min-height: 42px !important;
-  padding: 8px 11px !important;
-  border: 1px solid #c5c1c6 !important;
-  border-radius: 10px !important;
-  background: #e8e7e9 !important;
-  color: #504b51 !important;
-  box-shadow: none !important;
-  text-align: left !important;
-}
-
-.clientPageCompact :global(.compact-service-switch button.active) {
-  border-color: #d76591 !important;
-  background: #d76591 !important;
-  color: #fff !important;
-}
-
-.clientPageCompact :global(.compact-service-switch b),
-.clientPageCompact :global(.compact-service-switch small) {
-  display: block !important;
-}
-
-.clientPageCompact :global(.flow-step-title h3) {
-  font-size: 16px !important;
-  line-height: 1.1 !important;
-}
-
-.clientPageCompact :global(.flow-step-title p) {
-  font-size: 11.5px !important;
-  line-height: 1.22 !important;
-}
-
-.clientPageCompact :global(.service-check-grid),
-.clientPageCompact :global(.service-choice-grid) {
-  gap: 8px !important;
-}
-
-.clientPageCompact :global(.service-check) {
-  min-height: 54px !important;
-  border-radius: 12px !important;
-  padding: 10px 11px !important;
-  align-items: center !important;
-}
-
-.clientPageCompact :global(.service-check input) {
-  width: 22px !important;
-  height: 22px !important;
-}
-
-.clientPageCompact :global(.service-check b) {
-  font-size: 14px !important;
-  line-height: 1.12 !important;
-}
-
-.clientPageCompact :global(.service-check small) {
-  font-size: 11.5px !important;
-  line-height: 1.18 !important;
-}
-
-.clientPageCompact :global(.service-choice-actions) {
-  grid-template-columns: 1fr !important;
-  gap: 7px !important;
-}
-
-.clientPageCompact :global(.service-choice-actions button),
-.clientPageCompact :global(.final-confirm-card button),
-.clientPageCompact :global(.change-service-btn),
-.clientPageCompact :global(#bookings button),
-.clientPageCompact :global(#profile .button) {
-  border-radius: 10px !important;
-  min-height: 38px !important;
-  padding: 8px 12px !important;
-  font-size: 13px !important;
-}
-
-.clientPageCompact :global(#bookings) {
-  padding: 15px 16px !important;
-}
-
-.clientPageCompact :global(#bookings h2) {
-  margin: 0 0 12px !important;
-  font-size: clamp(26px, 7vw, 36px) !important;
-}
-
+.clientPageCompact :global(.price-compact-list .price-row:last-child) { border-bottom: 0 !important; }
+.clientPageCompact :global(.price-row p) { margin: 3px 0 0 !important; font-size: 12px !important; line-height: 1.35 !important; }
+.clientPageCompact :global(.price-row strong) { color: var(--booking-border-strong) !important; white-space: nowrap !important; font-size: 14px !important; }
 .clientPageCompact :global(.booking-card) {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) !important;
-  gap: 8px !important;
-  padding: 12px !important;
-  border-radius: 13px !important;
-  overflow: visible !important;
+  gap: 9px !important;
+  padding: 14px !important;
+  border: 1px solid #dadce1 !important;
+  border-radius: 12px !important;
+  background: #eceef0 !important;
+  box-shadow: none !important;
 }
-
-.clientPageCompact :global(.booking-card h3) {
-  margin: 0 !important;
-  font-size: 16px !important;
-  line-height: 1.12 !important;
-  color: var(--beauty-rose-dark, #803b58) !important;
-}
-
-.clientPageCompact :global(.booking-card p) {
-  margin: 4px 0 0 !important;
-  font-size: 13px !important;
-  line-height: 1.25 !important;
-}
-
-.clientPageCompact :global(.booking-card .status) {
-  width: fit-content !important;
-  min-height: 26px !important;
-  border-radius: 9px !important;
-  padding: 6px 9px !important;
-  font-size: 11px !important;
-  line-height: 1 !important;
-}
-
-.clientPageCompact :global(.booking-card form) {
-  margin: 0 !important;
-}
-
-.clientPageCompact :global(.booking-card button) {
-  width: fit-content !important;
-  max-width: 100% !important;
-}
+.clientPageCompact :global(.booking-card h3) { margin: 0 !important; font-size: 16px !important; font-weight: 650 !important; }
+.clientPageCompact :global(.booking-card p) { margin: 4px 0 0 !important; font-size: 13px !important; }
+.clientPageCompact :global(.booking-card .status) { width: fit-content !important; padding: 5px 9px !important; border-radius: 8px !important; }
+.clientPageCompact :global(.upcoming-booking-head h2) { font-size: 20px !important; }
+.clientPageCompact :global(.client-profile-card .button) { width: fit-content !important; }
+.clientPageCompact :global(.empty-state) { padding: 15px !important; background: #e9eaed !important; font-size: 14px !important; }
+.clientPageCompact :global(.history-compact-list p) { padding: 8px 0 !important; border-bottom: 1px solid #dadce1 !important; }
+.clientPageCompact :global(.history-compact-list p:last-child) { border-bottom: 0 !important; }
 
 @media (max-width: 760px) {
-  .clientPageCompact :global(.client-collapse-summary),
-  .clientPageCompact :global(.client-collapse-body),
-  .clientPageCompact :global(.price-compact-card) {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-
-  .clientPageCompact :global(.price-list.price-compact-list .price-row) {
-    grid-template-columns: minmax(0, 1fr) auto !important;
-  }
-
-  .clientPageCompact :global(.client-page .card),
-  .clientPageCompact :global(.client-page .calendar-card),
-  .clientPageCompact :global(.client-page .selected-day-card) {
-    border-radius: 16px !important;
-  }
+  .clientPageCompact :global(.calendar-layout) { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .clientPageCompact :global(.client-booking-intro) { padding: 16px !important; }
+  .clientPageCompact :global(.hero),
+  .clientPageCompact :global(.card),
+  .clientPageCompact :global(.calendar-card),
+  .clientPageCompact :global(.selected-day-card) { padding: 16px !important; }
+  .clientPageCompact:global(.client-page-compact) :global(.time-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .clientPageCompact:global(.client-page-compact) :global(.compact-service-switch) { grid-template-columns: 1fr !important; }
+  .clientPageCompact :global(.selected-summary-panel) { grid-template-columns: 1fr !important; }
+  .clientPageCompact :global(.final-confirm-card) { grid-template-columns: 1fr !important; }
+  .clientPageCompact:global(.client-page-compact) :global(.final-confirm-card button) { width: 100% !important; }
+  .clientPageCompact :global(.client-collapse-card) { padding: 0 !important; }
+  .clientPageCompact :global(.client-collapse-body) { padding: 0 16px 16px !important; }
+  .clientPageCompact :global(.price-compact-card) { padding: 0 !important; }
 }

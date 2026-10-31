@@ -47,6 +47,21 @@
       --card-radius-soft: 18px !important;
     }
 
+    /* Client calendar uses the same neutral palette on mobile as on desktop. */
+    :root:has(main.client-page-compact) {
+      --ui-bg: #f1f2f4 !important;
+      --ui-card-solid: #f8f8f9 !important;
+      --ui-soft: #e9eaed !important;
+      --ui-line: #c9a1b0 !important;
+      --ui-line-strong: #b77a91 !important;
+      --ui-text: #2e3036 !important;
+      --ui-muted: #676b73 !important;
+      --ui-rose: #a35b79 !important;
+      --ui-rose-dark: #82425d !important;
+      --control-radius: 10px !important;
+      --card-radius-soft: 14px !important;
+    }
+
     html, body {
       width: 100% !important;
       max-width: 100% !important;
@@ -172,6 +187,15 @@
       color: #fff !important;
     }
 
+    main.client-page-compact button:not(.danger),
+    main.client-page-compact .button:not(.danger) {
+      background: #e5e7ea !important;
+      border-color: #b77a91 !important;
+      color: #2e3036 !important;
+      background-image: none !important;
+      box-shadow: none !important;
+    }
+
     .app-shell :is(button.secondary, .button.secondary, .btn-secondary, .month-arrow) {
       background: #fff !important;
       border-color: var(--ui-line-strong) !important;
@@ -225,12 +249,11 @@
       width: 100% !important;
       min-height: 0 !important;
       height: auto !important;
-      margin: 0 0 18px !important;
-      padding: calc(18px + var(--mobile-safe-top)) 0 16px !important;
-      border: 0 !important;
-      border-bottom: 1px solid var(--ui-line) !important;
-      border-radius: 0 !important;
-      background: transparent !important;
+      margin: 12px 0 14px !important;
+      padding: 12px !important;
+      border: 1px solid var(--ui-line) !important;
+      border-radius: 14px !important;
+      background: var(--ui-card-solid) !important;
       box-shadow: none !important;
     }
 
@@ -267,13 +290,14 @@
       min-height: 44px !important;
       padding: 9px 6px !important;
       border: 1px solid var(--ui-line) !important;
-      border-radius: 12px !important;
-      background: #fff !important;
-      color: var(--ui-muted) !important;
+      border-radius: 10px !important;
+      background: #e5e7ea !important;
+      color: var(--ui-text) !important;
       font-size: 13px !important;
       font-weight: 500 !important;
     }
     .compact-client-links .beauty-menu-row span { font-weight: inherit !important; }
+    body:has(main.client-page-compact) .compact-client-links .beauty-menu-icon { display: none !important; }
     .compact-client-links .beauty-menu-arrow { display: none !important; }
 
     .public-page .hero { min-height: 0 !important; }
@@ -296,8 +320,8 @@
     /* Short guidance stays readable without competing with the calendar. */
     .app-shell :is(.test-version-note, .client-start-warning, .combo-service-note, .final-check-note) {
       padding: 14px 16px !important;
-      background: #f4edef !important;
-      border-color: #e7d9df !important;
+      background: #f0e9ed !important;
+      border-color: #c9a1b0 !important;
       color: var(--ui-text) !important;
     }
     .app-shell :is(.test-version-note, .client-start-warning, .combo-service-note, .final-check-note) :is(b, p) {
@@ -342,12 +366,12 @@
     main.client-page-compact .instruction-cards :is(h3, p) { margin: 0 !important; font-size: 13px !important; line-height: 1.4 !important; }
     main.client-page-compact .instruction-cards h3 { color: var(--ui-rose-dark) !important; }
 
-    main.client-page-compact .booking-view-switch { padding: 16px !important; background: #fff !important; }
+    main.client-page-compact .booking-view-switch { padding: 14px 16px !important; background: var(--ui-card-solid) !important; }
     main.client-page-compact .booking-view-switch > div > b { font-size: 15px !important; }
-    main.client-page-compact .booking-view-switch p { font-size: 13px !important; }
-    main.client-page-compact .segmented-switch { padding: 4px !important; background: #f3eef0 !important; }
-    main.client-page-compact .segmented-switch button { min-height: 44px !important; border: 0 !important; background: transparent !important; color: var(--ui-muted) !important; }
-    main.client-page-compact .segmented-switch button.active { background: #fff !important; color: var(--ui-rose-dark) !important; box-shadow: 0 1px 4px #302a2e12 !important; }
+    main.client-page-compact .booking-view-switch p { font-size: 12px !important; }
+    main.client-page-compact .segmented-switch { padding: 0 !important; gap: 8px !important; background: transparent !important; }
+    main.client-page-compact .segmented-switch button { min-height: 44px !important; border: 1px solid #b77a91 !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-radius: 10px !important; }
+    main.client-page-compact .segmented-switch button.active { border-color: #82425d !important; background: #e7d5dc !important; color: #82425d !important; box-shadow: none !important; }
 
     .calendar-layout, .schedule-day-grid { display: grid !important; grid-template-columns: 1fr !important; gap: 14px !important; }
     .calendar-card, .selected-day-card { min-height: 0 !important; }
@@ -360,30 +384,30 @@
     .app-shell :is(.month-arrow, .calendar-arrow-button) { width: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; font-size: 24px !important; }
     .app-shell .calendar-legend { gap: 14px !important; margin: 14px 0 !important; font-size: 12px !important; }
     .app-shell .calendar-head { font-size: 11px !important; color: var(--ui-muted) !important; }
-    .app-shell .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #fff !important; color: var(--ui-text) !important; border-color: transparent !important; font-size: 14px !important; }
-    .app-shell .calendar-grid .day-btn.muted { color: #b4aab0 !important; }
-    .app-shell .calendar-grid .day-btn.active { background: var(--ui-rose) !important; border-color: var(--ui-rose) !important; color: #fff !important; }
-    .app-shell .calendar-grid .day-btn.active .blue-dot { background: #fff !important; }
-    .app-shell .calendar-grid .day-btn.active .gray-dot { background: #e1c8d2 !important; }
-    main.client-page-compact .time-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
-    .app-shell .time-grid .time-btn { min-height: 58px !important; padding: 10px 6px !important; background: #f7f1f4 !important; border-color: #e2ccd6 !important; color: var(--ui-rose-dark) !important; }
-    .app-shell .time-grid .time-btn.active { background: var(--ui-rose) !important; color: #fff !important; border-color: var(--ui-rose) !important; }
-    .app-shell .time-grid .time-btn.busy { background: #f3f1f2 !important; border-color: #ece7ea !important; color: #968a91 !important; }
-    .app-shell .time-btn span { color: inherit !important; font-size: 11px !important; }
-    .app-shell .time-btn b { font-size: 16px !important; }
+    main.client-page-compact .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-color: #d4d6dc !important; font-size: 14px !important; border-radius: 9px !important; }
+    main.client-page-compact .calendar-grid .day-btn.muted { color: #a0a4ac !important; background: #eef0f3 !important; }
+    main.client-page-compact .calendar-grid .day-btn.active { background: #e7d5dc !important; border: 2px solid #82425d !important; color: var(--ui-text) !important; }
+    main.client-page-compact .calendar-grid .day-btn.active .blue-dot { background: #af5b7d !important; }
+    main.client-page-compact .calendar-grid .day-btn.active .gray-dot { background: #9499a3 !important; }
+    main.client-page-compact .time-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
+    main.client-page-compact .time-grid .time-btn { min-height: 70px !important; padding: 10px 6px !important; background: #e5e7ea !important; border-color: #b77a91 !important; color: #2e3036 !important; border-radius: 10px !important; }
+    main.client-page-compact .time-grid .time-btn.active { background: #e7d5dc !important; color: #82425d !important; border: 2px solid #82425d !important; }
+    main.client-page-compact .time-grid .time-btn.busy { background: #eff0f2 !important; border-color: #d8dbe0 !important; color: #8d929c !important; }
+    main.client-page-compact .time-btn span { color: inherit !important; font-size: 11px !important; }
+    main.client-page-compact .time-btn b { font-size: 16px !important; }
     main.client-page-compact .flow-step-title p { font-size: 13px !important; line-height: 1.45 !important; }
     main.client-page-compact .compact-service-switch { display: grid !important; grid-template-columns: 1fr !important; gap: 8px !important; }
-    main.client-page-compact .compact-service-switch button { width: 100% !important; min-height: 64px !important; justify-content: space-between !important; gap: 12px !important; padding: 13px 14px !important; border: 1px solid var(--ui-line-strong) !important; background: #fff !important; color: var(--ui-text) !important; }
-    main.client-page-compact .compact-service-switch button.active { border-color: var(--ui-rose) !important; background: #f7edf1 !important; color: var(--ui-rose-dark) !important; }
+    main.client-page-compact .compact-service-switch button { width: 100% !important; min-height: 64px !important; justify-content: space-between !important; gap: 12px !important; padding: 13px 14px !important; border: 1px solid #b77a91 !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-radius: 10px !important; }
+    main.client-page-compact .compact-service-switch button.active { border: 2px solid #82425d !important; background: #e7d5dc !important; color: #82425d !important; }
     main.client-page-compact .compact-service-switch button small { color: inherit !important; text-align: right !important; }
     main.client-page-compact .inline-times { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; font-size: 0 !important; }
-    main.client-page-compact .inline-times button { min-width: 60px !important; min-height: 44px !important; padding: 8px 10px !important; border: 1px solid var(--ui-line) !important; border-radius: 10px !important; background: #fff !important; color: var(--ui-rose-dark) !important; font-size: 14px !important; }
-    main.client-page-compact .inline-times button.active { background: var(--ui-rose) !important; color: #fff !important; border-color: var(--ui-rose) !important; }
+    main.client-page-compact .inline-times button { min-width: 60px !important; min-height: 44px !important; padding: 8px 10px !important; border: 1px solid #b77a91 !important; border-radius: 10px !important; background: #e5e7ea !important; color: var(--ui-text) !important; font-size: 14px !important; }
+    main.client-page-compact .inline-times button.active { background: #e7d5dc !important; color: #82425d !important; border-color: #82425d !important; }
     main.client-page-compact .free-window-row { align-items: start !important; padding: 12px 0 !important; }
     main.client-page-compact .free-window-row > b { padding-top: 12px !important; }
-    main.client-page-compact .selected-summary-panel { gap: 12px !important; background: var(--ui-soft) !important; padding: 16px !important; }
+    main.client-page-compact .selected-summary-panel { gap: 12px !important; background: #e9eaed !important; padding: 16px !important; }
     main.client-page-compact .final-confirm-card { display: grid !important; grid-template-columns: 1fr !important; gap: 14px !important; }
-    main.client-page-compact .final-confirm-card button { width: 100% !important; min-height: 48px !important; font-size: 15px !important; }
+    main.client-page-compact .final-confirm-card button { width: 100% !important; min-height: 48px !important; font-size: 15px !important; border: 1px solid #82425d !important; background: #a35b79 !important; color: #fff !important; }
     main.client-page-compact .upcoming-booking-head { grid-template-columns: 1fr !important; }
     main.client-page-compact .upcoming-booking-head .status { justify-self: start !important; }
     main.client-page-compact .upcoming-booking-head h2 { font-size: 22px !important; line-height: 1.25 !important; }
@@ -475,8 +499,8 @@
     .profile-avatar-upload { min-width: 0 !important; }
 
     /* Keep focus distinct from selection, including already selected days. */
-    .app-shell .calendar-grid .day-btn:focus-visible,
-    .app-shell .time-grid .time-btn:focus-visible,
+    main.client-page-compact .calendar-grid .day-btn:focus-visible,
+    main.client-page-compact .time-grid .time-btn:focus-visible,
     .app-shell #calendar .calendar-day:focus-visible {
       outline: 3px solid var(--ui-rose) !important;
       outline-offset: 3px !important;

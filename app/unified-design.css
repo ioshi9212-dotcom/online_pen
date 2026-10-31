@@ -441,13 +441,83 @@ th {
   font-weight: 420 !important;
 }
 
+/* Client booking palette: page and header are kept separate from the admin UI. */
+html:has(main.client-page-compact),
+body:has(main.client-page-compact),
+body:has(main.client-page-compact) .app-shell {
+  background: #f1f2f4 !important;
+  background-image: none !important;
+  color: #2e3036 !important;
+}
+
+body:has(main.client-page-compact) .top-menu.compact-client-menu.beauty-top-card {
+  border: 1px solid rgba(130, 66, 93, .26) !important;
+  border-radius: 14px !important;
+  background: #f8f8f9 !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+body:has(main.client-page-compact) .beauty-top-card::before,
+body:has(main.client-page-compact) .beauty-top-card::after {
+  display: none !important;
+  content: none !important;
+}
+
+body:has(main.client-page-compact) .beauty-brand-icon {
+  background: #a35b79 !important;
+  border-radius: 10px !important;
+}
+
+body:has(main.client-page-compact) .compact-client-links a.beauty-menu-row {
+  min-height: 42px !important;
+  padding: 9px 11px !important;
+  border: 1px solid #b77a91 !important;
+  border-radius: 10px !important;
+  background: #e5e7ea !important;
+  background-image: none !important;
+  color: #2e3036 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  body:has(main.client-page-compact) .top-menu.compact-client-menu.beauty-top-card {
+    width: 100% !important;
+    margin: 12px 0 14px !important;
+    padding: 12px !important;
+    gap: 10px !important;
+    border: 1px solid rgba(130, 66, 93, .26) !important;
+    border-radius: 14px !important;
+    background: #f8f8f9 !important;
+  }
+
+  body:has(main.client-page-compact) .compact-client-links.beauty-menu-links {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  body:has(main.client-page-compact) .compact-client-links a.beauty-menu-row {
+    justify-content: center !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    padding: 7px 4px !important;
+    font-size: 12px !important;
+  }
+
+  body:has(main.client-page-compact) .compact-client-links .beauty-menu-icon {
+    display: none !important;
+  }
+}
+
 .client-start-warning {
-  background: linear-gradient(135deg, #be6386, #e6a0b8) !important;
-  border-radius: var(--card-radius-soft) !important;
+  background: #f0e9ed !important;
+  border-radius: 14px !important;
 }
 
 .client-start-warning b {
-  font-weight: 430 !important;
+  color: #82425d !important;
+  font-weight: 650 !important;
 }
 
 .test-version-note b,
