@@ -1,5 +1,7 @@
 "use client";
 
+import { useUnsavedChanges } from "@/app/useUnsavedChanges";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveBulkDayOverridesInline } from "./actions";
@@ -52,6 +54,7 @@ type Props = {
   selectedDateTitle: string;
   selectedIsWorkingDay: boolean;
   selectedTimes: TimeItem[];
+  agenda: { id: string; time: string; label: string; href: string }[];
   currentOnlineTimes: string[];
   openOnlineGroups: OnlineWindowGroup[];
   clients: ClientItem[];
@@ -104,27 +107,14 @@ export default function ScheduleClient(props: Props) {
   const [paintDates, setPaintDates] = useState<string[]>([]);
   const [paintSaveState, setPaintSaveState] = useState<SaveState>("idle");
   const [paintSaveText, setPaintSaveText] = useState("");
-  const [optimisticDayKinds, setOptimisticDayKinds] = useState<Record<string, PaintMode>>({});
   const [onlineTimes, setOnlineTimes] = useState<string[]>(props.currentOnlineTimes);
-  const [openGroups, setOpenGroups] = useState<OnlineWindowGroup[]>(props.openOnlineGroups);
   const [onlineSaveState, setOnlineSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [onlineSaveText, setOnlineSaveText] = useState("");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
-  useEffect(() => {
-    setOnlineTimes(props.currentOnlineTimes);
-    setOnlineSaveState("idle");
-    setOnlineSaveText("");
-    setCopyState("idle");
-  }, [props.selectedDateKey, props.currentOnlineTimes]);
-
-  useEffect(() => {
-    setOpenGroups(props.openOnlineGroups);
-  }, [props.openOnlineGroups]);
-
-  useEffect(() => {
-    setOptimisticDayKinds({});
-  }, [props.monthKey, props.days]);
+  const onlineDirty = onlineSaveState !== "saved" && JSON.stringify([...onlineTimes].sort()) !== JSON.stringify([...props.currentOnlineTimes].sort());
+  const dirty = onlineDirty || paintDates.length > 0;
+  useUnsavedChanges(dirty);
 
   useEffect(() => {
     if (!paintSaveText) return;
@@ -134,7 +124,8 @@ export default function ScheduleClient(props: Props) {
 
   function toggleDate(key: string) {
     if (!paintMode) {
-      window.location.href = `/admin/schedule?view=calendar&month=${props.monthKey}&date=${key}#selected-day`;
+      if (dirty && !window.confirm("Есть несохранённые окна. Перейти к другому дню и потерять изменения?")) return;
+      window.location.assign(new URL(`/admin/schedule?view=calendar&month=${props.monthKey}&date=${key}#selected-day`, window.location.origin).href);
       return;
     }
 
@@ -142,15 +133,18 @@ export default function ScheduleClient(props: Props) {
   }
 
   function addOnlineTime(time: string) {
+    setOnlineSaveState("idle"); setOnlineSaveText("");
     setOnlineTimes((current) => current.includes(time) ? current : [...current, time].sort());
   }
 
   function removeOnlineTime(time: string) {
+    setOnlineSaveState("idle"); setOnlineSaveText("");
     setOnlineTimes((current) => current.filter((item) => item !== time));
   }
 
   function savePaintDates() {
     if (!paintMode || paintDates.length === 0 || isPaintPending) return;
+    if (onlineDirty) { setPaintSaveState("error"); setPaintSaveText("Сначала сохраните онлайн-окна выбранного дня."); return; }
 
     const savedMode = paintMode;
     const savedDates = [...paintDates];
@@ -170,11 +164,7 @@ export default function ScheduleClient(props: Props) {
           const result = await saveBulkDayOverridesInline(formData);
           if (!result?.ok) throw new Error("save-failed");
 
-          setOptimisticDayKinds((current) => {
-            const next = { ...current };
-            for (const key of savedDates) next[key] = savedMode;
-            return next;
-          });
+          if (savedMode === "DAY_OFF" && savedDates.includes(props.selectedDateKey)) { setOnlineTimes([]); setOnlineSaveState("saved"); }
           setPaintMode("");
           setPaintDates([]);
           setPaintSaveState("saved");
@@ -189,6 +179,7 @@ export default function ScheduleClient(props: Props) {
   }
 
   async function saveOnlineTimes() {
+    if (paintDates.length) { setOnlineSaveState("error"); setOnlineSaveText("Сначала сохраните отметки дней в календаре."); return; }
     const requestedTimes = [...onlineTimes].sort();
     setOnlineSaveState("saving");
     setOnlineSaveText("");
@@ -198,34 +189,23 @@ export default function ScheduleClient(props: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date: props.selectedDateKey, times: requestedTimes })
       });
-      const data = await response.json().catch(() => null) as { saved?: number; skipped?: number; savedTimes?: string[] } | null;
-      if (!response.ok) throw new Error("save-failed");
+      const data = await response.json().catch(() => null) as { error?: string; saved?: number; skipped?: number; savedTimes?: string[] } | null;
+      if (!response.ok) throw new Error(data?.error || "Не удалось сохранить окна");
 
       const savedTimes = Array.isArray(data?.savedTimes) ? data.savedTimes.map(String).sort() : requestedTimes;
       setOnlineTimes(savedTimes);
-      setOpenGroups((current) => {
-        const rest = current.filter((group) => group.key !== props.selectedDateKey);
-        if (savedTimes.length === 0) return sortByDate(rest);
-        const selectedGroup: OnlineWindowGroup = {
-          key: props.selectedDateKey,
-          title: titleFromDateKey(props.selectedDateKey),
-          items: savedTimes.map((time) => ({ id: `${props.selectedDateKey}-${time}`, time }))
-        };
-        return sortByDate([selectedGroup, ...rest]);
-      });
-
       setOnlineSaveState("saved");
       setOnlineSaveText(`Сохранила онлайн-окна: ${data?.saved ?? savedTimes.length}${data?.skipped ? `. Пропущено занятых: ${data.skipped}` : ""}.`);
       router.refresh();
-    } catch {
+    } catch (error) {
       setOnlineSaveState("error");
-      setOnlineSaveText("Не сохранилось. Обнови страницу и попробуй ещё раз.");
+      setOnlineSaveText(error instanceof Error ? error.message : "Не удалось сохранить окна. Выбор сохранён на экране.");
     }
   }
 
   const freeTimes = useMemo(() => props.selectedTimes.filter((item) => !item.isBusy), [props.selectedTimes]);
   const visibleTopTimes = useMemo(() => freeTimes.filter((item) => !onlineTimes.includes(item.time)), [freeTimes, onlineTimes]);
-  const visibleOpenGroups = useMemo(() => sortByDate(openGroups), [openGroups]);
+  const visibleOpenGroups = useMemo(() => sortByDate(props.openOnlineGroups), [props.openOnlineGroups]);
   const openOnlineText = useMemo(() => visibleOpenGroups
     .filter((group) => group.items.length > 0)
     .map((group) => `${group.title} - ${group.items.map((item) => item.time).join(", ")}`)
@@ -258,7 +238,7 @@ export default function ScheduleClient(props: Props) {
   }
 
   return (
-    <div className="grid schedule-calendar-workspace">
+    <div data-dirty={dirty} className="grid schedule-calendar-workspace">
       <style jsx global>{`
         #calendar .paint-selected { outline: 3px solid rgba(196, 93, 132, .38) !important; transform: translateY(-1px); }
         #calendar .calendar-day.paint-selected.paint-off { background: linear-gradient(135deg, #fff1f5, #f3d4de) !important; color: #73334d !important; border-color: #cf7896 !important; }
@@ -388,7 +368,7 @@ export default function ScheduleClient(props: Props) {
           {props.days.map((day) => {
             const selectedForPaint = paintDates.includes(day.key);
             const selectedDate = props.selectedDateKey === day.key;
-            const effectiveKind = optimisticDayKinds[day.key] || day.kind;
+            const effectiveKind = day.kind;
             const effectiveIsWorkingDay = optimisticIsWorkingDay(effectiveKind, day.isWorkingDay);
             const label = optimisticDayLabel(effectiveKind, day.label);
             const classes = ["calendar-day", effectiveIsWorkingDay ? "day-working" : "day-off", effectiveKind === "SPECIAL" ? "day-special" : "", selectedDate ? "selected" : "", selectedForPaint ? "paint-selected" : "", selectedForPaint && paintMode === "DAY_OFF" ? "paint-off" : "", selectedForPaint && paintMode === "WORKING" ? "paint-working" : "", selectedForPaint && paintMode === "SPECIAL" ? "paint-special" : ""].join(" ");
@@ -408,22 +388,30 @@ export default function ScheduleClient(props: Props) {
       {props.selectedDateKey ? (
         <section className="card schedule-selected-card" id="selected-day">
           <h2 className="selected-date-title">{props.selectedDateTitle}</h2>
-          {props.warning ? <div className="notice danger-notice">Предупреждение: {props.warning}. Чтобы всё равно создать запись, поставь галочку подтверждения.</div> : null}
+          {props.warning ? <div className="notice danger-notice">{props.warning}</div> : null}
           {props.success ? <div className="notice ok-notice">{props.success}</div> : null}
 
+          <div className="audit-day-agenda">
+            <h3>Приёмы и перерывы дня</h3>
+            {props.agenda.map((item) => <div className="audit-agenda-item" key={item.id}><b>{item.time}</b><span>{item.label}</span>{item.href ? <a className="button secondary" href={item.href}>Открыть запись</a> : null}</div>)}
+            {!props.agenda.length ? <p>Приёмов и перерывов нет.</p> : null}
+            <a className="button" href={`/admin/manage?date=${props.selectedDateKey}`}>Записать на этот день</a>
+          </div>
+          {!props.selectedIsWorkingDay ? <p className="notice">Выходной. Для онлайн-записи сначала отметьте этот день как рабочий в календаре.</p> : null}
+          {dirty ? <p className="notice" role="status">Есть несохранённые изменения.</p> : null}
           <div className="grid-2 schedule-day-grid">
             <div className="time-control-panel">
               <h3 className="schedule-section-title">Выберите свободное время</h3>
               <p className="schedule-section-note">Нажмите время, затем «Сохранить окна».</p>
 
               <div className="time-list time-column-list">
-                {visibleTopTimes.map((item) => <button type="button" className="schedule-time-button" key={item.time} onClick={() => addOnlineTime(item.time)} title="Свободно">{freeWindowLabel(item)}</button>)}
+                {visibleTopTimes.map((item) => <div className="audit-time-row" key={item.time}><button type="button" className="schedule-time-button" disabled={onlineSaveState === "saving"} onClick={() => addOnlineTime(item.time)} title="Открыть онлайн-окно">{freeWindowLabel(item)}</button><a href={`/admin/manage?date=${props.selectedDateKey}&time=${item.time}`}>Записать</a></div>)}
                 {visibleTopTimes.length === 0 ? <div className="notice">Нет времени для выбора.</div> : null}
               </div>
 
               <h3 className="schedule-section-title" style={{ marginTop: 14 }}>Окна для клиентов онлайн</h3>
               <div className="time-list chosen-time-list">
-                {onlineTimes.map((time) => <button type="button" className="ok schedule-time-button" key={time} onClick={() => removeOnlineTime(time)}>{time} ×</button>)}
+                {onlineTimes.map((time) => <button type="button" className="ok schedule-time-button" key={time} disabled={onlineSaveState === "saving"} onClick={() => removeOnlineTime(time)}>{time} ×</button>)}
                 {onlineTimes.length === 0 ? <div className="notice">Пока не выбрано ни одного онлайн-окна.</div> : null}
               </div>
 

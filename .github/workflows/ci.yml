@@ -1,0 +1,48 @@
+name: Online Pen checks
+on:
+  push:
+    branches: [main, 'fix/**']
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: online-pen-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: onlinepen_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onlinepen_test?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onlinepen_test?schema=public
+      ADMIN_SECRET: ci-only-admin-session-secret-1234567890abcdef
+      CLIENT_SESSION_SECRET: ci-only-client-session-secret-1234567890abcdef
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run db:deploy
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:buttons
+      - run: npm run test
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm run build

@@ -1,14 +1,16 @@
+import { getMasterProfile } from "@/lib/masterProfile";
 type SearchParams = {
   phone?: string;
   already?: string;
 };
 
-const WHATSAPP_PHONE = "+7 950 296-60-69";
-const WHATSAPP_LINK = "https://wa.me/79502966069";
 
-export default function PendingPage({ searchParams = {} }: { searchParams?: SearchParams }) {
+export default async function PendingPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<SearchParams> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  const master = await getMasterProfile();
   const already = searchParams.already === "1";
-  const phone = searchParams.phone;
+  const phone = "";
 
   return (
     <main className="page pending-page">
@@ -21,16 +23,16 @@ export default function PendingPage({ searchParams = {} }: { searchParams?: Sear
             : "После подтверждения мастера войдите в кабинет и выберите время."}
         </p>
 
-        <div className="notice pending-notice">
+        {master.whatsapp ? <div className="notice pending-notice">
           <b>Если нужно срочно — напишите в WhatsApp:</b>
-          <a href={WHATSAPP_LINK}>{WHATSAPP_PHONE}</a>
+          <a href={master.whatsapp}>{master.phone}</a>
           {phone ? <small>Телефон в заявке: {phone}</small> : null}
-        </div>
+        </div> : null}
 
         <div className="actions" style={{ marginTop: 16 }}>
           <a className="button secondary" href="/">На главную</a>
           <a className="button secondary" href="/price">Прайс</a>
-          <a className="button" href={WHATSAPP_LINK}>Написать в WhatsApp</a>
+          <a className="button" href="/login">Проверить статус заявки</a>
         </div>
       </section>
     </main>

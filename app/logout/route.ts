@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  clearClientCookie();
+export async function GET() {
+  await clearClientCookie();
   redirect("/login?logout=1");
 }

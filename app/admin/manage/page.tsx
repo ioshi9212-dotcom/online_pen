@@ -1,10 +1,11 @@
+import SubmitButton from "@/app/SubmitButton";
+import ManualBookingForm from "./ManualBookingForm";
+import { validDateKey, validTime } from "@/lib/validation";
 import { isAdmin } from "@/lib/admin";
-import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
-import { rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS } from "@/lib/statusLabels";
+import { CLIENT_STATUS_OPTIONS } from "@/lib/statusLabels";
 import { redirect } from "next/navigation";
-import { createManualBooking, createManualClient } from "./actions";
+import { createManualClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,6 @@ function one(searchParams: SearchParams, key: string) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function DurationSelect({ defaultValue }: { defaultValue: number }) {
-  return (
-    <select name="durationMinutes" defaultValue={String(defaultValue)}>
-      {DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-    </select>
-  );
-}
-
 function Notice({ searchParams }: { searchParams: SearchParams }) {
   const client = one(searchParams, "client");
   const booking = one(searchParams, "booking");
@@ -30,7 +23,7 @@ function Notice({ searchParams }: { searchParams: SearchParams }) {
 
   if (bookingError) return <div className="notice danger-notice floating-toast">Запись не сохранена: {bookingError}.</div>;
   if (client === "created") return <div className="notice ok-notice floating-toast">Клиент добавлен и выбран для записи.</div>;
-  if (client === "merged") return <div className="notice ok-notice floating-toast">Клиент найден по телефону и выбран для записи.</div>;
+  if (client === "existing") return <div className="notice ok-notice floating-toast">Клиент найден по телефону и выбран для записи.</div>;
   if (booking === "created") return <div className="notice ok-notice floating-toast">Запись создана.</div>;
 
   return null;
@@ -61,7 +54,7 @@ function AddClientPanel({ open }: { open: boolean }) {
             <label>Заметка<input name="notes" placeholder="например: френч, аллергия, любит нюд" /></label>
           </div>
           <div className="actions">
-            <button type="submit">Создать и выбрать</button>
+            <SubmitButton>Создать и выбрать</SubmitButton>
             <a className="button secondary" href="/admin/my-clients#add-client">Полная база клиентов</a>
           </div>
         </form>
@@ -70,8 +63,10 @@ function AddClientPanel({ open }: { open: boolean }) {
   );
 }
 
-export default async function ManualAdminPage({ searchParams = {} }: { searchParams?: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
+export default async function ManualAdminPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<SearchParams> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const selectedClientId = one(searchParams, "clientId") || "";
   const addOpen = one(searchParams, "add") === "1";
@@ -81,9 +76,7 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] })
   ]);
 
-  const defaultServiceDuration = services[0]?.durationMinutes || 150;
   const selectedClientExists = bookableClients.some((client) => client.id === selectedClientId);
-  const bookingClientDefault = selectedClientExists ? selectedClientId : bookableClients[0]?.id;
 
   return (
     <div className="grid">
@@ -130,39 +123,12 @@ export default async function ManualAdminPage({ searchParams = {} }: { searchPar
             <a className="button" href="/admin/services">Открыть прайс</a>
           </div>
         ) : (
-          <form action={createManualBooking} className="grid manual-booking-form">
-            <div className="grid-3">
-              <label>Клиент
-                <select name="clientId" defaultValue={bookingClientDefault}>
-                  {bookableClients.map((client) => <option key={client.id} value={client.id}>{client.lastName} {client.firstName} — {client.phone}</option>)}
-                </select>
-              </label>
-              <label>Услуга
-                <select name="serviceId">
-                  {services.map((service) => <option key={service.id} value={service.id}>{service.title} — {durationLabel(service.durationMinutes)} — {rub(service.price)}</option>)}
-                </select>
-              </label>
-              <label>Дата и время<input name="startAt" type="datetime-local" required /></label>
-            </div>
-
-            <div className="grid-3">
-              <label>Длительность<DurationSelect defaultValue={defaultServiceDuration} /></label>
-              <label>Статус
-                <select name="status" defaultValue="CONFIRMED">
-                  {BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-                </select>
-              </label>
-              <label>Итоговая цена<input name="finalPrice" type="number" min="0" placeholder="если отличается" /></label>
-            </div>
-
-            <label>Комментарий клиента<input name="clientComment" placeholder="что просила клиентка" /></label>
-            <label>Заметка мастера<textarea name="adminComment" placeholder="дизайн, нюансы, предоплата, что не забыть" /></label>
-
-            <div className="actions">
-              <button type="submit">Создать запись</button>
-              <a className="button secondary" href="/admin/schedule">Открыть расписание</a>
-            </div>
-          </form>
+          <ManualBookingForm
+            clients={bookableClients.map((client) => ({ id: client.id, name: `${client.lastName} ${client.firstName}`, phone: client.phone }))}
+            services={services.map((service) => ({ id: service.id, title: service.title, durationMinutes: service.durationMinutes, price: service.price }))}
+            initialClientId={selectedClientExists ? selectedClientId : ""}
+            initialStart={validDateKey(one(searchParams, "date") || "") ? `${one(searchParams, "date")}T${validTime(one(searchParams, "time") || "") ? one(searchParams, "time") : "09:00"}` : ""}
+          />
         )}
       </section>
     </div>

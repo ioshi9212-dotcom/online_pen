@@ -1,0 +1,20 @@
+.audit-admin-header { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; margin-bottom:18px; border:1px solid #ead8df; border-radius:14px; background:#fffafc; }
+.audit-admin-brand { font-weight:650; color:#513647; text-decoration:none; }
+.audit-admin-navigation { display:flex; align-items:center; flex-wrap:wrap; gap:6px 14px; flex:1; }
+.audit-admin-navigation a { color:#6e5061; text-decoration:none; padding:7px 0; }
+.audit-admin-navigation a[aria-current=page] { color:#8d365d; font-weight:700; border-bottom:2px solid #b85580; }
+.audit-primary-action { white-space:nowrap; margin-left:auto; }
+.master-dashboard { display:block; }
+.master-dashboard > .master-main { min-width:0; width:100%; }
+.audit-day-agenda { display:grid; gap:8px; margin-bottom:20px; }
+.audit-agenda-item { display:flex; align-items:center; flex-wrap:wrap; gap:8px 18px; padding:12px; border:1px solid #e4d8e0; border-radius:10px; }
+.audit-agenda-item > span { flex:1; }
+.audit-time-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.audit-time-row .schedule-time-button { flex:1; }
+.audit-time-row a { padding:10px; color:#7e3858; }
+.audit-filters { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin:18px 0; }
+.audit-filters label { flex:1 1 150px; }
+.audit-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; }
+.audit-table-scroll { overflow-x:auto; }
+.audit-setup ol { padding-left:22px; display:grid; gap:10px; }
+@media (max-width:760px) { .audit-admin-header { padding:10px 12px; gap:8px; } .audit-admin-navigation { display:none; } .audit-admin-brand { font-size:14px; } }

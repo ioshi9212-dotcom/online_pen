@@ -1,6 +1,9 @@
+import SubmitButton from "@/app/SubmitButton";
 import { registerClient } from "@/app/actions";
 
-export default function RegisterPage({ searchParams }: { searchParams: { phone?: string; rejected?: string } }) {
+export default async function RegisterPage({ searchParams: searchParamsPromise }: { searchParams: Promise<{ phone?: string; rejected?: string; error?: string }> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
   const rejected = searchParams.rejected === "1";
 
   return (
@@ -24,6 +27,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
             Уже оставляли заявку? Нажмите «Войти», чтобы проверить статус.
           </div>
         )}
+        {searchParams.error ? <div className="notice danger-notice">Проверьте имя, фамилию, телефон и дату рождения.</div> : null}
         <form action={registerClient} className="grid">
           <div className="grid-2">
             <label>Имя<input name="firstName" autoComplete="given-name" required /></label>
@@ -35,7 +39,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { phone?:
           </div>
           <label>Комментарий — необязательно<textarea name="comment" /></label>
           <div className="actions">
-            <button type="submit">Отправить заявку</button>
+            <SubmitButton pendingText="Отправляю…">Отправить заявку</SubmitButton>
             <a className="button secondary" href="/login">Войти</a>
           </div>
         </form>
