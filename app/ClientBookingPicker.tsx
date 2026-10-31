@@ -119,7 +119,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
 
   // Keep step 2 in view after selecting an available time, especially on phones.
   useEffect(() => {
-    if (!selectedWindow) return;
+    if (!selectedTime) return;
     document.getElementById("booking-builder")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedTime]);
 
