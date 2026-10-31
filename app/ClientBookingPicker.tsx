@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createBooking } from "@/app/actions";
 import { businessDateKey, businessMonthKey, formatInBusinessTime } from "@/lib/timezone";
 
@@ -116,6 +116,13 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     .map(([date, items]) => ({ date, items: items.filter((item) => !item.busy) }))
     .filter((group) => group.items.length > 0)
     .sort((a, b) => a.date.localeCompare(b.date)), [windowsByDate]);
+
+  // Keep step 2 in view after selecting an available time, especially on phones.
+  useEffect(() => {
+    if (!selectedWindow) return;
+    document.getElementById("booking-builder")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedTime]);
+
 
   function chooseDate(key: string) {
     setSelectedDateKey(key);
