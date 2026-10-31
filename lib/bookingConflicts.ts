@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { ScheduleTx } from "@/lib/scheduleTransaction";
 
 export const ACTIVE_BOOKING_STATUSES = ["PENDING", "CONFIRMED"] as const;
 
@@ -6,7 +7,7 @@ export async function getBookingConflictReasons(params: {
   startAt: Date;
   endAt: Date;
   ignoreBookingId?: string;
-}) {
+}, db: Pick<ScheduleTx, "booking" | "blockedSlot"> = prisma) {
   const whereBooking: any = {
     status: { in: ACTIVE_BOOKING_STATUSES as any },
     startAt: { lt: params.endAt },
@@ -16,12 +17,12 @@ export async function getBookingConflictReasons(params: {
   if (params.ignoreBookingId) whereBooking.id = { not: params.ignoreBookingId };
 
   const [booking, block] = await Promise.all([
-    prisma.booking.findFirst({
+    db.booking.findFirst({
       where: whereBooking,
       include: { client: true, service: true },
       orderBy: { startAt: "asc" }
     }),
-    prisma.blockedSlot.findFirst({
+    db.blockedSlot.findFirst({
       where: {
         startAt: { lt: params.endAt },
         endAt: { gt: params.startAt }

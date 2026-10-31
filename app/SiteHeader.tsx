@@ -1,18 +1,17 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import ClientSaveToast from "./ClientSaveToast";
 import UiIcon from "./UiIcon";
 
 export default function SiteHeader() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   if (pathname.startsWith("/admin")) return null;
 
-  const clientToken = searchParams.get("client") || "";
-  const profileHref = clientToken ? `/profile?client=${clientToken}` : "/login";
-  const homeHref = clientToken ? `/my?client=${clientToken}` : "/";
+  const inCabinet = pathname === "/my" || pathname === "/profile";
+  const profileHref = "/profile";
+  const homeHref = inCabinet ? "/my" : "/";
 
   return (
     <>
@@ -29,7 +28,7 @@ export default function SiteHeader() {
             <span>Профиль</span>
             <span className="beauty-menu-arrow" aria-hidden="true">›</span>
           </a>
-          {clientToken ? (
+          {inCabinet ? (
             <a className="beauty-menu-row" href="/logout">
               <span className="beauty-menu-icon" aria-hidden="true"><UiIcon name="logout" /></span>
               <span>Выйти</span>

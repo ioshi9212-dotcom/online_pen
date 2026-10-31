@@ -1,9 +1,10 @@
+import ClientEditor from "./ClientEditor";
 import { isAdmin } from "@/lib/admin";
 import { formatDateTime, rub } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { BOOKING_STATUS_OPTIONS, CLIENT_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import { redirect } from "next/navigation";
-import { archiveClient, saveMyClient } from "../actions";
+import { archiveClient } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,11 @@ function Notice({ searchParams }: { searchParams: SearchParams }) {
   return null;
 }
 
-export default async function AdminClientProfilePage({ params, searchParams = {} }: { params: { id: string }; searchParams?: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
+export default async function AdminClientProfilePage({ params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>; searchParams?: Promise<SearchParams> }) {
+  const params = await paramsPromise;
+  const searchParams = (await searchParamsPromise) || {};
+
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const client = await prisma.client.findUnique({
     where: { id: params.id },
@@ -60,24 +64,7 @@ export default async function AdminClientProfilePage({ params, searchParams = {}
 
       <section className="card">
         <h2>Данные клиента</h2>
-        <form action={saveMyClient} className="grid">
-          <input type="hidden" name="id" value={client.id} />
-          <input type="hidden" name="redirectTo" value="profile" />
-          <div className="grid-2">
-            <label>Фамилия<input name="lastName" defaultValue={client.lastName} required /></label>
-            <label>Имя<input name="firstName" defaultValue={client.firstName} required /></label>
-          </div>
-          <div className="grid-2">
-            <label>Телефон<input name="phone" defaultValue={client.phone} required /></label>
-            <label>Дата рождения<input name="birthDate" type="date" defaultValue={toDateInput(client.birthDate)} required /></label>
-          </div>
-          <label>Статус<select name="status" defaultValue={client.status}>{CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
-          <label>Заметки<textarea name="notes" defaultValue={client.notes} /></label>
-          <div className="actions">
-            <button className="ok">Сохранить профиль</button>
-            <a className="button secondary" href={`/admin/manage?clientId=${client.id}#manual-booking`}>Записать клиентку</a>
-          </div>
-        </form>
+        <ClientEditor client={{ id: client.id, firstName: client.firstName, lastName: client.lastName, phone: client.phone, birthDate: toDateInput(client.birthDate), status: client.status, notes: client.notes }} />
       </section>
 
       <section className="card">

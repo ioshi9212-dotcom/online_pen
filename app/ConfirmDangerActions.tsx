@@ -2,8 +2,6 @@
 
 import { useEffect } from "react";
 
-const dangerous = ["удал", "архив", "отмен", "отклон", "заблок", "убрать", "черн", "чёрн"];
-
 function normalize(value: string) {
   return value.toLowerCase().replace(/ё/g, "е");
 }
@@ -26,8 +24,7 @@ export default function ConfirmDangerActions() {
       if (explicit) return explicit;
       const text = normalize(el?.textContent || "");
       const byClass = Boolean(el?.classList.contains("danger") || form?.classList.contains("danger"));
-      const byText = dangerous.some((word) => text.includes(word));
-      return byClass || byText ? message(text) : "";
+      return byClass ? message(text) : "";
     }
 
     function onSubmit(event: Event) {

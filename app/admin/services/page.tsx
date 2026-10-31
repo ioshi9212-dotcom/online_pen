@@ -1,3 +1,4 @@
+import SubmitButton from "@/app/SubmitButton";
 import { isAdmin } from "@/lib/admin";
 import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
 import { rub } from "@/lib/format";
@@ -177,8 +178,10 @@ function ServiceRow({ service }: { service: ServiceLite }) {
   );
 }
 
-export default async function ServicesPage({ searchParams = {} }: { searchParams?: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
+export default async function ServicesPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<SearchParams> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const services = await prisma.service.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   const priceVisible = services.filter((service) => service.isActive);

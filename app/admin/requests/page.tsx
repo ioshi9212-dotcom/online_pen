@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function RequestsPage() {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
   const clients = await prisma.client.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" } });
 
   return (

@@ -1,3 +1,4 @@
+import { getMasterProfile } from "@/lib/masterProfile";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { getClientCookie } from "@/lib/clientSession";
@@ -6,12 +7,13 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const savedClientToken = getClientCookie();
+  const savedClientToken = await getClientCookie();
   if (savedClientToken) {
     const savedClient = await prisma.client.findUnique({ where: { publicToken: savedClientToken }, select: { status: true } });
-    if (savedClient?.status === "APPROVED") redirect(`/my?client=${savedClientToken}`);
+    if (savedClient?.status === "APPROVED") redirect("/my");
   }
 
+  const master = await getMasterProfile();
   const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   const mainServices = services.filter((service) => service.showInBooking);
   const addOns = services.filter((service) => !service.showInBooking);
@@ -20,7 +22,10 @@ export default async function HomePage() {
     <main className="page public-page">
       <section className="hero">
         <p className="muted">Онлайн-запись</p>
-        <h1>Запись к мастеру</h1>
+        <h1>Запись к мастеру {master.name !== "Мастер" ? master.name : ""}</h1>
+        {master.photo ? <img src={master.photo} alt="Фото мастера" width={96} height={96} style={{ borderRadius: "50%", objectFit: "cover" }} /> : null}
+        {master.location ? <p>{master.location}</p> : null}
+        {master.whatsapp ? <a href={master.whatsapp}>Связаться с мастером</a> : null}
         <p className="lead">Выбирайте удобное время онлайн. Для первой записи отправьте заявку и дождитесь подтверждения мастера.</p>
         <div className="actions">
           <a className="button" href="/login">Войти</a>
@@ -40,7 +45,7 @@ export default async function HomePage() {
             <p>Мастер откроет доступ к свободным окнам.</p>
           </div>
           <div>
-            <b>3. Выберите время и услугу</b>
+            <b>3. Выберите услугу и время</b>
             <p>Уже оставляли заявку? Нажмите «Войти», чтобы записаться или проверить статус.</p>
           </div>
         </div>

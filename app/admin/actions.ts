@@ -1,7 +1,8 @@
 "use server";
 
 import { addBookingMark, canRememberBooking, MASTER_REMEMBER_MARK } from "@/lib/bookingRemember";
-import { getBookingConflictReasons, isActiveBookingStatus } from "@/lib/bookingConflicts";
+import { changeBookingStatus, BookingError } from "@/lib/bookings";
+import { scheduleTransaction } from "@/lib/scheduleTransaction";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
@@ -10,8 +11,8 @@ import { redirect } from "next/navigation";
 
 const BOOKING_STATUSES = new Set(["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"]);
 
-function guard() {
-  if (!isAdmin()) redirect("/admin/login");
+async function guard() {
+  if (!(await isAdmin())) redirect("/admin/login");
 }
 
 function getId(formData: FormData) {
@@ -23,70 +24,45 @@ function redirectTarget(formData: FormData, fallback: string) {
   return value.startsWith("/admin") ? value : fallback;
 }
 
-async function restoreOnlineWindowAfterAdminCancel(booking: { id: string; startAt: Date; endAt: Date }) {
-  if (booking.startAt <= new Date()) return;
-
-  const conflictReasons = await getBookingConflictReasons({ startAt: booking.startAt, endAt: booking.endAt, ignoreBookingId: booking.id });
-  if (conflictReasons.length) return;
-
-  await prisma.onlineWindow.upsert({
-    where: { startAt: booking.startAt },
-    create: { startAt: booking.startAt, note: "Возвращено после отмены записи мастером" },
-    update: { note: "Возвращено после отмены записи мастером" }
-  });
-}
-
 export async function approveClient(formData: FormData) {
-  guard();
+  await guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
   redirect(redirectTarget(formData, "/admin"));
 }
 
 export async function rejectClient(formData: FormData) {
-  guard();
+  await guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "REJECTED", approvedAt: null, bannedAt: null } });
   redirect(redirectTarget(formData, "/admin"));
 }
 
 export async function banClient(formData: FormData) {
-  guard();
+  await guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "BANNED", bannedAt: new Date() } });
   redirect("/admin/my-clients");
 }
 
 export async function unbanClient(formData: FormData) {
-  guard();
+  await guard();
   await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
   redirect("/admin/blacklist");
 }
 
 export async function setBookingStatus(formData: FormData) {
-  guard();
+  await guard();
   const id = getId(formData);
   const status = String(formData.get("status"));
   const redirectTo = redirectTarget(formData, "/admin/bookings");
   if (!BOOKING_STATUSES.has(status)) redirect(redirectTo);
 
-  const booking = await prisma.booking.findUnique({ where: { id }, select: { id: true, startAt: true, endAt: true } });
-  if (!booking) redirect(redirectTo);
-
-  if (isActiveBookingStatus(status)) {
-    if (booking.startAt <= new Date()) redirect(redirectTo);
-    const conflictReasons = await getBookingConflictReasons({ startAt: booking.startAt, endAt: booking.endAt, ignoreBookingId: id });
-    if (conflictReasons.length) redirect(redirectTo);
-  }
-
-  await prisma.booking.update({
-    where: { id },
-    data: {
-      status: status as any,
-      confirmedAt: status === "CONFIRMED" ? new Date() : undefined,
-      cancelledAt: status === "CANCELLED_BY_ADMIN" || status === "REJECTED" ? new Date() : undefined
+  try { await changeBookingStatus(id, status); }
+  catch (error) {
+    if (error instanceof BookingError) {
+      const url = new URL(redirectTo, "https://local.invalid");
+      url.searchParams.set("error", error.message);
+      redirect(url.pathname + url.search + url.hash);
     }
-  });
-
-  if (status === "CANCELLED_BY_ADMIN") {
-    await restoreOnlineWindowAfterAdminCancel(booking);
+    throw error;
   }
 
   revalidatePath("/admin");
@@ -98,7 +74,7 @@ export async function setBookingStatus(formData: FormData) {
 }
 
 export async function rememberMasterBooking(formData: FormData) {
-  guard();
+  await guard();
   const id = getId(formData);
   const redirectTo = redirectTarget(formData, "/admin");
   const booking = await prisma.booking.findUnique({ where: { id }, select: { startAt: true, status: true, adminComment: true } });
@@ -115,7 +91,7 @@ export async function rememberMasterBooking(formData: FormData) {
 }
 
 export async function acknowledgeClientCancellation(formData: FormData) {
-  guard();
+  await guard();
   const id = getId(formData);
   const redirectTo = redirectTarget(formData, "/admin");
   const booking = await prisma.booking.findUnique({ where: { id }, select: { status: true, adminComment: true } });
@@ -131,7 +107,7 @@ export async function acknowledgeClientCancellation(formData: FormData) {
 }
 
 export async function saveClientNote(formData: FormData) {
-  guard();
+  await guard();
   const id = getId(formData);
   const notes = String(formData.get("notes") || "");
   await prisma.client.update({ where: { id }, data: { notes } });
@@ -139,16 +115,16 @@ export async function saveClientNote(formData: FormData) {
 }
 
 export async function closeWaitlistEntry(formData: FormData) {
-  guard();
+  await guard();
   await prisma.waitlistEntry.update({
     where: { id: getId(formData) },
     data: { status: "CLOSED", closedAt: new Date() }
   });
-  redirect("/admin");
+  redirect(redirectTarget(formData, "/admin/waitlist"));
 }
 
 export async function createService(formData: FormData) {
-  guard();
+  await guard();
   await prisma.service.create({
     data: {
       title: String(formData.get("title") || ""),
@@ -163,7 +139,7 @@ export async function createService(formData: FormData) {
 }
 
 export async function toggleService(formData: FormData) {
-  guard();
+  await guard();
   const id = getId(formData);
   const active = String(formData.get("active")) === "true";
   await prisma.service.update({ where: { id }, data: { isActive: active } });
@@ -171,7 +147,7 @@ export async function toggleService(formData: FormData) {
 }
 
 export async function saveScheduleRule(formData: FormData) {
-  guard();
+  await guard();
   const weekday = Number(formData.get("weekday"));
   await prisma.scheduleRule.upsert({
     where: { weekday },
@@ -191,16 +167,22 @@ export async function saveScheduleRule(formData: FormData) {
 }
 
 export async function addBlockedSlot(formData: FormData) {
-  guard();
+  await guard();
   const startAt = new Date(String(formData.get("startAt")));
   const endAt = new Date(String(formData.get("endAt")));
   const reason = String(formData.get("reason") || "");
-  await prisma.blockedSlot.create({ data: { startAt, endAt, reason } });
+  await scheduleTransaction(async (tx) => {
+    if (!Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime()) || endAt <= startAt) throw new BookingError("Проверьте время перерыва");
+    const conflict = await tx.booking.findFirst({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { lt: endAt }, endAt: { gt: startAt } } });
+    if (conflict) throw new BookingError("В это время уже есть запись");
+    await tx.blockedSlot.create({ data: { startAt, endAt, reason } });
+    await tx.onlineWindow.deleteMany({ where: { startAt: { gte: startAt, lt: endAt } } });
+  });
   redirect("/admin/schedule");
 }
 
 export async function deleteBlockedSlot(formData: FormData) {
-  guard();
-  await prisma.blockedSlot.delete({ where: { id: getId(formData) } });
+  await guard();
+  await scheduleTransaction((tx) => tx.blockedSlot.deleteMany({ where: { id: getId(formData) } }));
   redirect("/admin/schedule");
 }

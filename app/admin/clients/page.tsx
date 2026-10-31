@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
   const clients = await prisma.client.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }] });
 
   return (

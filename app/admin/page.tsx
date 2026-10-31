@@ -199,35 +199,6 @@ function BookingQuickActions({ booking }: { booking: BookingWithClientService })
   );
 }
 
-function Sidebar({ requestCount, waitlistCount }: { requestCount: number; waitlistCount: number }) {
-  const items = [
-    ["Главная", "/admin", "⌂", ""],
-    ["Записи", "/admin/bookings", "□", ""],
-    ["Клиенты", "/admin/my-clients", "◇", ""],
-    ["Расписание", "/admin/schedule", "▣", ""],
-    ["Настройки записи", "/admin/schedule?view=mode", "⚙", ""],
-    ["Прайс", "/admin/services", "₽", ""],
-    ["Заявки", "/admin/requests", "!", String(requestCount || "")],
-    ["Ждуны", "/admin#waitlist", "◷", String(waitlistCount || "")],
-    ["Профиль", "/admin/profile", "◎", ""]
-  ];
-
-  return (
-    <aside className="master-sidebar">
-      <a className="master-brand" href="/admin"><span className="master-brand-icon">O</span><span><b>Онлайн-запись</b><small>кабинет мастера</small></span></a>
-      <nav className="master-nav" aria-label="Меню мастера">
-        {items.map(([label, href, icon, badge]) => (
-          <a key={label} href={href} className={label === "Главная" ? "active" : ""}>
-            <span>{icon}</span><b>{label}</b>{badge ? <em>{badge}</em> : null}
-          </a>
-        ))}
-      </nav>
-      <div className="master-profile-mini"><span>М</span><div><b>Мастер</b><small>администратор</small></div></div>
-      <a className="master-logout" href="/admin/logout">Выйти</a>
-    </aside>
-  );
-}
-
 function BookingList({ title, date, bookings }: { title: string; date: Date; bookings: BookingWithClientService[] }) {
   return (
     <article className="admin-home-panel master-day-card">
@@ -307,7 +278,7 @@ function OpenWindowsStory({ groups }: { groups: OpenWindowGroup[] }) {
 }
 
 export default async function AdminPage() {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const now = new Date();
   const todayKey = todayBusinessDateKey();
@@ -323,17 +294,27 @@ export default async function AdminPage() {
     prisma.booking.findMany({ where: { status: "PENDING", startAt: { gt: now } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 4 }),
     prisma.client.count({ where: { status: "APPROVED" } }),
     prisma.waitlistEntry.findMany({ where: { status: "ACTIVE" }, include: { client: true }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.booking.findMany({ where: { startAt: { gt: now, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
-    prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 12 }),
+    prisma.booking.findMany({ where: { startAt: { gte: todayRange.start, lt: todayRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" } }),
+    prisma.booking.findMany({ where: { startAt: { gte: tomorrowRange.start, lt: tomorrowRange.end }, status: { in: ["PENDING", "CONFIRMED", "CANCELLED_BY_CLIENT"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" } }),
     prisma.booking.findMany({ where: { startAt: { gt: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, include: { client: true, service: true }, orderBy: { startAt: "asc" }, take: 80 }),
     prisma.onlineWindow.findMany({ where: { startAt: { gte: now, lt: horizon } }, orderBy: { startAt: "asc" }, take: 300 }),
     prisma.booking.findMany({ where: { startAt: { gte: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
   ]);
 
+  const [pendingClientCount, pendingBookingCount, waitlistCount, upcomingCount, serviceCount, masterContact, openWindowCount] = await Promise.all([
+    prisma.client.count({ where: { status: "PENDING" } }),
+    prisma.booking.count({ where: { status: "PENDING", endAt: { gt: now } } }),
+    prisma.waitlistEntry.count({ where: { status: "ACTIVE" } }),
+    prisma.booking.count({ where: { status: { in: ["PENDING", "CONFIRMED"] }, endAt: { gt: now } } }),
+    prisma.service.count({ where: { isActive: true, showInBooking: true } }),
+    prisma.setting.findUnique({ where: { key: "master_phone" } }),
+    prisma.onlineWindow.count({ where: { startAt: { gt: now } } })
+  ]);
+
   const todayBookings = rawTodayBookings.filter(shouldShowDayBooking);
   const tomorrowBookings = rawTomorrowBookings.filter(shouldShowDayBooking);
   const upcomingBookings = upcomingBookingsRaw;
-  const requestCount = pendingClients.length + pendingBookings.length;
+  const requestCount = pendingClientCount + pendingBookingCount;
   const busySet = new Set(busyBookings.map((booking) => booking.startAt.toISOString()));
   const openWindowGroups = Object.values(
     onlineWindows.filter((window) => !busySet.has(window.startAt.toISOString())).reduce<Record<string, OpenWindowGroup>>((acc, window) => {
@@ -346,7 +327,6 @@ export default async function AdminPage() {
 
   return (
     <main className="master-dashboard">
-      <Sidebar requestCount={requestCount} waitlistCount={waitlist.length} />
       <section className="master-main admin-workdesk master-mobile-workdesk">
         <style dangerouslySetInnerHTML={{ __html: `
           .master-open-windows-panel { padding: 16px 18px !important; overflow: visible; }
@@ -385,14 +365,16 @@ export default async function AdminPage() {
         <header className="master-mobile-topbar"><div><b>Главная</b><span>{fmtTopDate(today)}</span></div></header>
         <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Расписание, ближайшие записи и заявки клиентов.</p></div></header>
 
-        <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{upcomingBookings.length}</b><span>впереди</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlist.length}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>
+        {(!serviceCount || !activeClients || !masterContact?.value || !openWindowCount) ? <section className="card audit-setup"><h2>Подготовить онлайн-запись</h2><ol>{!serviceCount ? <li><a href="/admin/services?add=1">Добавьте услуги, длительность и цены</a></li> : null}{!masterContact?.value ? <li><a href="/admin/profile">Заполните профиль и контакт мастера</a></li> : null}{!activeClients ? <li><a href="/admin/manage?add=1">Добавьте первого клиента или подтвердите регистрацию</a></li> : null}{!openWindowCount ? <li><a href="/admin/schedule">Отметьте рабочие дни и откройте время</a></li> : null}</ol></section> : null}
+        <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{upcomingCount}</b><span>впереди</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlistCount}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>
         <section className="master-mobile-day-stack"><BookingList title="Сегодня" date={today} bookings={todayBookings} /><BookingList title="Завтра" date={tomorrow} bookings={tomorrowBookings} /></section>
         <UpcomingBookings bookings={upcomingBookings} />
+        <div className="actions"><a className="button secondary" href="/admin/bookings">Все записи</a><a className="button secondary" href="/admin/requests">Все регистрации</a><a className="button secondary" href="/admin/bookings?status=PENDING">Все заявки на запись</a><a className="button secondary" href="/admin/waitlist">Весь лист ожидания ({waitlistCount})</a></div>
 
         <section className="master-mobile-request-grid">
           {pendingBookings.length > 0 ? (
             <details className="admin-home-panel master-request-card">
-              <summary><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">новых — {pendingBookings.length}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
+              <summary><div><h3 className="master-request-title">Заявки на запись</h3><p className="master-request-subtitle">новых — {pendingBookingCount}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
               <div className="admin-row-list">{pendingBookings.map((booking) => <div className="admin-request-row" key={booking.id}><div className="admin-request-main"><b>{fmtShortDate(booking.startAt)}, {fmtTime(booking.startAt)}</b><small>{booking.client.lastName} {booking.client.firstName} · {booking.service.title} · {timeUntilBookingLabel(booking.startAt, now)}</small></div><div className="admin-request-actions"><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="CONFIRMED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Подтвердить</button></form><form action={setBookingStatus}><input type="hidden" name="id" value={booking.id} /><input type="hidden" name="status" value="REJECTED" /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form><a className="button secondary" href={`/admin/bookings/${booking.id}/edit`}>Изменить</a></div></div>)}</div>
             </details>
           ) : (
@@ -401,7 +383,7 @@ export default async function AdminPage() {
 
           {pendingClients.length > 0 ? (
             <details className="admin-home-panel master-request-card">
-              <summary><div><h3 className="master-request-title">Регистрация</h3><p className="master-request-subtitle">новых — {pendingClients.length}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
+              <summary><div><h3 className="master-request-title">Регистрация</h3><p className="master-request-subtitle">новых — {pendingClientCount}</p></div><span className="master-request-arrow" aria-hidden="true" /></summary>
               <div className="admin-row-list">{pendingClients.map((client) => <div className="admin-request-row" key={client.id}><div className="admin-request-main"><b>{client.lastName} {client.firstName}</b><small>{client.phone}</small></div><div className="admin-request-actions"><form action={approveClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit">Принять</button></form><form action={rejectClient}><input type="hidden" name="id" value={client.id} /><input type="hidden" name="redirectTo" value="/admin" /><button type="submit" className="danger">Отклонить</button></form></div></div>)}</div>
             </details>
           ) : (
@@ -409,7 +391,7 @@ export default async function AdminPage() {
           )}
         </section>
 
-        <section className="admin-home-panel master-waitlist-card" id="waitlist"><div className="admin-panel-head"><div><h2>Ждуны</h2><p>{waitlist.length ? "Клиенты ждут окно" : "Список ожидания пуст"}</p></div><span className="badge">{waitlist.length}</span></div><div className="admin-row-list">{waitlist.map((entry) => { const dates = parseWaitDates(entry.desiredDates); return <div className="admin-wait-row" key={entry.id}><b>{entry.client.lastName} {entry.client.firstName}</b><small>{waitModeText(entry.mode)}</small>{dates.length ? <div className="admin-wait-dates">{dates.map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}{entry.note ? <small>{entry.note}</small> : null}<div className="master-wait-actions"><a className="button secondary" href={`/admin/manage?clientId=${entry.clientId}`}>Записать</a><form action={closeWaitlistEntry}><input type="hidden" name="id" value={entry.id} /><button type="submit" className="secondary">Убрать</button></form></div></div>; })}{waitlist.length === 0 ? <div className="admin-empty">Лист ожидания пуст.</div> : null}</div></section>
+        <section className="admin-home-panel master-waitlist-card" id="waitlist"><div className="admin-panel-head"><div><h2>Ждуны</h2><p>{waitlist.length ? "Клиенты ждут окно" : "Список ожидания пуст"}</p></div><span className="badge">{waitlistCount}</span></div><div className="admin-row-list">{waitlist.map((entry) => { const dates = parseWaitDates(entry.desiredDates); return <div className="admin-wait-row" key={entry.id}><b>{entry.client.lastName} {entry.client.firstName}</b><small>{waitModeText(entry.mode)}</small>{dates.length ? <div className="admin-wait-dates">{dates.map((date) => <span key={date}>{new Date(`${date}T00:00:00`).toLocaleDateString("ru-RU")}</span>)}</div> : null}{entry.note ? <small>{entry.note}</small> : null}<div className="master-wait-actions"><a className="button secondary" href={`/admin/manage?clientId=${entry.clientId}`}>Записать</a><form action={closeWaitlistEntry}><input type="hidden" name="id" value={entry.id} /><button type="submit" className="secondary">Убрать</button></form></div></div>; })}{waitlist.length === 0 ? <div className="admin-empty">Лист ожидания пуст.</div> : null}</div></section>
         <OpenWindowsStory groups={openWindowGroups} />
       </section>
     </main>

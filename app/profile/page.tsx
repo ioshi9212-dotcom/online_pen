@@ -17,10 +17,12 @@ function errorText(error?: string) {
   return "";
 }
 
-export default async function ClientProfilePage({ searchParams }: { searchParams: { client?: string; error?: string } }) {
-  const token = searchParams.client || getClientCookie();
+export default async function ClientProfilePage({ searchParams: searchParamsPromise }: { searchParams: Promise<{ client?: string; error?: string }> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  const token = await getClientCookie();
   if (!token) redirect("/login");
-  if (!searchParams.client) redirect(`/profile?client=${token}`);
+  if (searchParams.client) redirect("/profile");
 
   const client = await prisma.client.findUnique({ where: { publicToken: token } });
   if (!client) redirect("/login");
@@ -34,7 +36,7 @@ export default async function ClientProfilePage({ searchParams }: { searchParams
         <div className="actions" style={{ justifyContent: "space-between" }}>
           <div><h1>Профиль</h1><p>{client.firstName}, здесь можно поправить данные и поставить фото.</p></div>
           <div className="actions">
-            <a className="button secondary" href={`/my?client=${token}`}>В кабинет</a>
+            <a className="button secondary" href="/my">В кабинет</a>
             <a className="button secondary" href="/logout">Выйти</a>
           </div>
         </div>
@@ -43,7 +45,6 @@ export default async function ClientProfilePage({ searchParams }: { searchParams
       {error ? <div className="notice danger-status">{error}</div> : null}
 
       <ProfileAvatarForm
-        token={token}
         client={{
           firstName: client.firstName,
           lastName: client.lastName,
