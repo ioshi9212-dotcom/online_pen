@@ -97,7 +97,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const [visibleMonthKey, setVisibleMonthKey] = useState(monthKey(initialDate || firstFreeDate));
   const [selectedDateKey, setSelectedDateKey] = useState(initialDate || firstFreeDate);
   const [mode, setMode] = useState<"calendar" | "list">("calendar");
-  const [selectedServiceId, setSelectedServiceId] = useState(services[0]?.id || "");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
   const [selectedTime, setSelectedTime] = useState(initialTime);
 
   const availableMonthKeys = useMemo(() => Array.from(new Set(windows.map((item) => monthKey(item.startAt)))).sort(), [windows]);
@@ -149,19 +149,19 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     <>
       <section className="booking-view-switch" aria-label="Режим выбора времени">
         <div>
-          <b>Свободное время</b>
-          <p>Выберите день или посмотрите все окна списком.</p>
+          <b>Выберите дату и время</b>
+          <p>Календарь по датам или ближайшие окна списком.</p>
         </div>
         <div className="segmented-switch">
-          <button type="button" className={mode === "calendar" ? "active" : ""} onClick={() => setMode("calendar")}>Календарь</button>
-          <button type="button" className={mode === "list" ? "active" : ""} onClick={() => setMode("list")}>Список</button>
+          <button type="button" aria-pressed={mode === "calendar"} className={mode === "calendar" ? "active" : ""} onClick={() => setMode("calendar")}>Календарь</button>
+          <button type="button" aria-pressed={mode === "list"} className={mode === "list" ? "active" : ""} onClick={() => setMode("list")}>Список</button>
         </div>
       </section>
 
       {mode === "calendar" ? (
       <section className="calendar-layout" id="windows">
         <article className="calendar-card">
-          <h2>Выберите день</h2>
+          <h2>Свободные даты</h2>
           <div className="calendar-month-switcher">
             {showPrev ? (
               <button type="button" className="month-arrow" onClick={() => changeMonth(addMonths(visibleMonthKey, -1))} aria-label="Предыдущий месяц">‹</button>
@@ -186,7 +186,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
               const isWorkDay = activeDateKeys.has(key);
               const active = key === selectedDateKey;
               return isWorkDay ? (
-                <button key={key} type="button" className={active ? "day-btn active" : "day-btn"} onClick={() => chooseDate(key)}>
+                <button key={key} type="button" className={active ? "day-btn active" : "day-btn"} aria-pressed={active} aria-label={`${day} ${fmtMonth(visibleMonth)}${freeCount ? `, свободных окон: ${freeCount}` : ", свободных окон нет"}`} onClick={() => chooseDate(key)}>
                   <span>{day}</span>
                   <span className="day-dots">
                     {freeCount > 0 ? <i className="dot blue-dot" title="Есть свободное окно" /> : null}
@@ -203,10 +203,10 @@ export default function ClientBookingPicker({ token, client, windows, services, 
         <article className="selected-day-card card booking-step-card" id="selected-day">
           <p className="muted">Выбранная дата</p>
           <h2>{fmtDate(`${selectedDateKey}T00:00:00`)}</h2>
-          <p>{selectedFreeCount} свободно · {selectedBusyCount} занято</p>
+          <p>Свободно: {selectedFreeCount} · Занято: {selectedBusyCount}</p>
 
           <div className="booking-step-panel">
-              <div className="flow-step-title"><span>Шаг 1</span><h3>Выберите время</h3><p>Нажмите на свободное окно.</p></div>
+              <div className="flow-step-title"><span>Шаг 1 из 2</span><h3>Выберите время</h3></div>
 
               <div className="time-grid">
                 {selectedWindows.map((window) => {
@@ -214,7 +214,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
                   return window.busy ? (
                     <span key={window.id} className="time-btn busy" aria-disabled="true"><b>{fmtTime(window.startAt)}</b><span>Занято</span></span>
                   ) : (
-                    <button key={window.id} type="button" className={active ? "time-btn free active" : "time-btn free"} onClick={() => chooseWindow(window)}>
+                    <button key={window.id} type="button" className={active ? "time-btn free active" : "time-btn free"} aria-pressed={active} onClick={() => chooseWindow(window)}>
                       <b>{fmtTime(window.startAt)}</b><span>Свободно</span>
                     </button>
                   );
@@ -226,7 +226,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
       </section>
       ) : (
         <section className="free-window-list-card card" id="windows">
-          <div className="flow-step-title"><span>Шаг 1</span><h2>Свободные окна</h2><p>Нажмите на удобное время.</p></div>
+          <div className="flow-step-title"><span>Шаг 1 из 2</span><h2>Свободные окна</h2></div>
           <div className="free-window-list">
             {groupedFreeWindows.map((group) => (
               <div className={selectedDateKey === group.date ? "free-window-row active" : "free-window-row"} key={group.date}>
@@ -234,7 +234,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
                 <span className="inline-times">
                   {group.items.map((window, index) => (
                     <span key={window.id}>
-                      <button type="button" className={selectedTime === window.startAt ? "active" : ""} onClick={() => chooseWindow(window)}>{fmtTime(window.startAt)}</button>{index < group.items.length - 1 ? ", " : ""}
+                      <button type="button" className={selectedTime === window.startAt ? "active" : ""} aria-pressed={selectedTime === window.startAt} onClick={() => chooseWindow(window)}>{fmtTime(window.startAt)}</button>{index < group.items.length - 1 ? ", " : ""}
                     </span>
                   ))}
                 </span>
@@ -249,9 +249,8 @@ export default function ClientBookingPicker({ token, client, windows, services, 
         <section className="card booking-builder booking-final-card" id="booking-builder">
           <div className="section-head">
             <div>
-              <p className="muted">Шаг 2</p>
+              <p className="muted">Шаг 2 из 2</p>
               <h2>Выберите услугу</h2>
-              <p>Выберите одну основную услугу. Если нужны маникюр и педикюр — оформите две записи на два соседних времени.</p>
             </div>
           </div>
 
@@ -277,19 +276,12 @@ export default function ClientBookingPicker({ token, client, windows, services, 
               <div><span>Клиент</span><b>{client.firstName} {client.lastName}</b><small>{client.phone}</small></div>
             </div>
 
-            <p className="owner-warning">Проверьте имя, услугу и время записи.</p>
-
-            <div className="notice final-check-note">
-              <b>После заявки напишите мастеру</b>
-              <p>Сайт в тестовом режиме. Мастер проверит и подтвердит запись.</p>
-            </div>
-
-            <label className="comment-box">Комментарий, если нужно<textarea name="comment" placeholder="Например: хочу френч / ремонт ногтя / дизайн / есть ограничение по времени" /></label>
+            <label className="comment-box">Дополнения и пожелания (необязательно)<textarea name="comment" placeholder="Например, дизайн или ремонт ногтя" /></label>
 
             <div className="final-confirm-card">
               <div>
-                <h3>Всё верно?</h3>
-                <p>Окно закрепится за вами. Запись подтвердит мастер.</p>
+                <h3>Проверьте данные</h3>
+                <p>После отправки окно будет закреплено за вами до решения мастера.</p>
               </div>
               <button type="submit" disabled={!selectedService}>Отправить заявку</button>
             </div>
