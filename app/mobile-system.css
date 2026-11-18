@@ -290,7 +290,7 @@
       min-height: 44px !important;
       padding: 9px 6px !important;
       border: 1px solid var(--ui-line) !important;
-      border-radius: 10px !important;
+      border-radius: 8px !important;
       background: #e5e7ea !important;
       color: var(--ui-text) !important;
       font-size: 13px !important;
@@ -370,7 +370,7 @@
     main.client-page-compact .booking-view-switch > div > b { font-size: 15px !important; }
     main.client-page-compact .booking-view-switch p { font-size: 12px !important; }
     main.client-page-compact .segmented-switch { padding: 0 !important; gap: 8px !important; background: transparent !important; }
-    main.client-page-compact .segmented-switch button { min-height: 44px !important; border: 1px solid #b77a91 !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-radius: 10px !important; }
+    main.client-page-compact .segmented-switch button { min-height: 44px !important; border: 1px solid #b77a91 !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-radius: 8px !important; }
     main.client-page-compact .segmented-switch button.active { border-color: #82425d !important; background: #e7d5dc !important; color: #82425d !important; box-shadow: none !important; }
 
     .calendar-layout, .schedule-day-grid { display: grid !important; grid-template-columns: 1fr !important; gap: 14px !important; }
@@ -384,24 +384,24 @@
     .app-shell :is(.month-arrow, .calendar-arrow-button) { width: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; font-size: 24px !important; }
     .app-shell .calendar-legend { gap: 14px !important; margin: 14px 0 !important; font-size: 12px !important; }
     .app-shell .calendar-head { font-size: 11px !important; color: var(--ui-muted) !important; }
-    main.client-page-compact .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-color: #d4d6dc !important; font-size: 14px !important; border-radius: 9px !important; }
+    main.client-page-compact .calendar-grid .day-btn { min-height: 46px !important; padding: 6px 2px !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-color: #d4d6dc !important; font-size: 14px !important; border-radius: 8px !important; }
     main.client-page-compact .calendar-grid .day-btn.muted { color: #a0a4ac !important; background: #eef0f3 !important; }
     main.client-page-compact .calendar-grid .day-btn.active { background: #e7d5dc !important; border: 2px solid #82425d !important; color: var(--ui-text) !important; }
     main.client-page-compact .calendar-grid .day-btn.active .blue-dot { background: #af5b7d !important; }
     main.client-page-compact .calendar-grid .day-btn.active .gray-dot { background: #9499a3 !important; }
     main.client-page-compact .time-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
-    main.client-page-compact .time-grid .time-btn { min-height: 70px !important; padding: 10px 6px !important; background: #e5e7ea !important; border-color: #b77a91 !important; color: #2e3036 !important; border-radius: 10px !important; }
+    main.client-page-compact .time-grid .time-btn { min-height: 70px !important; padding: 10px 6px !important; background: #e5e7ea !important; border-color: #b77a91 !important; color: #2e3036 !important; border-radius: 8px !important; }
     main.client-page-compact .time-grid .time-btn.active { background: #e7d5dc !important; color: #82425d !important; border: 2px solid #82425d !important; }
     main.client-page-compact .time-grid .time-btn.busy { background: #eff0f2 !important; border-color: #d8dbe0 !important; color: #8d929c !important; }
     main.client-page-compact .time-btn span { color: inherit !important; font-size: 11px !important; }
     main.client-page-compact .time-btn b { font-size: 16px !important; }
     main.client-page-compact .flow-step-title p { font-size: 13px !important; line-height: 1.45 !important; }
     main.client-page-compact .compact-service-switch { display: grid !important; grid-template-columns: 1fr !important; gap: 8px !important; }
-    main.client-page-compact .compact-service-switch button { width: 100% !important; min-height: 64px !important; justify-content: space-between !important; gap: 12px !important; padding: 13px 14px !important; border: 1px solid #b77a91 !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-radius: 10px !important; }
+    main.client-page-compact .compact-service-switch button { width: 100% !important; min-height: 64px !important; justify-content: space-between !important; gap: 12px !important; padding: 13px 14px !important; border: 1px solid #b77a91 !important; background: #e5e7ea !important; color: var(--ui-text) !important; border-radius: 8px !important; }
     main.client-page-compact .compact-service-switch button.active { border: 2px solid #82425d !important; background: #e7d5dc !important; color: #82425d !important; }
     main.client-page-compact .compact-service-switch button small { color: inherit !important; text-align: right !important; }
     main.client-page-compact .inline-times { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; font-size: 0 !important; }
-    main.client-page-compact .inline-times button { min-width: 60px !important; min-height: 44px !important; padding: 8px 10px !important; border: 1px solid #b77a91 !important; border-radius: 10px !important; background: #e5e7ea !important; color: var(--ui-text) !important; font-size: 14px !important; }
+    main.client-page-compact .inline-times button { min-width: 60px !important; min-height: 44px !important; padding: 8px 10px !important; border: 1px solid #b77a91 !important; border-radius: 8px !important; background: #e5e7ea !important; color: var(--ui-text) !important; font-size: 14px !important; }
     main.client-page-compact .inline-times button.active { background: #e7d5dc !important; color: #82425d !important; border-color: #82425d !important; }
     main.client-page-compact .free-window-row { align-items: start !important; padding: 12px 0 !important; }
     main.client-page-compact .free-window-row > b { padding-top: 12px !important; }
