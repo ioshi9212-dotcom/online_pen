@@ -292,7 +292,7 @@ html body .app-shell :is(
 html body .app-shell :is(
   .auth-page, .price-page, .pending-page,
   .client-page:not(.client-page-compact), .admin-route-frame
-) :is(button:not(.secondary):not(.danger):not(.ok):not(.day-btn):not(.time-btn):not(.calendar-day):not(.schedule-time-button):not(.month-arrow):not(.calendar-arrow-button), a.button:not(.secondary), .primary-link):not(:disabled) {
+) :is(button:not(.secondary):not(.danger):not(.ok):not(.paint-mode-btn):not(.day-btn):not(.time-btn):not(.calendar-day):not(.schedule-time-button):not(.month-arrow):not(.calendar-arrow-button), a.button:not(.secondary), .primary-link):not(:disabled) {
   border-color: var(--site-accent) !important;
   background: var(--site-accent) !important;
   background-image: none !important;
