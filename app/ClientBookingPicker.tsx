@@ -113,7 +113,7 @@ export default function ClientBookingPicker({ rescheduleId, todayDate, client, w
   const showPrev = visibleMonthKey > currentMonthKey;
   const showNext = visibleMonthKey < maxMonthKey;
 
-  const monthDays = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonthKey]);
+  const monthDays = useMemo(() => Array.from({ length: daysInMonth(visibleMonth) }, (_, index) => index + 1), [visibleMonth]);
   const selectedWindows = useMemo(() => windowsByDate.get(selectedDateKey) || [], [windowsByDate, selectedDateKey]);
   const selectedFreeCount = selectedWindows.filter((item) => !item.busy).length;
   const selectedBusyCount = selectedWindows.length - selectedFreeCount;
