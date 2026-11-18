@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import SubmitButton from "@/app/SubmitButton";
 import { createBooking } from "@/app/actions";
 import { businessDateKey, businessMonthKey, formatInBusinessTime } from "@/lib/timezone";
 
@@ -8,6 +10,7 @@ type WindowItem = {
   id: string;
   startAt: string;
   busy: boolean;
+  availableServiceIds: string[];
 };
 
 type ServiceItem = {
@@ -25,7 +28,8 @@ type ClientInfo = {
 };
 
 type Props = {
-  token: string;
+  rescheduleId?: string;
+  todayDate: string;
   client: ClientInfo;
   windows: WindowItem[];
   services: ServiceItem[];
@@ -62,25 +66,28 @@ function rub(value: number) {
 }
 
 function daysInMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
 function monthOffset(date: Date) {
-  const first = new Date(date.getFullYear(), date.getMonth(), 1);
-  return (first.getDay() + 6) % 7;
+  const first = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  return (first.getUTCDay() + 6) % 7;
 }
 
 function monthStart(key: string) {
-  return new Date(`${key}-01T00:00:00`);
+  return new Date(`${key}-01T12:00:00.000Z`);
 }
 
 function addMonths(key: string, offset: number) {
   const date = monthStart(key);
-  date.setMonth(date.getMonth() + offset);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  date.setUTCMonth(date.getUTCMonth() + offset);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export default function ClientBookingPicker({ token, client, windows, services, initialDate, initialTime = "" }: Props) {
+export default function ClientBookingPicker({ rescheduleId, todayDate, client, windows, services, initialDate, initialTime = "" }: Props) {
+  const router = useRouter();
+  const [bookingState, submitBooking] = useActionState(createBooking, { error: "" });
+  useEffect(() => { if (bookingState.error) router.refresh(); }, [bookingState.error, router]);
   const windowsByDate = useMemo(() => {
     const map = new Map<string, WindowItem[]>();
     for (const item of windows) {
@@ -93,7 +100,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const freeDateKeys = useMemo(() => new Set(windows.filter((item) => !item.busy).map((item) => dayKey(item.startAt))), [windows]);
   const activeDateKeys = useMemo(() => new Set(windows.map((item) => dayKey(item.startAt))), [windows]);
   const firstFreeDate = useMemo(() => Array.from(freeDateKeys).sort()[0] || initialDate || dayKey(new Date()), [freeDateKeys, initialDate]);
-  const currentMonthKey = monthKey(new Date());
+  const currentMonthKey = todayDate.slice(0, 7);
   const [visibleMonthKey, setVisibleMonthKey] = useState(monthKey(initialDate || firstFreeDate));
   const [selectedDateKey, setSelectedDateKey] = useState(initialDate || firstFreeDate);
   const [mode, setMode] = useState<"calendar" | "list">("calendar");
@@ -111,7 +118,8 @@ export default function ClientBookingPicker({ token, client, windows, services, 
   const selectedFreeCount = selectedWindows.filter((item) => !item.busy).length;
   const selectedBusyCount = selectedWindows.length - selectedFreeCount;
   const selectedWindow = selectedWindows.find((item) => item.startAt === selectedTime && !item.busy);
-  const selectedService = services.find((service) => service.id === selectedServiceId);
+  const eligibleServices = selectedWindow ? services.filter((service) => selectedWindow.availableServiceIds.includes(service.id)) : [];
+  const selectedService = eligibleServices.find((service) => service.id === selectedServiceId);
   const groupedFreeWindows = useMemo(() => Array.from(windowsByDate.entries())
     .map(([date, items]) => ({ date, items: items.filter((item) => !item.busy) }))
     .filter((group) => group.items.length > 0)
@@ -128,6 +136,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     setSelectedDateKey(key);
     setVisibleMonthKey(monthKey(key));
     setSelectedTime("");
+    setSelectedServiceId("");
   }
 
   function changeMonth(nextKey: string) {
@@ -150,6 +159,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
     setSelectedDateKey(dayKey(window.startAt));
     setVisibleMonthKey(monthKey(window.startAt));
     setSelectedTime(window.startAt);
+    setSelectedServiceId("");
   }
 
   return (
@@ -254,6 +264,8 @@ export default function ClientBookingPicker({ token, client, windows, services, 
 
       {selectedWindow ? (
         <section className="card booking-builder booking-final-card" id="booking-builder">
+          {bookingState.error ? <p className="notice danger-notice" role="alert">{bookingState.error}</p> : null}
+          {rescheduleId ? <p className="notice">Новая заявка заменит прежнюю запись только после успешной отправки.</p> : null}
           <div className="section-head">
             <div>
               <p className="muted">Шаг 2 из 2</p>
@@ -262,16 +274,16 @@ export default function ClientBookingPicker({ token, client, windows, services, 
           </div>
 
           <div className="compact-service-switch" role="radiogroup" aria-label="Основная услуга">
-            {services.map((service) => (
+            {eligibleServices.map((service) => (
               <button key={service.id} type="button" role="radio" aria-checked={selectedServiceId === service.id} className={selectedServiceId === service.id ? "active" : ""} onClick={() => setSelectedServiceId(service.id)}>
                 <b>{service.title}</b><small>{service.durationMinutes} мин · {rub(service.price)}</small>
               </button>
             ))}
           </div>
-          {services.length === 0 ? <div className="notice danger-notice">Нет услуг, доступных для записи.</div> : null}
+          {eligibleServices.length === 0 ? <div className="notice danger-notice">На это время ни одна услуга не помещается. Выберите другое окно.</div> : null}
 
-          <form action={createBooking} className="booking-builder-form compact-booking-form">
-            <input type="hidden" name="clientToken" value={token} />
+          <form action={submitBooking} className="booking-builder-form compact-booking-form">
+            <input type="hidden" name="rescheduleId" value={rescheduleId || ""} />
             <input type="hidden" name="startAt" value={selectedWindow.startAt} />
             <input type="hidden" name="returnDate" value={selectedDateKey} />
             <input type="hidden" name="returnTime" value={selectedWindow.startAt} />
@@ -290,7 +302,7 @@ export default function ClientBookingPicker({ token, client, windows, services, 
                 <h3>Проверьте данные</h3>
                 <p>После отправки окно будет закреплено за вами до решения мастера.</p>
               </div>
-              <button type="submit" disabled={!selectedService}>Отправить заявку</button>
+              <SubmitButton disabled={!selectedService} pendingText="Отправляю…">{rescheduleId ? "Подтвердить перенос" : "Отправить заявку"}</SubmitButton>
             </div>
           </form>
         </section>

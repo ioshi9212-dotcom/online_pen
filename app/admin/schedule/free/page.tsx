@@ -22,8 +22,10 @@ function pointBusy(point: Date, busyItems: { startAt: Date; endAt: Date }[]) {
   return busyItems.some((item) => item.startAt <= point && item.endAt > point);
 }
 
-export default async function FreeWindowsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  if (!isAdmin()) redirect("/admin/login");
+export default async function FreeWindowsPage({ searchParams: searchParamsPromise }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const done = one(searchParams.done);
   const now = new Date();

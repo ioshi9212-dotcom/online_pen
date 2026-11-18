@@ -3,7 +3,6 @@
 import { FormEvent, useRef, useState } from "react";
 
 type Props = {
-  token: string;
   client: {
     firstName: string;
     lastName: string;
@@ -57,7 +56,7 @@ async function compressAvatar(file: File) {
   }
 }
 
-export default function ProfileAvatarForm({ token, client }: Props) {
+export default function ProfileAvatarForm({ client }: Props) {
   const [preview, setPreview] = useState(client.avatarUrl);
   const [avatarDataUrl, setAvatarDataUrl] = useState("");
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -140,7 +139,6 @@ export default function ProfileAvatarForm({ token, client }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clientToken: token,
           firstName: String(formData.get("firstName") || ""),
           lastName: String(formData.get("lastName") || ""),
           phone: String(formData.get("phone") || ""),
@@ -158,7 +156,7 @@ export default function ProfileAvatarForm({ token, client }: Props) {
       }
 
       setSaved(true);
-      window.location.assign(result.redirectTo || `/my?client=${token}&profileSaved=1#profile`);
+      window.location.assign(result.redirectTo || "/my?profileSaved=1#profile");
     } catch {
       setError("Не удалось сохранить профиль. Интернет или сайт опять решили устроить драму.");
       setSaving(false);
@@ -193,7 +191,7 @@ export default function ProfileAvatarForm({ token, client }: Props) {
       </div>
       <div className="actions">
         <button type="submit" disabled={reading || saving}>{reading ? "Обрабатываю…" : saving ? "Сохраняю…" : "Сохранить"}</button>
-        <a className="button secondary" href={`/my?client=${token}`}>Назад</a>
+        <a className="button secondary" href="/my">Назад</a>
       </div>
     </form>
   );

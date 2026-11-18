@@ -1,9 +1,10 @@
+import SubmitButton from "@/app/SubmitButton";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { CLIENT_STATUS_OPTIONS, clientStatusLabel, statusClass } from "@/lib/statusLabels";
 import type { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
-import { archiveClient, createMyClient, saveMyClient } from "./actions";
+import { archiveClient, createMyClient } from "./actions";
 import styles from "./my-clients.module.css";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +18,9 @@ function one(searchParams: SearchParams, key: string) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function toDateInput(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
 function Notice({ searchParams }: { searchParams: SearchParams }) {
   const saved = one(searchParams, "saved");
+  if (saved === "existing") return <div className="notice">Клиент с этим телефоном уже есть. Его данные сохранены без изменений.</div>;
   if (saved === "merged") return <div className="notice ok-notice floating-toast">Карточки объединены по телефону.</div>;
   if (saved === "created") return <div className="notice ok-notice floating-toast">Клиент добавлен. Форма очищена.</div>;
   if (saved === "saved") return <div className="notice ok-notice floating-toast">Клиент сохранён.</div>;
@@ -56,7 +54,7 @@ function AddClientForm() {
           <label>Заметка<input name="notes" placeholder="например: френч, аллергия, любит нюд" /></label>
         </div>
         <div className="actions compact-form-actions">
-          <button type="submit">Добавить клиента</button>
+          <SubmitButton>Добавить клиента</SubmitButton>
         </div>
       </form>
     </details>
@@ -78,8 +76,10 @@ function searchFilter(query: string): Prisma.ClientWhereInput {
   };
 }
 
-export default async function MyClientsPage({ searchParams = {} }: { searchParams?: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
+export default async function MyClientsPage({ searchParams: searchParamsPromise }: { searchParams?: Promise<SearchParams> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const query = (one(searchParams, "q") || "").trim();
   const clients = await prisma.client.findMany({
@@ -120,11 +120,11 @@ export default async function MyClientsPage({ searchParams = {} }: { searchParam
 
         <form action="/admin/my-clients#clients-list" className="client-search-form">
           <input name="q" defaultValue={query} placeholder="Поиск по имени, фамилии или телефону" />
-          <button type="submit">Найти</button>
+          <SubmitButton>Найти</SubmitButton>
           {query ? <a className="button secondary" href="/admin/my-clients#clients-list">Сбросить</a> : null}
         </form>
 
-        <details className="clients-list-details" open={Boolean(query)}>
+        <details className="clients-list-details" open>
           <summary className="client-details-summary">
             <span>
               <small>{query ? `Найдено: ${clients.length}` : `${clients.length} клиентов`}</small>
@@ -157,23 +157,7 @@ export default async function MyClientsPage({ searchParams = {} }: { searchParam
                   <div className="client-card-actions compact-client-actions">
                     <a className="button" href={`/admin/my-clients/${client.id}`}>Профиль</a>
                     <a className="button secondary" href={`/admin/manage?clientId=${client.id}#manual-booking`}>Записать</a>
-                    <details className="soft-details compact-details">
-                      <summary className="button secondary">Править</summary>
-                      <form id={`client-${client.id}`} action={saveMyClient} className="grid inline-edit-card">
-                        <input type="hidden" name="id" value={client.id} />
-                        <div className="grid-2">
-                          <label>Фамилия<input name="lastName" defaultValue={client.lastName} required /></label>
-                          <label>Имя<input name="firstName" defaultValue={client.firstName} required /></label>
-                        </div>
-                        <div className="grid-2">
-                          <label>Телефон<input name="phone" defaultValue={client.phone} required /></label>
-                          <label>Дата рождения<input name="birthDate" type="date" defaultValue={toDateInput(client.birthDate)} required /></label>
-                        </div>
-                        <label>Статус<select name="status" defaultValue={client.status}>{CLIENT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
-                        <label>Заметки<textarea name="notes" defaultValue={client.notes} /></label>
-                        <button className="ok">Сохранить</button>
-                      </form>
-                    </details>
+
                     <details className="soft-details compact-details archive-details">
                       <summary className="button danger">Архив</summary>
                       <form action={archiveClient} className="grid">

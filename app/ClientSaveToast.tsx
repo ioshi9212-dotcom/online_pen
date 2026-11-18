@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const ACTION_WORDS = ["запис", "отправ", "сохран", "войти", "провер", "отмен", "лист ожид", "ждать", "помню"];
 
@@ -34,20 +34,18 @@ function formLooksLikeClientAction(form: HTMLFormElement) {
 
 export default function ClientSaveToast() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [toast, setToast] = useState<ToastState | null>(null);
-  const searchString = useMemo(() => searchParams.toString(), [searchParams]);
+  const params = useSearchParams();
+  const query = params.toString();
+  return <ClientToast key={pathname + query} initialText={successText(pathname, new URLSearchParams(query))} />;
+}
 
+function ClientToast({ initialText }: { initialText: string }) {
+  const [toast, setToast] = useState<ToastState | null>(() => initialText ? { text: initialText, tone: "done" } : null);
   useEffect(() => {
-    if (pathname.startsWith("/admin")) return;
-    const params = new URLSearchParams(searchString);
-    const text = successText(pathname, params);
-    if (!text) return;
-
-    setToast({ text, tone: "done" });
+    if (!initialText) return;
     const timer = window.setTimeout(() => setToast(null), 1900);
     return () => window.clearTimeout(timer);
-  }, [pathname, searchString]);
+  }, [initialText]);
 
   useEffect(() => {
     function onSubmit(event: SubmitEvent) {

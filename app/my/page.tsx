@@ -1,3 +1,6 @@
+import { getEffectiveDay } from "@/lib/schedule";
+import { fitsWindow } from "@/lib/availability";
+import SubmitButton from "@/app/SubmitButton";
 import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist, rememberClientBooking } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel, timeUntilBookingLabel } from "@/lib/bookingRemember";
@@ -5,7 +8,7 @@ import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { getClientCookie } from "@/lib/clientSession";
-import { businessDateKey, formatInBusinessTime } from "@/lib/timezone";
+import { businessDateKey, businessDateFromKey, businessDateTimeFromKeyAndTime, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 import styles from "./my-page-compact.module.css";
 
@@ -26,6 +29,8 @@ type SearchParams = {
   known?: string;
   busy?: string;
   bookingError?: string;
+  rescheduleError?: string;
+  waitlistError?: string;
 };
 
 type WaitlistItem = { id: string; mode: string; desiredDates: string; note: string | null };
@@ -58,7 +63,9 @@ function noticeText(searchParams: SearchParams) {
   if (searchParams.waitlist === "cancelled") return "Вы отменили лист ожидания.";
   if (searchParams.waitlist === "nearest") return "Заявка отправлена на ближайшее свободное окно. Мастер увидит ваше пожелание.";
   if (searchParams.waitlist === "dates") return "Заявка с выбранными датами отправлена. Мастер увидит ваши пожелания.";
-  if (searchParams.reschedule) return "Старая запись отменена. Теперь можно выбрать новое время.";
+  if (searchParams.rescheduleError) return "Перенос недоступен: запись уже изменилась.";
+  if (searchParams.waitlistError) return "Выберите дату для листа ожидания.";
+  if (searchParams.reschedule) return "Выберите новое время. Прежняя запись сохранится до успешной отправки новой заявки.";
   if (searchParams.cancelled) return "Запись отменена.";
   if (searchParams.login) return "Вход выполнен.";
   if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
@@ -106,10 +113,12 @@ function waitlistDescription(entry: WaitlistItem) {
   return "Мастер увидит, что вы готовы прийти в ближайшее освободившееся окно.";
 }
 
-export default async function MyPage({ searchParams }: { searchParams: SearchParams }) {
-  const token = searchParams.client || getClientCookie();
+export default async function MyPage({ searchParams: searchParamsPromise }: { searchParams: Promise<SearchParams> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  const token = await getClientCookie();
   if (!token) redirect("/login");
-  if (!searchParams.client) redirect(`/my?client=${token}`);
+  if (searchParams.client) redirect("/my");
 
   const client = await prisma.client.findUnique({
     where: { publicToken: token },
@@ -125,42 +134,32 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
   const settings = await prisma.setting.findMany();
   const onlineMinStart = getOnlineBookingMinStart(settings);
 
-  const [bookableServices, priceServices, onlineWindows, busyBookings] = await Promise.all([
+  const rescheduling = searchParams.reschedule ? client.bookings.find((booking) => booking.id === searchParams.reschedule && ["PENDING", "CONFIRMED"].includes(booking.status) && booking.startAt > new Date()) : undefined;
+  if (searchParams.reschedule && !rescheduling) redirect("/my?rescheduleError=1");
+  const [bookableServices, priceServices, onlineWindows, busyBookings, blockedSlots, rules, overrides] = await Promise.all([
     prisma.service.findMany({ where: { isActive: true, showInBooking: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
-    prisma.onlineWindow.findMany({ where: { startAt: { gte: onlineMinStart } }, orderBy: { startAt: "asc" }, take: 120 }),
-    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gte: onlineMinStart } }, include: { service: true } })
+    prisma.onlineWindow.findMany({ where: { startAt: { gte: onlineMinStart } }, orderBy: { startAt: "asc" }, take: 300 }),
+    prisma.booking.findMany({ where: { status: { in: ["PENDING", "CONFIRMED"] }, endAt: { gt: onlineMinStart }, ...(rescheduling ? { id: { not: rescheduling.id } } : {}) }, select: { startAt: true, endAt: true } }),
+    prisma.blockedSlot.findMany({ where: { endAt: { gt: onlineMinStart } }, select: { startAt: true, endAt: true } }),
+    prisma.scheduleRule.findMany(),
+    prisma.dayOverride.findMany({ where: { date: { gte: businessDateFromKey(businessDateKey(onlineMinStart)) } } })
   ]);
-
-  const busyStartSet = new Set<string>();
   const windows = onlineWindows.map((window) => {
-    const fallbackEndAt = new Date(window.startAt.getTime() + 30 * 60_000);
-    const busy = busyBookings.some((booking) => overlaps(window.startAt, fallbackEndAt, booking.startAt, booking.endAt));
-    if (busy) busyStartSet.add(window.startAt.toISOString());
-    return {
-      id: window.id,
-      startAt: window.startAt.toISOString(),
-      busy
-    };
+    const day = getEffectiveDay(window.startAt, rules, overrides);
+    const key = businessDateKey(window.startAt);
+    const until = businessDateTimeFromKeyAndTime(key, day.endTime);
+    const availableServiceIds = day.isWorkingDay && window.startAt >= businessDateTimeFromKeyAndTime(key, day.startTime)
+      ? bookableServices.filter((service) => fitsWindow(window.startAt, service.durationMinutes, [...busyBookings, ...blockedSlots], until)).map((service) => service.id) : [];
+    return { id: window.id, startAt: window.startAt.toISOString(), busy: availableServiceIds.length === 0, availableServiceIds };
   });
-
-  const existingWindowStarts = new Set(windows.map((window) => window.startAt));
-  for (const booking of busyBookings) {
-    const startIso = booking.startAt.toISOString();
-    if (!existingWindowStarts.has(startIso)) {
-      windows.push({ id: `busy-${booking.id}`, startAt: startIso, busy: true });
-      existingWindowStarts.add(startIso);
-      busyStartSet.add(startIso);
-    }
-  }
-  windows.sort((a, b) => a.startAt.localeCompare(b.startAt));
 
   const firstFreeWindow = windows.find((window) => !window.busy);
   const firstAvailableDate = firstFreeWindow ? dayKey(new Date(firstFreeWindow.startAt)) : dayKey(new Date());
   const initialDate = searchParams.date || firstAvailableDate;
-  const initialTime = "";
+  const initialTime = searchParams.time || "";
   const now = new Date();
-  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status) && booking.startAt > now);
+  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status) && booking.endAt > now);
   const upcomingBooking = activeBookings[0];
   const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
@@ -173,12 +172,13 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
 
       <section className="hero client-booking-intro">
         <p className="muted">Онлайн-запись</p>
-        <h1>Выберите удобное время</h1>
-        <p className="lead">Выберите дату и время, затем услугу. Дополнения укажите в комментарии.</p>
+        <h1>{rescheduling ? "Перенести запись" : "Выберите удобное время"}</h1>
+        {rescheduling ? <a className="button secondary" href="/my">Оставить прежнюю запись</a> : null}
+        <p className="lead">Выберите дату и время, затем подходящую услугу. Дополнения укажите в комментарии.</p>
       </section>
 
       <section className="client-top-stack" aria-label="Важная информация">
-        <div className="notice client-start-warning" role="note">
+        <div className="notice client-start-warning">
           <b>Онлайн-запись работает в тестовом режиме</b>
           <p>После отправки заявки напишите мне. Я проверю и подтвержу запись.</p>
         </div>
@@ -208,22 +208,15 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             <div className="upcoming-booking-actions">
               {canClientRemember && !clientRemembered ? (
                 <form action={rememberClientBooking}>
-                  <input type="hidden" name="clientToken" value={token} />
                   <input type="hidden" name="bookingId" value={upcomingBooking.id} />
-                  <button type="submit">Помню про запись</button>
+                  <SubmitButton>Помню про запись</SubmitButton>
                 </form>
               ) : null}
               <form action={cancelClientBooking} data-confirm="Отменить запись? Окно освободится, мастер увидит отмену.">
-                <input type="hidden" name="clientToken" value={token} />
                 <input type="hidden" name="bookingId" value={upcomingBooking.id} />
-                <button type="submit" className="danger">Отменить</button>
+                <SubmitButton className="danger">Отменить</SubmitButton>
               </form>
-              <form action={cancelClientBooking} data-confirm="Перенос отменит текущую запись и откроет выбор нового времени. Продолжить?">
-                <input type="hidden" name="clientToken" value={token} />
-                <input type="hidden" name="bookingId" value={upcomingBooking.id} />
-                <input type="hidden" name="afterCancel" value="reschedule" />
-                <button type="submit" className="secondary">Перенести</button>
-              </form>
+              <a className="button secondary" href={`/my?reschedule=${upcomingBooking.id}#windows`}>Перенести</a>
             </div>
           </section>
         ) : null}
@@ -232,31 +225,31 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <section className="client-note-stack" aria-label="Дополнительные услуги">
         <details className="notice combo-service-note">
           <summary>Маникюр и педикюр в один день?</summary>
-          <p>Выберите два соседних свободных времени, например 12:00 и 14:30, и оформите две записи. Если окна не идут подряд, выберите другой день.</p>
+          <p>Выберите два соседних свободных времени и оформите две записи. Если окна не идут подряд, выберите другой день.</p>
         </details>
       </section>
 
       <ClientBookingPicker
-        token={token}
+        rescheduleId={rescheduling?.id}
         client={{ firstName: client.firstName, lastName: client.lastName, phone: client.phone }}
         services={bookableServices.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes, description: service.description }))}
         windows={windows}
         initialDate={initialDate}
         initialTime={initialTime}
+        todayDate={businessDateKey(now)}
       />
 
       <section className="card" id="bookings">
         <h2>Мои записи</h2>
-        {activeBookings.length === 0 ? <div className="empty-state">У вас пока нет активных записей.</div> : (
+        {activeBookings.length === 0 ? <div className="empty-state">Активных записей пока нет.</div> : (
           <div className="grid">
             {activeBookings.map((booking) => (
               <article className="booking-card" key={booking.id}>
                 <div><h3>{booking.service.title}</h3><p>{fmtDate(booking.startAt)} в {fmtTime(booking.startAt)}</p><p className="booking-countdown">{timeUntilBookingLabel(booking.startAt, now)}</p></div>
                 <span className={statusClass(booking.status)}>{statusText(booking.status)}</span>
                 <form action={cancelClientBooking} data-confirm="Отменить запись? Окно освободится, мастер увидит отмену.">
-                  <input type="hidden" name="clientToken" value={token} />
                   <input type="hidden" name="bookingId" value={booking.id} />
-                  <button className="secondary" type="submit">Отменить запись</button>
+                  <SubmitButton className="secondary">Отменить запись</SubmitButton>
                 </form>
               </article>
             ))}
@@ -267,19 +260,17 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
       <details className="card client-collapse-card" id="waitlist">
         <summary className="client-collapse-summary">
           <span>
-            <small>{client.waitlist.length ? `${client.waitlist.length} активн.` : "Если нужное время занято"}</small>
+            <small>{client.waitlist.length ? `${client.waitlist.length} активн.` : "если нужное время занято"}</small>
             <h2>Лист ожидания</h2>
           </span>
           <i aria-hidden="true">⌄</i>
         </summary>
         <div className="client-collapse-body">
           <form action={joinWaitlist} className="grid waitlist-compact-form">
-            <input type="hidden" name="clientToken" value={token} />
-            <p className="waitlist-help">Если удобное время занято, оставьте заявку. Я напишу, если появится окно.</p>
             <label>Как искать окно<select name="waitMode"><option value="NEAREST">Ближайшее свободное</option><option value="DATES">Конкретные даты</option></select></label>
             <label>Даты, если нужны конкретные<input name="desiredDates" type="date" /></label>
             <label>Комментарий<textarea name="note" placeholder="Например: могу после 16:00, кроме пятницы" /></label>
-            <button type="submit">Встать в лист ожидания</button>
+            <SubmitButton>Встать в лист ожидания</SubmitButton>
           </form>
 
           {client.waitlist.length ? (
@@ -289,10 +280,9 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
                   <h3>{waitlistTitle(entry)}</h3>
                   <p>{waitlistDescription(entry)}</p>
                   {entry.note ? <p className="muted">Комментарий: {entry.note}</p> : null}
-                  <form action={cancelWaitlistEntry}>
-                    <input type="hidden" name="clientToken" value={token} />
+                  <form action={cancelWaitlistEntry} data-confirm="Убрать пожелание из листа ожидания?">
                     <input type="hidden" name="waitlistId" value={entry.id} />
-                    <button className="secondary" type="submit">Убрать из ожидания</button>
+                    <SubmitButton className="secondary">Убрать из ожидания</SubmitButton>
                   </form>
                 </article>
               ))}
@@ -301,12 +291,9 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
         </div>
       </details>
 
-      <details className="card client-collapse-card price-compact-card" id="price">
-        <summary className="client-collapse-summary">
-          <span><h2>Прайс</h2></span>
-          <i aria-hidden="true">⌄</i>
-        </summary>
-        <div className="client-collapse-body price-list price-compact-list">
+      <section className="card price-compact-card" id="price">
+        <h2>Прайс</h2>
+        <div className="price-list price-compact-list">
           {priceServices.map((service) => (
             <article className="price-row" key={service.id}>
               <div><b>{service.title}</b>{service.description ? <p>{service.description}</p> : null}</div>
@@ -314,7 +301,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             </article>
           ))}
         </div>
-      </details>
+      </section>
 
       <section className="card client-profile-card" id="profile">
         <div className="profile-avatar-upload">
@@ -325,7 +312,7 @@ export default async function MyPage({ searchParams }: { searchParams: SearchPar
             <h2>Профиль</h2>
             <p>{client.firstName} {client.lastName}</p>
             <p>{client.phone}</p>
-            <a className="button secondary" href={`/profile?client=${token}`}>Редактировать профиль</a>
+            <a className="button secondary" href="/profile">Редактировать профиль</a>
           </div>
         </div>
       </section>

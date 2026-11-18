@@ -19,6 +19,8 @@ export default function PullToRefresh() {
   useEffect(() => {
     function onTouchStart(event: TouchEvent) {
       if (refreshing) return;
+      // Editing screens use explicit refresh, so a gesture cannot erase a draft.
+      if (document.querySelector("form input:not([type=hidden]), form textarea, form select, [data-dirty=true]")) return;
       if (window.scrollY > 2) return;
       if (isFormElement(event.target)) return;
 

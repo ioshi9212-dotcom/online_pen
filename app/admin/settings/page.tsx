@@ -24,7 +24,7 @@ function ServiceLine({ service }: { service: { id: string; title: string; durati
 }
 
 export default async function AdminSettingsPage() {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const [settings, rules, services] = await Promise.all([
     prisma.setting.findMany(),
@@ -78,6 +78,7 @@ export default async function AdminSettingsPage() {
       <section className="card settings-hero">
         <p className="eyebrow">Кабинет мастера</p>
         <h1>Настройки</h1>
+          <div className="actions"><a className="button secondary" href="/admin/archive">Архив</a><a className="button secondary" href="/admin/blacklist">Чёрный список</a><a className="button secondary" href="/admin/profile">Профиль мастера</a></div>
         <p>Здесь собраны основные вещи: запись, профиль мастера и прайс.</p>
       </section>
 

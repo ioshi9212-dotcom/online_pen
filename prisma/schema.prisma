@@ -75,6 +75,7 @@ model Booking {
   clientComment String        @default("")
   adminComment  String        @default("")
   finalPrice    Int?
+  canRestoreOnlineWindow Boolean @default(false)
   createdAt     DateTime      @default(now())
   confirmedAt   DateTime?
   cancelledAt   DateTime?
