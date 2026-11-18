@@ -7,6 +7,7 @@ export default function UnavailablePage() {
       <div className="notice danger-notice">Если это ошибка — напишите мастеру напрямую. Сайт сам себя не переубедит.</div>
       <div className="actions" style={{ marginTop: 16 }}>
         <a className="button secondary" href="/login">Попробовать вход</a>
+        <a className="button secondary" href="/register?rejected=1">Подать заявку повторно</a>
         <a className="quiet-link" href="/">На главную</a>
       </div>
     </section>

@@ -30,6 +30,27 @@ export async function syncPublicRegistration(input: ClientInput) {
   const data = clientData({ ...input, status: "PENDING" });
   const result = await prisma.client.createMany({ data: [data], skipDuplicates: true });
   const client = await prisma.client.findUniqueOrThrow({ where: { phone: data.phone } });
+  if (!result.count && client.status === "REJECTED" && client.birthDate.getTime() === data.birthDate.getTime()) {
+    // A rejected applicant may reapply with their original phone and birth date.
+    // Preserve the client ID, token, bookings, waitlist and master notes.
+    // The conditional update prevents two simultaneous reapplications from
+    // silently overwriting one another or reactivating a banned account.
+    const reopened = await prisma.client.updateMany({
+      where: { id: client.id, status: "REJECTED", birthDate: data.birthDate },
+      data: {
+        status: "PENDING",
+        firstName: data.firstName,
+        lastName: data.lastName,
+        notes: mergeNotes(client.notes, data.notes),
+        approvedAt: null,
+        bannedAt: null
+      }
+    });
+    if (reopened.count) {
+      const saved = await prisma.client.findUniqueOrThrow({ where: { id: client.id } });
+      return { client: saved, mode: "reapplied" as const };
+    }
+  }
   return { client, mode: result.count ? "created" as const : "existing" as const };
 }
 
