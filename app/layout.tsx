@@ -13,6 +13,7 @@ import "./mobile-system.css";
 import "./audit-improvements.css";
 import "./public-landing-refresh.css";
 import "./button-corners.css";
+import "./sitewide-design.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
@@ -41,7 +42,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
-      <body>
+      <body data-design-version="calm-gray-rose-20261119">
         <ConfirmDangerActions />
         <PullToRefresh />
         <div className="app-shell">

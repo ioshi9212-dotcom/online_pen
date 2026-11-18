@@ -1,16 +1,16 @@
 /* Unified visual pass: one calm salon UI for client, auth and master pages. */
 :root {
-  --ui-bg: #f8f1f4;
-  --ui-bg-2: #fffafb;
-  --ui-card: rgba(255, 255, 255, .88);
-  --ui-card-solid: #fffdfd;
-  --ui-soft: #fbf4f7;
-  --ui-line: rgba(128, 59, 88, .16);
-  --ui-line-strong: rgba(128, 59, 88, .25);
-  --ui-text: #2d2930;
-  --ui-muted: rgba(45, 41, 48, .62);
-  --ui-rose: #be6386;
-  --ui-rose-dark: #7d3855;
+  --ui-bg: #f1f2f4;
+  --ui-bg-2: #f8f8f9;
+  --ui-card: #f8f8f9;
+  --ui-card-solid: #f8f8f9;
+  --ui-soft: #e9eaed;
+  --ui-line: #d9dce2;
+  --ui-line-strong: #b77a91;
+  --ui-text: #2e3036;
+  --ui-muted: #676b73;
+  --ui-rose: #a35b79;
+  --ui-rose-dark: #82425d;
   --ui-danger: #a94352;
   --ui-ok: #417552;
   --ui-warn: #8a6a32;
@@ -18,13 +18,13 @@
   --control-radius-lg: 9px;
   --card-radius-soft: 14px;
   --radius: 14px;
-  --beauty-rose: #be6386;
-  --beauty-rose-dark: #7d3855;
-  --beauty-line: rgba(128, 59, 88, .16);
-  --beauty-text: #2d2930;
-  --beauty-muted: rgba(45, 41, 48, .62);
-  --blue: #be6386;
-  --blue-dark: #7d3855;
+  --beauty-rose: #a35b79;
+  --beauty-rose-dark: #82425d;
+  --beauty-line: #d9dce2;
+  --beauty-text: #2e3036;
+  --beauty-muted: #676b73;
+  --blue: #a35b79;
+  --blue-dark: #82425d;
   --panel: var(--ui-card-solid);
   --panel-soft: var(--ui-soft);
   --line: var(--ui-line);

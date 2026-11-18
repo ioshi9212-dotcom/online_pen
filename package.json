@@ -17,7 +17,8 @@
     "test:buttons": "node scripts/button-audit.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "db:deploy": "prisma migrate deploy",
-    "typecheck": "next typegen && tsc --noEmit --incremental false"
+    "typecheck": "next typegen && tsc --noEmit --incremental false",
+    "test:design": "node scripts/design-audit.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",

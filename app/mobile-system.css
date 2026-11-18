@@ -19,16 +19,16 @@
 
   @media (max-width: 760px) {
     :root {
-      --ui-bg: #f7f5f4 !important;
-      --ui-card: #ffffff !important;
-      --ui-card-solid: #ffffff !important;
-      --ui-soft: #f8f4f5 !important;
-      --ui-line: #e7dfe3 !important;
-      --ui-line-strong: #d5c7ce !important;
-      --ui-text: #302a2e !important;
-      --ui-muted: #756b71 !important;
-      --ui-rose: #9b4c68 !important;
-      --ui-rose-dark: #843b56 !important;
+      --ui-bg: #f1f2f4 !important;
+      --ui-card: #f8f8f9 !important;
+      --ui-card-solid: #f8f8f9 !important;
+      --ui-soft: #e9eaed !important;
+      --ui-line: #d9dce2 !important;
+      --ui-line-strong: #b77a91 !important;
+      --ui-text: #2e3036 !important;
+      --ui-muted: #676b73 !important;
+      --ui-rose: #a35b79 !important;
+      --ui-rose-dark: #82425d !important;
       --beauty-rose: var(--ui-rose) !important;
       --beauty-rose-dark: var(--ui-rose-dark) !important;
       --beauty-text: var(--ui-text) !important;
@@ -43,7 +43,7 @@
       --muted: var(--ui-muted) !important;
       --blue: var(--ui-rose) !important;
       --blue-dark: var(--ui-rose-dark) !important;
-      --control-radius: 12px !important;
+      --control-radius: 8px !important;
       --card-radius-soft: 18px !important;
     }
 
