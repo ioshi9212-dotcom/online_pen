@@ -1,0 +1,50 @@
+/* Shared button geometry across Online Pen.
+ * Imported last to neutralize rounded legacy CSS without changing cards,
+ * status badges, avatar circles, form inputs or calendar indicators.
+ * The button shapes are deliberately consistent on desktop and mobile.
+ */
+:root {
+  --button-corner-radius: 8px;
+}
+
+/* Native buttons, button-like links, and interactive navigation items. */
+html body .app-shell :is(
+  button,
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  a.button,
+  a.btn,
+  a.primary-link,
+  a.beauty-menu-row,
+  a.client-button,
+  a.client-link,
+  .menu-links a,
+  .dash-nav a,
+  .admin-global-bottom-nav a,
+  .mini-calendar a,
+  .month-switcher a,
+  [role="button"]
+) {
+  border-radius: var(--button-corner-radius) !important;
+}
+
+/* High-specificity legacy calendar/service rules must not override this. */
+html body .app-shell :is(
+  .calendar-grid .day-btn,
+  .time-grid .time-btn,
+  .compact-service-switch button,
+  .segmented-switch button,
+  .inline-times button,
+  .schedule-time-button,
+  .calendar-arrow-button,
+  .month-arrow,
+  .calendar-day,
+  .booking-final-card button,
+  .final-confirm-card button,
+  .admin-global-bottom-nav a,
+  .public-page .hero .actions .button,
+  .top-menu .menu-links a.beauty-menu-row
+) {
+  border-radius: var(--button-corner-radius) !important;
+}

@@ -13,7 +13,7 @@
   --booking-text: #2e3036;
   --booking-muted: #676b73;
   --booking-radius: 14px;
-  --booking-control-radius: 10px;
+  --booking-control-radius: 8px;
   color: var(--booking-text) !important;
   gap: 14px !important;
 }
@@ -262,7 +262,7 @@
   aspect-ratio: 1 / 1 !important;
   padding: 4px 1px !important;
   border: 1px solid #d4d6dc !important;
-  border-radius: 9px !important;
+  border-radius: 8px !important;
   background: var(--booking-control) !important;
   color: var(--booking-text) !important;
   font-size: 14px !important;
