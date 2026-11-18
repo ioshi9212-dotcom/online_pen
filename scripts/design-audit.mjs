@@ -38,6 +38,15 @@ const checks = [
   ["master profile", "app/admin/profile/page.tsx", "profile-page"],
   ["master login", "app/admin/login/page.tsx", "auth-card"],
   ["master bookings", "app/admin/bookings/page.tsx", "audit-filters"],
+  ["master manual booking", "app/admin/manage/page.tsx", "manual-booking"],
+  ["master free windows", "app/admin/schedule/free/page.tsx", "Список онлайн-окон"],
+  ["master requests", "app/admin/requests/page.tsx", "Заявки клиентов"],
+  ["master waitlist", "app/admin/waitlist/page.tsx", "Лист ожидания"],
+  ["master archive", "app/admin/archive/page.tsx", "Архив"],
+  ["master blacklist", "app/admin/blacklist/page.tsx", "Чёрный список"],
+  ["master client overview", "app/admin/clients/page.tsx", "Клиенты"],
+  ["master booking editor", "app/admin/bookings/[id]/edit/page.tsx", "Перенести / изменить запись"],
+  ["master client editor", "app/admin/my-clients/[id]/page.tsx", "profile-hero"],
 ];
 for (const [label, path, klass] of checks) {
   assert(existsSync(path), label + " page missing");
