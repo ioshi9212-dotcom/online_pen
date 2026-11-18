@@ -84,6 +84,234 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
     assert.equal((await prisma.booking.findUniqueOrThrow({where:{id:old.id}})).status,"CONFIRMED");
   });
 
+
+  test("public registration is persisted after disconnect and cannot create a duplicate", async () => {
+    const phone = "79990000003";
+    const birthDate = new Date("1996-04-12T00:00:00.000Z");
+    const result = await clients.syncPublicRegistration({
+      firstName: "Новая", lastName: "Клиентка",
+      phone: "+7 (999) 000-00-03", birthDate, notes: "Первая заявка"
+    });
+    assert.equal(result.mode, "created");
+    assert.equal(result.client.status, "PENDING");
+    assert.equal(result.client.phone, phone);
+
+    await prisma.$disconnect();
+    await prisma.$connect();
+
+    const saved = await prisma.client.findUniqueOrThrow({ where: { phone } });
+    assert.equal(saved.id, result.client.id);
+    assert.equal(saved.publicToken, result.client.publicToken);
+    assert.equal(saved.notes, "Первая заявка");
+    assert.equal(saved.birthDate.toISOString().slice(0, 10), "1996-04-12");
+
+    const retry = await clients.syncPublicRegistration({
+      firstName: "Чужое", lastName: "Имя",
+      phone: "8 999 000 00 03", birthDate: new Date("2004-01-01T00:00:00.000Z")
+    });
+    assert.equal(retry.mode, "existing");
+    assert.equal(await prisma.client.count({ where: { phone } }), 1);
+    assert.equal((await prisma.client.findUniqueOrThrow({ where: { phone } })).firstName, "Новая");
+  });
+
+  test("rejected applicant can reapply without deleting identity, history or master notes", async () => {
+    const phone = "79990000004";
+    const original = await prisma.client.create({
+      data: {
+        firstName: "Прежнее", lastName: "Имя", phone, birthDate: new Date("1997-05-20T00:00:00.000Z"),
+        status: "REJECTED", notes: "Заметка мастера", approvedAt: null
+      }
+    });
+    const savedBooking = await manual(at("11:00"), {clientId:original.id, status:"COMPLETED"});
+    await prisma.waitlistEntry.create({
+      data: {clientId: original.id, status:"CLOSED", mode:"NEAREST", note:"История ожидания"}
+    });
+    const applied = await clients.syncPublicRegistration({
+      firstName:"Исправленное", lastName:"Имя", phone:"8 (999) 000-00-04",
+      birthDate: original.birthDate, notes:"Прошу рассмотреть ещё раз"
+    });
+    assert.equal(applied.mode, "reapplied");
+    assert.equal(applied.client.id, original.id);
+    assert.equal(applied.client.publicToken, original.publicToken);
+    assert.equal(applied.client.status, "PENDING");
+    assert.match(applied.client.notes, /Заметка мастера/);
+    assert.match(applied.client.notes, /Прошу рассмотреть ещё раз/);
+    assert.equal((await prisma.booking.findUniqueOrThrow({where:{id:savedBooking.id}})).clientId, original.id);
+    assert.equal(await prisma.waitlistEntry.count({where:{clientId:original.id}}), 1);
+    assert.equal(await prisma.client.count({where:{phone}}), 1);
+
+    const reappliedTwice = await clients.syncPublicRegistration({
+      firstName:"Кто угодно", lastName:"Другой", phone,
+      birthDate: original.birthDate
+    });
+    assert.equal(reappliedTwice.mode, "existing");
+    assert.equal((await prisma.client.findUniqueOrThrow({where:{phone}})).firstName, "Исправленное");
+  });
+
+  test("reapplication cannot change rejected identity with wrong birth date or revive a banned account", async () => {
+    const rejected = await prisma.client.create({
+      data: {firstName:"Анна",lastName:"Пример",phone:"79990000005",birthDate:new Date("1996-07-10T00:00:00.000Z"),status:"REJECTED"}
+    });
+    const banned = await prisma.client.create({
+      data: {firstName:"Вера",lastName:"Пример",phone:"79990000006",birthDate:new Date("1996-07-10T00:00:00.000Z"),status:"BANNED"}
+    });
+    const wrong = await clients.syncPublicRegistration({
+      firstName:"Другая",lastName:"Другая",phone:rejected.phone,
+      birthDate:new Date("2000-07-10T00:00:00.000Z")
+    });
+    const disallowed = await clients.syncPublicRegistration({
+      firstName:"Другая",lastName:"Другая",phone:banned.phone,
+      birthDate:banned.birthDate
+    });
+    assert.equal(wrong.mode, "existing");
+    assert.equal(disallowed.mode, "existing");
+    assert.equal((await prisma.client.findUniqueOrThrow({where:{id:rejected.id}})).status,"REJECTED");
+    assert.equal((await prisma.client.findUniqueOrThrow({where:{id:banned.id}})).status,"BANNED");
+    assert.equal(await prisma.client.count({where:{phone:{in:[rejected.phone,banned.phone]}}}),2);
+  });
+
+  test("real action flow: register, approve, log in, book, waitlist, reconnect, cancel", async () => {
+    class Redirect extends Error { constructor(public target: string) { super(target); } }
+    const redirects = {redirect: (target: string) => {throw new Redirect(target);}};
+    let issuedCookie = "";
+    const auth = {
+      requireClient: async () => {
+        const token = signedSession.readSession(issuedCookie,"client");
+        if (!token) throw new Error("No authenticated client");
+        const saved = await prisma.client.findUniqueOrThrow({where:{publicToken:token}});
+        if (saved.status !== "APPROVED") throw new Error("Not approved");
+        return saved;
+      },
+      setClientCookie: async (token: string) => {
+        issuedCookie = signedSession.signSession(token,"client",30*24*60*60);
+      }
+    };
+    const actions = loadModule("app/actions.ts", {
+      "@/lib/avatarUpload":{},
+      "@/lib/bookingRemember":{},
+      "@/lib/prisma":{prisma},
+      "@/lib/format":await import("../lib/format"),
+      "@/lib/clientSync":clients,
+      "@/lib/clientSession":auth,
+      "@/lib/authRateLimit":{allowAuthAttempt:async()=>true},
+      "@/lib/validation":await import("../lib/validation"),
+      "@/lib/bookings":bookings,
+      "next/cache":{revalidatePath:()=>{}},
+      "next/navigation":redirects
+    });
+    const adminActions = loadModule("app/admin/actions.ts", {
+      "@/lib/bookingRemember":{},
+      "@/lib/bookings":bookings,
+      "@/lib/scheduleTransaction":await import("../lib/scheduleTransaction"),
+      "@/lib/admin":{isAdmin:async()=>true},
+      "@/lib/prisma":{prisma},
+      "@/lib/cancellationNotice":{},
+      "next/cache":{revalidatePath:()=>{}},
+      "next/navigation":redirects
+    });
+    const phone="79990000007",birthDate="1999-05-15";
+    const registration = new FormData();
+    for(const [k,v] of Object.entries({
+      firstName:"Инна",lastName:"Проверка",phone:"+7 999 000 00 07",
+      birthDate,comment:"Удобно вечером"
+    })) registration.set(k,v);
+    await assert.rejects(actions.registerClient(registration),
+      (e: unknown)=>e instanceof Redirect && e.target==="/pending");
+    const applicant=await prisma.client.findUniqueOrThrow({where:{phone}});
+    assert.equal(applicant.status,"PENDING");
+    assert.equal(applicant.notes,"Удобно вечером");
+    assert.equal(issuedCookie,"","Registration must not auto-login");
+
+    const login=new FormData();
+    login.set("phone","8 (999) 000 00 07");
+    login.set("birthDate",birthDate);
+    await assert.rejects(actions.loginClient(login),
+      (e: unknown)=>e instanceof Redirect && e.target==="/pending?already=1");
+    assert.equal(issuedCookie,"","Pending client must not be authenticated");
+
+    const approval = new FormData();
+    approval.set("id",applicant.id);
+    await assert.rejects(adminActions.approveClient(approval),
+      (e: unknown)=>e instanceof Redirect && e.target==="/admin");
+    assert.equal((await prisma.client.findUniqueOrThrow({where:{id:applicant.id}})).status,"APPROVED");
+
+    await assert.rejects(actions.loginClient(login),
+      (e: unknown)=>e instanceof Redirect && e.target==="/my?login=1");
+    assert.equal(signedSession.readSession(issuedCookie,"client"),applicant.publicToken);
+
+    await prisma.onlineWindow.create({data:{startAt:at("16:00")}});
+    const form=new FormData();
+    form.set("serviceId",service.id);
+    form.set("startAt",at("16:00").toISOString());
+    form.set("comment","Тестовая запись сохраняется");
+    await assert.rejects(actions.createBooking({error:""},form),
+      (e: unknown)=>e instanceof Redirect && e.target.startsWith("/my?created="));
+
+    const waitlist=new FormData();
+    waitlist.set("waitMode","NEAREST");
+    waitlist.set("note","Приходить после обеда");
+    await assert.rejects(actions.joinWaitlist(waitlist),
+      (e: unknown)=>e instanceof Redirect && e.target==="/my?waitlist=nearest#waitlist");
+
+    await prisma.$disconnect();
+    await prisma.$connect();
+
+    const reread=await prisma.client.findUniqueOrThrow({
+      where:{publicToken:signedSession.readSession(issuedCookie,"client")},
+      include:{bookings:true,waitlist:true}
+    });
+    assert.equal(reread.id,applicant.id);
+    assert.equal(reread.status,"APPROVED");
+    assert.equal(reread.bookings.length,1);
+    assert.equal(reread.bookings[0].status,"PENDING");
+    assert.equal(reread.bookings[0].clientComment,"Тестовая запись сохраняется");
+    assert.equal(reread.waitlist.length,1);
+    assert.equal(reread.waitlist[0].note,"Приходить после обеда");
+
+    const cancel=new FormData();
+    cancel.set("bookingId",reread.bookings[0].id);
+    await assert.rejects(actions.cancelClientBooking(cancel),
+      (e: unknown)=>e instanceof Redirect && e.target==="/my?cancelled=1");
+    await prisma.$disconnect();
+    await prisma.$connect();
+    assert.equal((await prisma.booking.findUniqueOrThrow({where:{id:reread.bookings[0].id}})).status,"CANCELLED_BY_CLIENT");
+  });
+
+  test("profile API saves new client data in PostgreSQL and login works with updated phone", async () => {
+    const {NextResponse}=await import("next/server");
+    const {sameOriginRequest}=await import("../lib/sameOrigin");
+    const {normalizeAvatarDataUrl}=await import("../lib/avatarUpload");
+    const token=client.publicToken;
+    const cookie=signedSession.signSession(token,"client",60*60);
+    const api=loadModule("app/api/profile/update/route.ts",{
+      "@/lib/validation":await import("../lib/validation"),
+      "@/lib/sameOrigin":{sameOriginRequest},
+      "@/lib/avatarUpload":{normalizeAvatarDataUrl},
+      "@/lib/clientSession":{getClientCookie:async()=>signedSession.readSession(cookie,"client")},
+      "@/lib/format":await import("../lib/format"),
+      "@/lib/prisma":{prisma},
+      "next/server":{NextResponse}
+    });
+    const result=await api.POST(new Request("http://localhost/api/profile/update",{
+      method:"POST",
+      headers:{origin:"http://localhost","content-type":"application/json"},
+      body:JSON.stringify({
+        firstName:"Исправлено",lastName:"Клиентка",
+        phone:"+7 (999) 000-00-08",birthDate:"1994-12-17"
+      })
+    }));
+    assert.equal(result.status,200);
+    assert.equal((await result.json()).ok,true);
+    await prisma.$disconnect();
+    await prisma.$connect();
+    const saved=await prisma.client.findUniqueOrThrow({where:{id:client.id}});
+    assert.equal(saved.firstName,"Исправлено");
+    assert.equal(saved.phone,"79990000008");
+    assert.equal(saved.birthDate.toISOString().slice(0,10),"1994-12-17");
+    assert.equal(saved.publicToken,token);
+    assert.equal(signedSession.readSession(cookie,"client"),token);
+  });
+
   test("registration never overwrites an approved person's identity", async () => {
     const result = await clients.syncPublicRegistration({firstName:"Changed",lastName:"Changed",phone:client.phone,birthDate:new Date("2001-01-01"),notes:"changed"});
     assert.equal(result.mode,"existing");
