@@ -40,6 +40,26 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - run: npm run db:deploy
+      - name: Test migrating an existing populated legacy database
+        env:
+          LEGACY_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/onlinepen_legacy_test?schema=public
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE onlinepen_legacy_test'
+          DATABASE_URL="$LEGACY_DATABASE_URL" npx prisma db push --schema=tests/fixtures/legacy-schema.prisma --skip-generate
+          PGPASSWORD=postgres psql -h localhost -U postgres -d onlinepen_legacy_test -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO "Client" ("id","publicToken","firstName","lastName","phone","birthDate","status")
+            VALUES ('legacy-test-client','legacy-test-token','Test','Client','79990001234','1990-01-01','APPROVED');
+          INSERT INTO "Service" ("id","title","durationMinutes","price")
+            VALUES ('legacy-test-service','Manicure',60,1500);
+          INSERT INTO "Booking" ("id","clientId","serviceId","startAt","endAt","status")
+            VALUES ('legacy-test-booking','legacy-test-client','legacy-test-service','2026-12-15 01:00:00','2026-12-15 02:00:00','CONFIRMED');
+          SQL
+          DATABASE_URL="$LEGACY_DATABASE_URL" npx prisma migrate resolve --applied 20261031000000_baseline
+          DATABASE_URL="$LEGACY_DATABASE_URL" npx prisma migrate deploy
+          DATABASE_URL="$LEGACY_DATABASE_URL" npx prisma migrate status
+          count="$(PGPASSWORD=postgres psql -h localhost -U postgres -d onlinepen_legacy_test -Atc 'SELECT COUNT(*) FROM "Booking" WHERE "id" = '\''legacy-test-booking'\'' AND "canRestoreOnlineWindow" = false')"
+          test "$count" = "1"
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:buttons
