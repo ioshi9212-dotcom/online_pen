@@ -37,8 +37,6 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm install next@16.4.6 --package-lock-only --ignore-scripts
-      - run: git diff -- package-lock.json
       - run: npm ci
       - run: npm run prisma:generate
       - run: npm run db:deploy
