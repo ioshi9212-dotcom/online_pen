@@ -11,6 +11,7 @@ import "./avatar-upload.css";
 import "./pull-refresh.css";
 import "./mobile-system.css";
 import "./audit-improvements.css";
+import "./public-landing-refresh.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",

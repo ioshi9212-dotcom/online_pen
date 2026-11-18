@@ -19,17 +19,18 @@ export default async function HomePage() {
   const addOns = services.filter((service) => !service.showInBooking);
 
   return (
-    <main className="page public-page">
+    <main className="page public-page public-landing-refresh" data-ui-version="public-gray-rose-20261118">
       <section className="hero">
-        <p className="muted">Онлайн-запись</p>
-        <h1>Запись к мастеру {master.name !== "Мастер" ? master.name : ""}</h1>
+        <p className="muted public-eyebrow">ОНЛАЙН-ЗАПИСЬ</p>
+        <h1>Удобная запись к мастеру</h1>
+        {master.name !== "Мастер" ? <p className="public-master-name">Мастер: {master.name}</p> : null}
         {master.photo ? <img src={master.photo} alt="Фото мастера" width={96} height={96} style={{ borderRadius: "50%", objectFit: "cover" }} /> : null}
         {master.location ? <p>{master.location}</p> : null}
         {master.whatsapp ? <a href={master.whatsapp}>Связаться с мастером</a> : null}
-        <p className="lead">Выбирайте удобное время онлайн. Для первой записи отправьте заявку и дождитесь подтверждения мастера.</p>
+        <p className="lead">Впервые у нас? Оставьте заявку — мастер откроет доступ к расписанию. Уже регистрировались? Войдите и выберите свободное время.</p>
         <div className="actions">
-          <a className="button" href="/login">Войти</a>
-          <a className="button secondary" href="/register">Отправить заявку</a>
+          <a className="button" href="/register">Оставить заявку</a>
+          <a className="button secondary" href="/login">Уже регистрировались? Войти</a>
         </div>
       </section>
 
@@ -45,8 +46,8 @@ export default async function HomePage() {
             <p>Мастер откроет доступ к свободным окнам.</p>
           </div>
           <div>
-            <b>3. Выберите услугу и время</b>
-            <p>Уже оставляли заявку? Нажмите «Войти», чтобы записаться или проверить статус.</p>
+            <b>3. Выберите время и услугу</b>
+            <p>Войдите, выберите свободное время и затем подходящую услугу.</p>
           </div>
         </div>
       </section>
