@@ -387,6 +387,15 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
     assert.equal(await prisma.onlineWindow.count({where:{startAt:at("10:00")}}), 0);
   });
 
+  test("cancelling a missing or already cancelled booking is a no-op", async () => {
+    assert.equal(await bookings.cancelOnlineBooking(client.id, "not-a-booking"),false);
+    await prisma.onlineWindow.create({data:{startAt:at("14:00")}});
+    const saved=await bookings.bookOnline({clientId:client.id,serviceId:service.id,startAt:at("14:00"),comment:""});
+    assert.equal(await bookings.cancelOnlineBooking(client.id,saved.id),true);
+    assert.equal(await bookings.cancelOnlineBooking(client.id,saved.id),false);
+    assert.equal((await prisma.booking.findUniqueOrThrow({where:{id:saved.id}})).status,"CANCELLED_BY_CLIENT");
+  });
+
   test("cancelling a published online appointment restores the window", async () => {
     await prisma.onlineWindow.create({data:{startAt:at("12:00")}});
     const online = await bookings.bookOnline({clientId:client.id,serviceId:service.id,startAt:at("12:00"),comment:""});

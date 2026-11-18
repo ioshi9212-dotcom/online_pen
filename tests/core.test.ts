@@ -4,6 +4,7 @@ import { signSession, readSession } from "../lib/signedSession";
 import { hashPassword, matchesPassword } from "../lib/adminPassword";
 import { consumeBucket } from "../lib/rateLimit";
 import { fitsWindow } from "../lib/availability";
+import { splitClientBookings } from "../lib/clientBookingViews";
 import { businessMonthBounds, businessDateFromKey, businessDateTimeFromKeyAndTime } from "../lib/timezone";
 import { validDateKey, validTime, parseBirthDate } from "../lib/validation";
 
@@ -66,4 +67,20 @@ test("dates and times reject impossible values before database writes", () => {
   assert.equal(validTime("24:10"), false);
   assert.equal(validTime("09:30"), true);
   assert.throws(() => parseBirthDate("2099-01-01"));
+});
+
+test("client booking history retains old pending/confirmed entries, newest first", () => {
+  const now = new Date("2030-11-20T10:00:00Z");
+  const make = (id: string, iso: string, status: string) => ({id, startAt:new Date(iso),status});
+  const items = [
+    make("future-later","2030-11-25T11:00:00Z","CONFIRMED"),
+    make("old-pending","2030-11-19T11:00:00Z","PENDING"),
+    make("cancelled","2030-11-18T12:00:00Z","CANCELLED_BY_CLIENT"),
+    make("future-sooner","2030-11-21T11:00:00Z","PENDING"),
+    make("old-confirmed","2030-11-20T09:00:00Z","CONFIRMED")
+  ];
+  const {activeBookings,pastBookings}=splitClientBookings(items,now);
+  assert.deepEqual(activeBookings.map(x=>x.id),["future-sooner","future-later"]);
+  assert.deepEqual(pastBookings.map(x=>x.id),["old-confirmed","old-pending","cancelled"]);
+  assert.deepEqual(items.map(x=>x.id),["future-later","old-pending","cancelled","future-sooner","old-confirmed"]);
 });

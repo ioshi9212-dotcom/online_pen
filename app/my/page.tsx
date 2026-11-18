@@ -8,6 +8,7 @@ import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { getClientCookie } from "@/lib/clientSession";
+import { splitClientBookings } from "@/lib/clientBookingViews";
 import { businessDateKey, businessDateFromKey, businessDateTimeFromKeyAndTime, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 import styles from "./my-page-compact.module.css";
@@ -21,6 +22,7 @@ type SearchParams = {
   created?: string;
   waitlist?: string;
   cancelled?: string;
+  cancelError?: string;
   remembered?: string;
   rememberError?: string;
   reschedule?: string;
@@ -66,6 +68,7 @@ function noticeText(searchParams: SearchParams) {
   if (searchParams.rescheduleError) return "Перенос недоступен: запись уже изменилась.";
   if (searchParams.waitlistError) return "Выберите дату для листа ожидания.";
   if (searchParams.reschedule) return "Выберите новое время. Прежняя запись сохранится до успешной отправки новой заявки.";
+  if (searchParams.cancelError) return "Запись уже прошла, была изменена или недоступна для отмены. Проверьте её статус в истории.";
   if (searchParams.cancelled) return "Запись отменена.";
   if (searchParams.login) return "Вход выполнен.";
   if (searchParams.known) return "Вы уже есть в базе. Можно записываться.";
@@ -159,16 +162,15 @@ export default async function MyPage({ searchParams: searchParamsPromise }: { se
   const initialDate = searchParams.date || firstAvailableDate;
   const initialTime = searchParams.time || "";
   const now = new Date();
-  const activeBookings = client.bookings.filter((booking) => ["PENDING", "CONFIRMED"].includes(booking.status) && booking.endAt > now);
+  const { activeBookings, pastBookings } = splitClientBookings(client.bookings, now);
   const upcomingBooking = activeBookings[0];
-  const pastBookings = client.bookings.filter((booking) => !["PENDING", "CONFIRMED"].includes(booking.status));
   const note = noticeText(searchParams);
   const canClientRemember = upcomingBooking ? canRememberBooking(upcomingBooking.startAt, now) : false;
   const clientRemembered = upcomingBooking ? hasBookingMark(upcomingBooking.clientComment, CLIENT_REMEMBER_MARK) : false;
 
   return (
     <main className={`page client-page client-page-compact ${styles.clientPageCompact}`}>
-      {note ? <div className={searchParams.busy || searchParams.bookingError || searchParams.rememberError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
+      {note ? <div className={searchParams.busy || searchParams.bookingError || searchParams.rememberError || searchParams.cancelError ? "notice danger-notice" : "notice ok-status"}>{note}</div> : null}
 
       <section className="hero client-booking-intro">
         <p className="muted">Онлайн-запись</p>
@@ -327,7 +329,7 @@ export default async function MyPage({ searchParams: searchParamsPromise }: { se
             <i aria-hidden="true">⌄</i>
           </summary>
           <div className="client-collapse-body history-compact-list">
-            {pastBookings.slice(0, 8).map((booking) => <p key={booking.id}>{fmtDate(booking.startAt)} — {booking.service.title} — {statusText(booking.status)}</p>)}
+            {pastBookings.map((booking) => <p key={booking.id}>{fmtDate(booking.startAt)} — {booking.service.title} — {statusText(booking.status)}</p>)}
           </div>
         </details>
       ) : null}
