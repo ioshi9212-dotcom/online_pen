@@ -15,5 +15,5 @@ export function durationLabel(minutes: number) {
 
 export function safeDuration(value: FormDataEntryValue | null, fallback = 150) {
   const parsed = Number(value);
-  return DURATION_OPTIONS.some((item) => item.value === parsed) ? parsed : fallback;
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 480 ? parsed : fallback;
 }

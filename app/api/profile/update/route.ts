@@ -1,5 +1,7 @@
+import { parseBirthDate } from "@/lib/validation";
+import { sameOriginRequest } from "@/lib/sameOrigin";
 import { normalizeAvatarDataUrl } from "@/lib/avatarUpload";
-import { setClientCookie } from "@/lib/clientSession";
+import { getClientCookie } from "@/lib/clientSession";
 import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -7,7 +9,6 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 type ProfilePayload = {
-  clientToken?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -25,6 +26,7 @@ function error(message: string, status = 400) {
 }
 
 export async function POST(request: Request) {
+  if (!sameOriginRequest(request)) return error("Недопустимый запрос", 403);
   let payload: ProfilePayload;
 
   try {
@@ -33,7 +35,8 @@ export async function POST(request: Request) {
     return error("Не удалось прочитать данные профиля.");
   }
 
-  const clientToken = clean(payload.clientToken);
+  const clientToken = await getClientCookie();
+  if (!clientToken) return error("Войдите в личный кабинет", 401);
   const firstName = clean(payload.firstName);
   const lastName = clean(payload.lastName);
   const phone = formatPhone(clean(payload.phone));
@@ -59,18 +62,20 @@ export async function POST(request: Request) {
     }
   }
 
+  let birthDate: Date;
+  try { birthDate = parseBirthDate(birthDateText); } catch { return error("Проверьте дату рождения"); }
+  if (phone.replace(/\D/g, "").length < 10) return error("Проверьте телефон");
   await prisma.client.update({
     where: { id: client.id },
     data: {
       firstName,
       lastName,
       phone,
-      birthDate: new Date(`${birthDateText}T00:00:00.000Z`),
+      birthDate,
       avatarUrl
     }
   });
 
-  setClientCookie(clientToken);
 
-  return NextResponse.json({ ok: true, redirectTo: `/my?client=${clientToken}&profileSaved=1#profile` });
+  return NextResponse.json({ ok: true, redirectTo: "/my?profileSaved=1#profile" });
 }

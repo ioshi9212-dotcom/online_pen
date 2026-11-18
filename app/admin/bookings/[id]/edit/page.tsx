@@ -1,11 +1,10 @@
+import ManualBookingForm from "@/app/admin/manage/ManualBookingForm";
 import { isAdmin } from "@/lib/admin";
-import { DURATION_OPTIONS, durationLabel } from "@/lib/durations";
-import { formatDateTime, rub } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { BOOKING_STATUS_OPTIONS, bookingStatusLabel, clientStatusLabel, statusClass } from "@/lib/statusLabels";
+import { bookingStatusLabel, statusClass } from "@/lib/statusLabels";
 import { businessDateKey, formatInBusinessTime } from "@/lib/timezone";
 import { redirect } from "next/navigation";
-import { updateBooking } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,19 +19,11 @@ function toTimeInputValue(date: Date) {
   return formatInBusinessTime(date, { hour: "2-digit", minute: "2-digit" });
 }
 
-function statusHint(status: string) {
-  if (status === "PENDING") return "Заявка ждёт подтверждения мастера и занимает окно.";
-  if (status === "CONFIRMED") return "Подтверждённая запись занимает окно.";
-  if (status === "COMPLETED") return "Запись завершена. Окно больше не считается занятым будущей записью.";
-  if (status === "NO_SHOW") return "Клиент не пришёл. Окно больше не считается активным.";
-  if (status === "CANCELLED_BY_CLIENT") return "Отмена клиентом. Окно можно занять другой записью.";
-  if (status === "CANCELLED_BY_ADMIN") return "Отмена мастером. Окно можно занять другой записью.";
-  if (status === "REJECTED") return "Заявка отклонена. Окно освобождается.";
-  return "";
-}
+export default async function EditBookingPage({ params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ id: string }>; searchParams?: Promise<SearchParams> }) {
+  const params = await paramsPromise;
+  const searchParams = (await searchParamsPromise) || {};
 
-export default async function EditBookingPage({ params, searchParams }: { params: { id: string }; searchParams?: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const [booking, clients, services] = await Promise.all([
     prisma.booking.findUnique({ where: { id: params.id }, include: { client: true, service: true } }),
@@ -75,69 +66,13 @@ export default async function EditBookingPage({ params, searchParams }: { params
           </div>
         </div>
 
-        <form action={updateBooking} className="grid booking-edit-form">
-          <input type="hidden" name="id" value={booking.id} />
-
-          <div className="grid-3">
-            <label>Клиент
-              <select name="clientId" defaultValue={booking.clientId} required>
-                {clients.map((client) => <option key={client.id} value={client.id}>{client.lastName} {client.firstName} — {client.phone} · {clientStatusLabel(client.status)}</option>)}
-              </select>
-            </label>
-
-            <label>Услуга
-              <select name="serviceId" defaultValue={booking.serviceId} required>
-                {services.map((service) => <option key={service.id} value={service.id}>{service.title} — {durationLabel(service.durationMinutes)} — {rub(service.price)}{service.isActive ? "" : " · выключена"}</option>)}
-              </select>
-            </label>
-
-            <label>Дата
-              <input name="startDate" type="date" defaultValue={bookingDateKey} required />
-            </label>
-          </div>
-
-          <div className="grid-3">
-            <label>Время
-              <input name="startTime" type="time" defaultValue={toTimeInputValue(booking.startAt)} required />
-            </label>
-
-            <label>Длительность
-              <select name="durationMinutes" defaultValue={String(durationMinutes)}>
-                {DURATION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-
-            <label>Статус
-              <select name="status" defaultValue={booking.status}>
-                {BOOKING_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-              </select>
-            </label>
-          </div>
-
-          <div className="grid-3">
-            <label>Итоговая цена
-              <input name="finalPrice" type="number" min="0" defaultValue={booking.finalPrice ?? ""} placeholder={String(booking.service.price)} />
-            </label>
-          </div>
-
-          <div className="notice">
-            <b>Статусы без сюрпризов:</b> {statusHint(booking.status)} Активными считаются только “ожидает подтверждения” и “подтверждена”. Остальные освобождают окно.
-          </div>
-
-          <label>Комментарий клиента
-            <input name="clientComment" defaultValue={booking.clientComment} placeholder="что просила клиентка" />
-          </label>
-
-          <label>Заметка мастера
-            <textarea name="adminComment" defaultValue={booking.adminComment} placeholder="дизайн, нюансы, предоплата, что не забыть" />
-          </label>
-
-          <div className="actions">
-            <button type="submit">Сохранить изменения</button>
-            <a className="button secondary" href="/admin">Назад на главную</a>
-            <a className="button secondary" href={`/admin/schedule?view=calendar&month=${businessDateKey(booking.startAt).slice(0, 7)}&date=${businessDateKey(booking.startAt)}#selected-day`}>Открыть день</a>
-          </div>
-        </form>
+        <ManualBookingForm
+          clients={clients.map((client) => ({ id: client.id, name: `${client.lastName} ${client.firstName}`, phone: client.phone }))}
+          services={services.map((service) => ({ id: service.id, title: `${service.title}${service.isActive ? "" : " · выключена"}`, durationMinutes: service.durationMinutes, price: service.price }))}
+          initialClientId={booking.clientId}
+          initialStart={`${bookingDateKey}T${toTimeInputValue(booking.startAt)}`}
+          booking={{ id: booking.id, serviceId: booking.serviceId, durationMinutes, status: booking.status, finalPrice: booking.finalPrice, clientComment: booking.clientComment, adminComment: booking.adminComment }}
+        />
       </section>
     </div>
   );

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function BlacklistPage() {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
   const clients = await prisma.client.findMany({ where: { status: "BANNED" }, orderBy: { bannedAt: "desc" } });
 
   return (

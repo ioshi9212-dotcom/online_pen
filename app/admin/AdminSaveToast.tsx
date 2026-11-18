@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const SUCCESS_KEYS = ["done", "success", "saved", "updated", "created", "toggled", "booking", "moved", "archived"];
 const SAVE_WORDS = ["сохран", "готово", "добав", "измен", "редакт", "принять", "подтверд", "создать"];
@@ -25,20 +25,19 @@ function submitLooksLikeSave(form: HTMLFormElement) {
 
 export default function AdminSaveToast() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [toast, setToast] = useState<ToastState | null>(null);
+  const params = useSearchParams();
+  const query = params.toString();
+  const initialText = pathname !== "/admin/login" && hasSuccessSignal(new URLSearchParams(query)) ? "Сохранено" : "";
+  return <AdminToast key={pathname + query} initialText={initialText} />;
+}
 
-  const searchString = useMemo(() => searchParams.toString(), [searchParams]);
-
+function AdminToast({ initialText }: { initialText: string }) {
+  const [toast, setToast] = useState<ToastState | null>(() => initialText ? { text: initialText, tone: "saved" } : null);
   useEffect(() => {
-    if (pathname === "/admin/login" || pathname.startsWith("/admin/logout")) return;
-    const params = new URLSearchParams(searchString);
-    if (!hasSuccessSignal(params)) return;
-
-    setToast({ text: "Сохранено", tone: "saved" });
+    if (!initialText) return;
     const timer = window.setTimeout(() => setToast(null), 1800);
     return () => window.clearTimeout(timer);
-  }, [pathname, searchString]);
+  }, [initialText]);
 
   useEffect(() => {
     function onSubmit(event: SubmitEvent) {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 const archivedBookingStatuses = ["CANCELLED_BY_CLIENT", "CANCELLED_BY_ADMIN", "REJECTED", "COMPLETED", "NO_SHOW"];
 
 export default async function ArchivePage() {
-  if (!isAdmin()) redirect("/admin/login");
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const [archivedClients, archivedBookings] = await Promise.all([
     prisma.client.findMany({

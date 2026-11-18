@@ -59,6 +59,14 @@ export function businessDateFromKey(key: string) {
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0) - BUSINESS_UTC_OFFSET_MINUTES * 60_000);
 }
 
+export function businessMonthBounds(key: string) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(key)) throw new Error("Invalid month");
+  const [year, month] = key.split("-").map(Number);
+  const next = new Date(Date.UTC(year, month, 1));
+  const nextKey = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  return { start: businessDateFromKey(`${key}-01`), end: businessDateFromKey(nextKey) };
+}
+
 export function businessDateTimeFromKeyAndTime(key: string, time: string) {
   const { year, month, day } = parseDateKey(key);
   const [hours, minutes] = time.split(":").map(Number);

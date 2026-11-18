@@ -2,12 +2,12 @@
 
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
-import { saveAdminClient, upsertManualClient } from "@/lib/clientSync";
+import { saveAdminClient, upsertManualClient, DuplicateClientError } from "@/lib/clientSync";
 import { normalizePhone } from "@/lib/phone";
 import { redirect } from "next/navigation";
 
-function guard() {
-  if (!isAdmin()) redirect("/admin/login");
+async function guard() {
+  if (!(await isAdmin())) redirect("/admin/login");
 }
 
 function s(formData: FormData, key: string) {
@@ -37,7 +37,7 @@ function profileUrl(id: string, params: Record<string, string | undefined> = {})
 }
 
 export async function createMyClient(formData: FormData) {
-  guard();
+  await guard();
   const status = s(formData, "status") || "APPROVED";
 
   const result = await upsertManualClient({
@@ -52,12 +52,14 @@ export async function createMyClient(formData: FormData) {
   redirect(clientsUrl({ saved: result.mode, clientId: result.client.id }));
 }
 
-export async function saveMyClient(formData: FormData) {
-  guard();
+export async function saveMyClient(_state: { error: string; duplicate: { id: string; name: string; phone: string } | null }, formData: FormData) {
+  await guard();
   const status = s(formData, "status") || "APPROVED";
 
-  const result = await saveAdminClient({
+  let result;
+  try { result = await saveAdminClient({
     id: s(formData, "id"),
+    mergeClientId: s(formData, "mergeClientId"),
     firstName: s(formData, "firstName"),
     lastName: s(formData, "lastName"),
     phone: normalizePhone(s(formData, "phone")),
@@ -66,13 +68,21 @@ export async function saveMyClient(formData: FormData) {
     notes: s(formData, "notes")
   });
 
+  } catch (error) {
+    if (error instanceof DuplicateClientError) {
+      const duplicate = await prisma.client.findUniqueOrThrow({ where: { id: error.duplicateId } });
+      return { error: "Телефон уже есть в другой карточке. Проверьте клиента перед объединением.", duplicate: { id: duplicate.id, name: `${duplicate.lastName} ${duplicate.firstName}`, phone: duplicate.phone } };
+    }
+    return { error: "Профиль не сохранён. Проверьте данные и попробуйте ещё раз.", duplicate: null };
+  }
+
   const redirectTo = s(formData, "redirectTo");
   if (redirectTo === "profile") redirect(profileUrl(s(formData, "id"), { saved: result.mode }));
   redirect(clientsUrl({ saved: result.mode, clientId: s(formData, "id") }));
 }
 
 export async function archiveClient(formData: FormData) {
-  guard();
+  await guard();
   const id = s(formData, "id");
   const reason = s(formData, "archiveReason");
   const client = await prisma.client.findUnique({ where: { id } });
@@ -92,7 +102,7 @@ export async function archiveClient(formData: FormData) {
 }
 
 export async function restoreClient(formData: FormData) {
-  guard();
+  await guard();
 
   await prisma.client.update({
     where: { id: s(formData, "id") },

@@ -4,8 +4,8 @@ import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
-function guard() {
-  if (!isAdmin()) redirect("/admin/login");
+async function guard() {
+  if (!(await isAdmin())) redirect("/admin/login");
 }
 
 function text(formData: FormData, key: string) {
@@ -42,7 +42,7 @@ async function findDuplicate(title: string, ignoreId?: string) {
 }
 
 export async function createService(formData: FormData) {
-  guard();
+  await guard();
 
   const title = text(formData, "title");
   if (!title) redirect(servicesUrl({ error: "empty-title", add: 1 }));
@@ -72,7 +72,7 @@ export async function createService(formData: FormData) {
 }
 
 export async function updateService(formData: FormData) {
-  guard();
+  await guard();
 
   const id = text(formData, "id");
   const title = text(formData, "title");
@@ -102,7 +102,7 @@ export async function updateService(formData: FormData) {
 }
 
 export async function toggleService(formData: FormData) {
-  guard();
+  await guard();
 
   const id = text(formData, "id");
   const next = text(formData, "next") === "true";
@@ -112,7 +112,7 @@ export async function toggleService(formData: FormData) {
 }
 
 export async function toggleBookingService(formData: FormData) {
-  guard();
+  await guard();
 
   const id = text(formData, "id");
   const next = text(formData, "next") === "true";
@@ -122,7 +122,7 @@ export async function toggleBookingService(formData: FormData) {
 }
 
 export async function deleteService(formData: FormData) {
-  guard();
+  await guard();
 
   const id = text(formData, "id");
   const bookings = await prisma.booking.count({ where: { serviceId: id } });
@@ -137,7 +137,7 @@ export async function deleteService(formData: FormData) {
 }
 
 export async function moveService(formData: FormData) {
-  guard();
+  await guard();
 
   const id = text(formData, "id");
   const direction = text(formData, "direction");

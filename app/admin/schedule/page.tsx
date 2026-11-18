@@ -1,10 +1,12 @@
+import SubmitButton from "@/app/SubmitButton";
+import { validDateKey } from "@/lib/validation";
 import { isAdmin } from "@/lib/admin";
 import { formatDateOnly, formatTimeOnly } from "@/lib/format";
 import { getOnlineBookingHideDays, onlineBookingHideDaysLabel } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
 import { combineDateAndTime, dateFromKey, dateKey, generateTimeList, getEffectiveDay, getSettingInt, overlaps } from "@/lib/schedule";
 import { redirect } from "next/navigation";
-import { todayBusinessDateKey } from "@/lib/timezone";
+import { todayBusinessDateKey, addBusinessDays, businessMonthBounds } from "@/lib/timezone";
 import { saveScheduleMode } from "./actions";
 import ScheduleClient from "./ScheduleClient";
 
@@ -47,15 +49,15 @@ function one(value: string | string[] | undefined, fallback = "") {
 
 function monthInfo(monthParam: string) {
   const now = new Date();
-  const [y, m] = /^\d{4}-\d{2}$/.test(monthParam) ? monthParam.split("-").map(Number) : [now.getFullYear(), now.getMonth() + 1];
+  const [y, m] = /^\d{4}-(0[1-9]|1[0-2])$/.test(monthParam) ? monthParam.split("-").map(Number) : [now.getFullYear(), now.getMonth() + 1];
   const year = y;
   const monthIndex = m - 1;
-  const first = new Date(year, monthIndex, 1);
-  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const first = new Date(Date.UTC(year, monthIndex, 1));
+  const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
   const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-  const prev = new Date(year, monthIndex - 1, 1);
-  const next = new Date(year, monthIndex + 1, 1);
-  const firstOffset = (first.getDay() + 6) % 7;
+  const prev = new Date(Date.UTC(year, monthIndex - 1, 1));
+  const next = new Date(Date.UTC(year, monthIndex + 1, 1));
+  const firstOffset = (first.getUTCDay() + 6) % 7;
 
   return {
     year,
@@ -63,9 +65,9 @@ function monthInfo(monthParam: string) {
     key,
     firstOffset,
     lastDay,
-    title: new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" }).format(first),
-    prevKey: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`,
-    nextKey: `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`
+    title: new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric", timeZone: "UTC" }).format(first),
+    prevKey: `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, "0")}`,
+    nextKey: `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}`
   };
 }
 
@@ -160,22 +162,24 @@ function buildSelectedTimes(params: {
   return result;
 }
 
-export default async function SchedulePage({ searchParams }: { searchParams: SearchParams }) {
-  if (!isAdmin()) redirect("/admin/login");
+export default async function SchedulePage({ searchParams: searchParamsPromise }: { searchParams: Promise<SearchParams> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
+  if (!(await isAdmin())) redirect("/admin/login");
 
   const todayKey = todayBusinessDateKey();
   const month = monthInfo(one(searchParams.month, todayKey.slice(0, 7)));
   const requestedView = one(searchParams.view);
   const view = requestedView === "mode" ? "mode" : "calendar";
-  const requestedDateKey = one(searchParams.date);
+  const rawDateKey = one(searchParams.date);
+  const requestedDateKey = validDateKey(rawDateKey) && rawDateKey.startsWith(month.key) ? rawDateKey : "";
   const selectedDateKey = view === "calendar" ? (requestedDateKey || (todayKey.startsWith(month.key) ? todayKey : `${month.key}-01`)) : requestedDateKey;
   const selectedDay = selectedDateKey ? dateFromKey(selectedDateKey) : null;
   const warning = one(searchParams.warning);
   const success = one(searchParams.success);
   const done = one(searchParams.done);
 
-  const monthStart = new Date(month.year, month.monthIndex, 1);
-  const monthEnd = new Date(month.year, month.monthIndex + 1, 1);
+  const { start: monthStart, end: monthEnd } = businessMonthBounds(month.key);
   const now = new Date();
   const onlineHorizon = new Date(now);
   onlineHorizon.setDate(onlineHorizon.getDate() + 90);
@@ -185,7 +189,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
     prisma.setting.findMany(),
     prisma.dayOverride.findMany({ where: { date: { gte: monthStart, lt: monthEnd } }, orderBy: { date: "asc" } }),
     prisma.booking.findMany({
-      where: { startAt: { gte: monthStart, lt: monthEnd }, status: { in: ["PENDING", "CONFIRMED"] as any } },
+      where: { startAt: { lt: monthEnd }, endAt: { gt: monthStart }, status: { in: ["PENDING", "CONFIRMED"] as any } },
       include: { client: true, service: true },
       orderBy: { startAt: "asc" }
     }),
@@ -206,7 +210,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
 
   const days = Array.from({ length: month.lastDay }).map((_, index) => {
     const dayNumber = index + 1;
-    const day = new Date(month.year, month.monthIndex, dayNumber);
+    const day = dateFromKey(`${month.key}-${String(dayNumber).padStart(2, "0")}`);
     const key = dateKey(day);
     const effective = getEffectiveDay(day, rules, overrides);
     return { key, dayNumber, label: dayLabel(effective.kind, effective.isWorkingDay), kind: effective.kind, isWorkingDay: effective.isWorkingDay, bookingsCount: monthBookings.filter((item) => dateKey(item.startAt) === key).length, onlineCount: monthOnlineWindows.filter((item) => dateKey(item.startAt) === key).length };
@@ -226,9 +230,10 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
   }));
 
   const selectedEffective = selectedDay ? getEffectiveDay(selectedDay, rules, overrides) : null;
-  const selectedTimesRaw = selectedEffective ? generateTimeList(selectedEffective.startTime, selectedEffective.endTime, stepMinutes) : [];
-  const selectedBookings = selectedDay ? monthBookings.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
-  const selectedBlocks = selectedDay ? monthBlocks.filter((item) => dateKey(item.startAt) === dateKey(selectedDay) || dateKey(item.endAt) === dateKey(selectedDay)) : [];
+  const selectedTimesRaw = selectedEffective?.isWorkingDay ? generateTimeList(selectedEffective.startTime, selectedEffective.endTime, stepMinutes) : [];
+  const selectedEnd = selectedDay ? dateFromKey(addBusinessDays(selectedDateKey, 1)) : null;
+  const selectedBookings = selectedDay && selectedEnd ? monthBookings.filter((item) => item.startAt < selectedEnd && item.endAt > selectedDay) : [];
+  const selectedBlocks = selectedDay && selectedEnd ? monthBlocks.filter((item) => item.startAt < selectedEnd && item.endAt > selectedDay) : [];
   const selectedOnlineWindows = selectedDay ? monthOnlineWindows.filter((item) => dateKey(item.startAt) === dateKey(selectedDay)) : [];
   const selectedTimes = buildSelectedTimes({ selectedDay, rawTimes: selectedTimesRaw, selectedBookings, selectedBlocks, selectedOnlineWindows, stepMinutes });
 
@@ -246,6 +251,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
       </section>
 
       <Toast text={done} />
+      {warning ? <div className="notice danger-notice" role="alert">{warning}</div> : null}
 
       {view === "mode" ? (
         <section className="card" id="mode">
@@ -268,7 +274,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
               </select>
               <small>{onlineBookingHideDaysLabel(onlineHideDays)}. Окна у мастера не удаляются, просто клиент их не увидит.</small>
             </label>
-            <button type="submit">Сохранить настройки записи</button>
+            <SubmitButton>Сохранить настройки записи</SubmitButton>
           </form>
         </section>
       ) : null}
@@ -284,8 +290,12 @@ export default async function SchedulePage({ searchParams }: { searchParams: Sea
           selectedDateKey={selectedDateKey}
           selectedDateTitle={selectedDay ? formatDateOnly(selectedDay) : ""}
           selectedIsWorkingDay={selectedEffective?.isWorkingDay ?? false}
-          selectedTimes={selectedTimes}
-          currentOnlineTimes={selectedOnlineWindows.map((item) => formatTimeOnly(item.startAt))}
+          agenda={[
+            ...selectedBookings.map((item) => ({ id: item.id, time: `${formatTimeOnly(item.startAt)}–${formatTimeOnly(item.endAt)}`, label: `${item.client.lastName} ${item.client.firstName} · ${item.service.title}`, href: `/admin/bookings/${item.id}/edit` })),
+            ...selectedBlocks.map((item) => ({ id: item.id, time: `${formatTimeOnly(item.startAt)}–${formatTimeOnly(item.endAt)}`, label: item.reason || "Перерыв", href: "" }))
+          ].sort((a,b) => a.time.localeCompare(b.time))}
+          selectedTimes={selectedTimes.filter((item) => item.isBusy || (selectedDay && combineDateAndTime(selectedDay, item.time) > now))}
+          currentOnlineTimes={selectedOnlineWindows.filter((item) => item.startAt > now).map((item) => formatTimeOnly(item.startAt))}
           openOnlineGroups={openOnlineGroups}
           clients={clients.map((client) => ({ id: client.id, name: `${client.firstName} ${client.lastName}`, phone: client.phone }))}
           services={services.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes }))}

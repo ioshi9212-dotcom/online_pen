@@ -1,13 +1,16 @@
+import { getClientCookie } from "@/lib/clientSession";
 import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function PricePage({ searchParams = {} }: { searchParams?: { client?: string } }) {
+export default async function PricePage({ searchParams: searchParamsPromise }: { searchParams?: Promise<{ client?: string }> }) {
+  const searchParams = (await searchParamsPromise) || {};
+
   const services = await prisma.service.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] });
   const mainServices = services.filter((service) => service.showInBooking);
   const priceOnly = services.filter((service) => !service.showInBooking);
-  const token = searchParams.client;
+  const token = await getClientCookie();
 
   return (
     <main className="price-page page">
@@ -16,8 +19,8 @@ export default async function PricePage({ searchParams = {} }: { searchParams?: 
         <h1>Услуги и цены</h1>
         <p className="lead">Основные услуги можно выбрать при записи. Допы видны в прайсе, но не бронируются как отдельное окно.</p>
         <div className="actions">
-          {token ? <a className="button" href={`/my?client=${token}#windows`}>К свободным окнам</a> : <a className="button" href="/login">Войти для записи</a>}
-          <a className="button secondary" href={token ? `/my?client=${token}` : "/"}>Назад</a>
+          {token ? <a className="button" href="/my#windows">К свободным окнам</a> : <a className="button" href="/login">Войти для записи</a>}
+          <a className="button secondary" href={token ? "/my" : "/"}>Назад</a>
         </div>
       </section>
 

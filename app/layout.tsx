@@ -10,13 +10,13 @@ import "./unified-design.css";
 import "./avatar-upload.css";
 import "./pull-refresh.css";
 import "./mobile-system.css";
+import "./audit-improvements.css";
 
 export const metadata: Metadata = {
   title: "Онлайн-запись",
   description: "Онлайн-запись к мастеру",
   applicationName: "Онлайн-запись",
   manifest: "/site.webmanifest",
-  themeColor: "#F3A9BE",
   appleWebApp: {
     capable: true,
     title: "Запись",
