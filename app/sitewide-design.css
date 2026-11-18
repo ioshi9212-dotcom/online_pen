@@ -1,0 +1,449 @@
+/*
+ * Online Pen — unified gray and rose design, 2026-11-19.
+ *
+ * This stylesheet is deliberately imported AFTER the legacy theme, the mobile
+ * layer, both page-specific styles and button-corners.css. It normalizes shared
+ * surfaces across public pages, authentication, client profile and all master
+ * routes; the booking-specific client CSS Module remains the source of truth
+ * for /my calendar, availability states and service selection.
+ *
+ * Never turn status colors, schedule day kinds, waitlist states or danger
+ * actions into generic pink buttons: those colors convey real information.
+ */
+:root {
+  --site-bg: #f1f2f4;
+  --site-surface: #f8f8f9;
+  --site-surface-2: #e9eaed;
+  --site-control: #e5e7ea;
+  --site-ink: #2e3036;
+  --site-muted: #676b73;
+  --site-border: #d9dce2;
+  --site-accent: #a35b79;
+  --site-accent-dark: #82425d;
+  --site-accent-soft: #e7d5dc;
+  --site-accent-line: #b77a91;
+  --site-card-radius: 14px;
+  --site-control-radius: 8px;
+}
+
+html,
+html body,
+html body .app-shell {
+  background: var(--site-bg) !important;
+  background-image: none !important;
+  color: var(--site-ink) !important;
+}
+
+html body .app-shell :is(
+  h1, h2, h3,
+  .beauty-brand b,
+  .master-brand b,
+  .calendar-month-switcher b,
+  .client-details-summary b
+) {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  letter-spacing: -.025em !important;
+  color: var(--site-ink) !important;
+}
+html body .app-shell :is(.eyebrow, .muted, .lead) {
+  font-family: inherit !important;
+}
+html body .app-shell :is(.eyebrow, .public-eyebrow) {
+  color: var(--site-accent-dark) !important;
+  font-weight: 650 !important;
+}
+html body .app-shell :is(.muted, .lead, small) {
+  color: var(--site-muted) !important;
+}
+
+/* Public header on all anonymous and client routes, including auth and price. */
+html body .app-shell .top-menu.compact-client-menu.beauty-top-card {
+  border-color: var(--site-border) !important;
+  border-radius: var(--site-card-radius) !important;
+  background: var(--site-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+html body .app-shell .top-menu.compact-client-menu.beauty-top-card::before,
+html body .app-shell .top-menu.compact-client-menu.beauty-top-card::after,
+html body .app-shell .top-menu.compact-client-menu.beauty-top-card .brand::before {
+  content: none !important;
+  display: none !important;
+}
+html body .app-shell .top-menu .brand-icon.beauty-brand-icon {
+  background: var(--site-accent) !important;
+  background-image: none !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+html body .app-shell .top-menu .menu-links a.beauty-menu-row {
+  border: 1px solid var(--site-accent-line) !important;
+  border-radius: var(--site-control-radius) !important;
+  background: var(--site-control) !important;
+  background-image: none !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+  font-weight: 550 !important;
+}
+html body .app-shell .top-menu .menu-links a.beauty-menu-row:hover {
+  background: var(--site-accent-soft) !important;
+}
+
+/* Non-booking client screens, price and every admin section share one surface. */
+html body .app-shell :is(
+  .auth-card,
+  .price-page .hero,
+  .price-page .price-section,
+  .pending-page .hero,
+  .client-page:not(.client-page-compact) .hero,
+  .client-page:not(.client-page-compact) .card,
+  .admin-route-frame .card,
+  .admin-route-frame .hero,
+  .admin-route-frame .mini-card,
+  .admin-route-frame .admin-home-panel,
+  .admin-route-frame .admin-home-header,
+  .admin-route-frame .admin-summary-card,
+  .admin-route-frame .service-hero-card,
+  .admin-route-frame .services-toolbar,
+  .admin-route-frame .service-list-panel,
+  .admin-route-frame .service-row,
+  .admin-route-frame .profile-hero,
+  .admin-route-frame .profile-form,
+  .admin-route-frame .settings-card,
+  .admin-route-frame .modal-card,
+  .admin-route-frame .master-booking-row,
+  .admin-route-frame .client-list-card,
+  .admin-route-frame .master-sidebar,
+  .admin-route-frame .table
+) {
+  border: 1px solid var(--site-border) !important;
+  border-radius: var(--site-card-radius) !important;
+  background: var(--site-surface) !important;
+  background-image: none !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+html body .app-shell :is(
+  .auth-card, .pending-page .hero, .price-page .hero,
+  .client-page:not(.client-page-compact) .hero,
+  .admin-route-frame .schedule-top-card,
+  .admin-route-frame .service-hero-card,
+  .admin-route-frame .settings-hero,
+  .admin-route-frame .profile-hero,
+  .admin-route-frame .clients-hero
+)::before,
+html body .app-shell :is(
+  .auth-card, .pending-page .hero, .price-page .hero,
+  .client-page:not(.client-page-compact) .hero,
+  .admin-route-frame .schedule-top-card,
+  .admin-route-frame .service-hero-card,
+  .admin-route-frame .settings-hero,
+  .admin-route-frame .profile-hero,
+  .admin-route-frame .clients-hero
+)::after {
+  display: none !important;
+  content: none !important;
+}
+
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) h1 {
+  max-width: none !important;
+  font-size: clamp(27px, 4vw, 38px) !important;
+  font-weight: 650 !important;
+  line-height: 1.12 !important;
+}
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) h2 {
+  font-size: clamp(20px, 3vw, 27px) !important;
+  font-weight: 630 !important;
+  line-height: 1.25 !important;
+}
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) :is(p, small, .lead) {
+  line-height: 1.5 !important;
+}
+
+/* Sign-in, registration, status, client profile and separate price listing. */
+html body .app-shell .auth-page {
+  width: min(680px, 100%) !important;
+  margin-inline: auto !important;
+}
+html body .app-shell .auth-page .auth-card,
+html body .app-shell .admin-route-frame > .auth-card {
+  padding: clamp(20px, 3.4vw, 30px) !important;
+}
+html body .app-shell :is(
+  .price-page .pretty-price-card,
+  .price-page .pretty-addon-row,
+  .price-page .main-price-card,
+  .admin-route-frame .admin-request-row,
+  .admin-route-frame .admin-wait-row,
+  .admin-route-frame .admin-window-row,
+  .admin-route-frame .mini-item,
+  .admin-route-frame .settings-mini-line,
+  .admin-route-frame .settings-price-block,
+  .admin-route-frame .master-booking-link,
+  .admin-route-frame .client-details-summary,
+  .admin-route-frame .service-visibility-box
+) {
+  border: 1px solid var(--site-border) !important;
+  border-radius: 10px !important;
+  background: var(--site-surface-2) !important;
+  background-image: none !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+html body .app-shell .price-page .pretty-price-bottom b,
+html body .app-shell .price-page .pretty-addon-row b,
+html body .app-shell .price-page .price-label {
+  color: var(--site-accent-dark) !important;
+}
+html body .app-shell .price-page .pretty-price-bottom {
+  border-color: var(--site-border) !important;
+}
+html body .app-shell :is(.auth-page, .pending-page, .price-page) .notice:not(.danger-notice):not(.danger-status):not(.ok-notice),
+html body .app-shell .admin-route-frame .notice:not(.danger-notice):not(.danger-status):not(.ok-notice) {
+  border: 1px solid #c9a1b0 !important;
+  border-radius: 10px !important;
+  background: #f0e9ed !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--site-ink) !important;
+}
+
+/* Master navigation, calendar, clients and service administration. */
+html body .app-shell .audit-admin-header {
+  border: 1px solid var(--site-border) !important;
+  border-radius: var(--site-card-radius) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+html body .app-shell .audit-admin-header .audit-admin-brand {
+  color: var(--site-ink) !important;
+  font-family: inherit !important;
+  font-weight: 650 !important;
+}
+html body .app-shell .audit-admin-navigation a {
+  color: var(--site-muted) !important;
+  font-weight: 550 !important;
+}
+html body .app-shell .audit-admin-navigation a[aria-current="page"] {
+  color: var(--site-accent-dark) !important;
+  border-bottom-color: var(--site-accent) !important;
+}
+html body .app-shell .admin-route-frame .schedule-top-card {
+  color: var(--site-ink) !important;
+  border-color: var(--site-border) !important;
+  background: var(--site-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+html body .app-shell .admin-route-frame .schedule-top-card h1 {
+  color: var(--site-ink) !important;
+}
+html body .app-shell .admin-route-frame .schedule-top-card :is(p, .eyebrow) {
+  color: var(--site-muted) !important;
+}
+html body .app-shell .admin-route-frame .schedule-top-card .eyebrow {
+  color: var(--site-accent-dark) !important;
+}
+html body .app-shell .admin-route-frame :is(
+  .admin-summary-card, .service-row, .clients-list-card-wrap,
+  .settings-service-line, .master-open-window-line,
+  .master-request-card, .audit-agenda-item, .profile-password-box
+) {
+  border-color: var(--site-border) !important;
+  background: var(--site-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+html body .app-shell .admin-route-frame :is(
+  .service-row-list, .master-booking-list, .client-card-list
+) {
+  min-width: 0 !important;
+}
+html body .app-shell .admin-route-frame .modal-backdrop {
+  background: rgba(31, 29, 34, .45) !important;
+}
+
+/* Cancelled appointments must remain visually distinct from active bookings. */
+html body .app-shell .admin-route-frame .master-booking-row.is-cancelled,
+html body .app-shell .admin-route-frame .master-booking-row.is-cancelled > .master-booking-link {
+  border-color: #e8c4ca !important;
+  background: #fff0f1 !important;
+  background-image: none !important;
+}
+
+/* Leave real status colors, disabled states and calendar day categories alone. */
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border: 1px solid var(--site-border) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  background-image: none !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) :is(button:not(.secondary):not(.danger):not(.ok):not(.paint-mode-btn):not(.day-btn):not(.time-btn):not(.calendar-day):not(.schedule-time-button):not(.month-arrow):not(.calendar-arrow-button), a.button:not(.secondary), .primary-link):not(:disabled) {
+  border-color: var(--site-accent) !important;
+  background: var(--site-accent) !important;
+  background-image: none !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) :is(button.secondary, .button.secondary, .btn-secondary) {
+  border-color: var(--site-accent-line) !important;
+  background: var(--site-control) !important;
+  background-image: none !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+html body .app-shell :is(
+  .auth-page, .price-page, .pending-page,
+  .client-page:not(.client-page-compact), .admin-route-frame
+) :is(button, .button, .btn, .primary-link, a[role="button"]):focus-visible,
+html body .app-shell .top-menu a:focus-visible {
+  outline: 3px solid var(--site-accent-dark) !important;
+  outline-offset: 3px !important;
+}
+html body .app-shell .admin-route-frame :is(.status, .pill, .admin-status, .badge) {
+  box-shadow: none !important;
+}
+html body .app-shell :is(.auth-page, .price-page, .pending-page, .admin-route-frame) :is(.card, .auth-card, .hero) :focus-visible {
+  outline-color: var(--site-accent-dark) !important;
+}
+
+/* The 8px control geometry stays consistent even in nested CSS Modules. */
+html body .app-shell :is(button, .button, .btn, .primary-link, input[type="submit"], input[type="button"], .beauty-menu-row, .calendar-arrow-button, .day-btn, .time-btn, .schedule-time-button) {
+  border-radius: var(--site-control-radius) !important;
+}
+
+@media (max-width: 760px) {
+  html body .app-shell :is(.auth-page, .price-page, .pending-page, .client-page:not(.client-page-compact), .admin-route-frame) h1 {
+    font-size: 28px !important;
+    line-height: 1.16 !important;
+  }
+  html body .app-shell .top-menu.compact-client-menu.beauty-top-card {
+    border-radius: 12px !important;
+    box-shadow: none !important;
+  }
+  html body .app-shell .auth-page {
+    width: 100% !important;
+  }
+  html body .app-shell :is(.price-page .hero, .pending-page .hero, .auth-card, .admin-route-frame .card) {
+    padding: 16px !important;
+  }
+  html body .app-shell .price-page .pretty-price-grid {
+    grid-template-columns: 1fr !important;
+  }
+  html body .app-shell .admin-route-frame {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  html body .app-shell .admin-route-frame .audit-filters {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)) !important;
+  }
+  html body .app-shell :is(.auth-page, .pending-page, .price-page) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+  html body .app-shell .admin-route-frame :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px !important;
+  }
+}
+
+/*
+ * Existing mobile-system.css declares important styles in this named layer.
+ * Put mobile palette and the master's formerly dark header/navigation in the
+ * SAME layer, later in source order, to override them correctly.
+ */
+@layer online-pen-mobile {
+  @media (max-width: 760px) {
+    :root {
+      --ui-bg: #f1f2f4 !important;
+      --ui-card: #f8f8f9 !important;
+      --ui-card-solid: #f8f8f9 !important;
+      --ui-soft: #e9eaed !important;
+      --ui-line: #d9dce2 !important;
+      --ui-line-strong: #b77a91 !important;
+      --ui-text: #2e3036 !important;
+      --ui-muted: #676b73 !important;
+      --ui-rose: #a35b79 !important;
+      --ui-rose-dark: #82425d !important;
+      --bg: #f1f2f4 !important;
+      --panel: #f8f8f9 !important;
+      --panel-soft: #e9eaed !important;
+      --text: #2e3036 !important;
+      --muted: #676b73 !important;
+      --control-radius: 8px !important;
+    }
+    html body,
+    html body .app-shell,
+    html body .master-dashboard {
+      background: var(--site-bg) !important;
+      background-image: none !important;
+      color: var(--site-ink) !important;
+    }
+    html body .app-shell .admin-route-frame .schedule-top-card,
+    html body .app-shell .admin-route-frame .schedule-calendar-card,
+    html body .app-shell .admin-route-frame .schedule-selected-card,
+    html body .app-shell .admin-route-frame .admin-home-panel {
+      border: 1px solid var(--site-border) !important;
+      background: var(--site-surface) !important;
+      background-image: none !important;
+      color: var(--site-ink) !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+    html body .app-shell .admin-route-frame .schedule-top-card :is(h1,h2,h3) {
+      color: var(--site-ink) !important;
+    }
+    html body .app-shell .admin-route-frame .schedule-top-card :is(p,small) {
+      color: var(--site-muted) !important;
+    }
+    html body .app-shell .master-bottom-nav.admin-global-bottom-nav {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      border: 1px solid var(--site-border) !important;
+      border-radius: 14px !important;
+      background: var(--site-surface) !important;
+      background-image: none !important;
+      box-shadow: 0 8px 24px rgba(31,29,34,.06) !important;
+      backdrop-filter: none !important;
+      color: var(--site-ink) !important;
+    }
+    html body .app-shell .master-bottom-nav.admin-global-bottom-nav a {
+      border-radius: 8px !important;
+      background: transparent !important;
+      background-image: none !important;
+      color: var(--site-muted) !important;
+      box-shadow: none !important;
+    }
+    html body .app-shell .master-bottom-nav.admin-global-bottom-nav a[aria-current="page"] {
+      border-color: var(--site-accent-line) !important;
+      background: var(--site-accent-soft) !important;
+      background-image: none !important;
+      color: var(--site-accent-dark) !important;
+    }
+    html body .app-shell .master-bottom-nav.admin-global-bottom-nav a b {
+      color: inherit !important;
+      font-weight: 600 !important;
+    }
+  }
+}
