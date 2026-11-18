@@ -275,6 +275,14 @@ html body .app-shell .admin-route-frame .modal-backdrop {
   background: rgba(31, 29, 34, .45) !important;
 }
 
+/* Cancelled appointments must remain visually distinct from active bookings. */
+html body .app-shell .admin-route-frame .master-booking-row.is-cancelled,
+html body .app-shell .admin-route-frame .master-booking-row.is-cancelled > .master-booking-link {
+  border-color: #e8c4ca !important;
+  background: #fff0f1 !important;
+  background-image: none !important;
+}
+
 /* Leave real status colors, disabled states and calendar day categories alone. */
 html body .app-shell :is(
   .auth-page, .price-page, .pending-page,
