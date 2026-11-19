@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import ClientSaveToast from "./ClientSaveToast";
 import UiIcon from "./UiIcon";
+import BrandMark from "./BrandMark";
 
 export default function SiteHeader() {
   const pathname = usePathname();
@@ -18,7 +19,7 @@ export default function SiteHeader() {
       <ClientSaveToast />
       <header className="top-menu compact-client-menu beauty-top-card">
         <a className="brand beauty-brand" href={homeHref}>
-          <span className="brand-icon beauty-brand-icon" aria-hidden="true"><UiIcon name="calendar" /></span>
+          <span className="brand-icon beauty-brand-icon" aria-hidden="true"><BrandMark size={48} /></span>
           <b>Онлайн-запись</b>
         </a>
 

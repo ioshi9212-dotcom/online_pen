@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { rub } from "@/lib/format";
 import { getClientCookie } from "@/lib/clientSession";
 import { redirect } from "next/navigation";
+import BrandMark from "./BrandMark";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function HomePage() {
   return (
     <main className="page public-page public-landing-refresh" data-ui-version="public-gray-rose-20261118">
       <section className="hero">
+        <BrandMark className="public-hero-brand-mark" size={76} />
         <p className="muted public-eyebrow">ОНЛАЙН-ЗАПИСЬ</p>
         <h1>Удобная запись к мастеру</h1>
         {master.name !== "Мастер" ? <p className="public-master-name">Мастер: {master.name}</p> : null}

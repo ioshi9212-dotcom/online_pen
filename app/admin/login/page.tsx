@@ -3,6 +3,7 @@ import { isAdmin, setAdminCookie } from "@/lib/admin";
 import { redirect } from "next/navigation";
 import { allowAuthAttempt } from "@/lib/authRateLimit";
 import SubmitButton from "@/app/SubmitButton";
+import BrandMark from "@/app/BrandMark";
 
 async function loginAdmin(formData: FormData) {
   "use server";
@@ -21,6 +22,7 @@ export default async function AdminLoginPage({ searchParams: searchParamsPromise
 
   return (
     <section className="card auth-card">
+      <BrandMark className="auth-brand-mark" size={64} />
       <h1>Вход мастера</h1>
       <p>Введите пароль, чтобы открыть расписание и записи клиентов.</p>
       {searchParams.error ? <div className="notice danger-notice">{searchParams.error === "rate" ? "Слишком много попыток. Попробуйте через 30 минут." : "Пароль не подошёл."}</div> : null}
