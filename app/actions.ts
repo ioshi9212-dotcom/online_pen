@@ -103,7 +103,8 @@ export async function cancelWaitlistEntry(form: FormData) {
 
 export async function cancelClientBooking(form: FormData) {
   const client = await requireClient();
-  await cancelOnlineBooking(client.id, text(form, "bookingId"));
+  const cancelled = await cancelOnlineBooking(client.id, text(form, "bookingId"));
+  if (!cancelled) redirect("/my?cancelError=unavailable#bookings");
   revalidatePath("/my");
   revalidatePath("/admin");
   revalidatePath("/admin/schedule");

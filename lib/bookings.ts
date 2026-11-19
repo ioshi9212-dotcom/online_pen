@@ -127,8 +127,9 @@ export async function bookOnline(input: { clientId: string; serviceId: string; s
 export async function cancelOnlineBooking(clientId: string, id: string) {
   return scheduleTransaction(async (tx) => {
     const booking = await tx.booking.findFirst({ where: { id, clientId, status: { in: ["PENDING", "CONFIRMED"] }, startAt: { gt: new Date() } } });
-    if (!booking) return;
+    if (!booking) return false;
     await tx.booking.update({ where: { id }, data: { status: "CANCELLED_BY_CLIENT", cancelledAt: new Date() } });
     await restoreWindow(tx, booking);
+    return true;
   });
 }
