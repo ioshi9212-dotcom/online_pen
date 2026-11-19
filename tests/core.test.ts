@@ -5,6 +5,8 @@ import { hashPassword, matchesPassword } from "../lib/adminPassword";
 import { consumeBucket } from "../lib/rateLimit";
 import { fitsWindow } from "../lib/availability";
 import { splitClientBookings } from "../lib/clientBookingViews";
+import { createDecipheriv, createECDH, createHmac, hkdfSync, createPublicKey, verify, randomBytes } from "node:crypto";
+import { encryptPushPayload, safePushEndpoint, validatePushSubscription, vapidAuthorization } from "../lib/webPush";
 import { businessMonthBounds, businessDateFromKey, businessDateTimeFromKeyAndTime } from "../lib/timezone";
 import { validDateKey, validTime, parseBirthDate } from "../lib/validation";
 
@@ -83,4 +85,58 @@ test("client booking history retains old pending/confirmed entries, newest first
   assert.deepEqual(activeBookings.map(x=>x.id),["future-sooner","future-later"]);
   assert.deepEqual(pastBookings.map(x=>x.id),["old-confirmed","old-pending","cancelled"]);
   assert.deepEqual(items.map(x=>x.id),["future-later","old-pending","cancelled","future-sooner","old-confirmed"]);
+});
+
+test("Web Push endpoints reject non-provider domains and private network URLs", () => {
+  assert.equal(safePushEndpoint("http://localhost:3000/push"),false);
+  assert.equal(safePushEndpoint("https://127.0.0.1/secret"),false);
+  assert.equal(safePushEndpoint("https://fcm.googleapis.com/push?id=a"),true);
+  assert.equal(safePushEndpoint("https://web.push.apple.com/Qxxxxx"),true);
+  assert.equal(safePushEndpoint("https://updates.push.services.mozilla.com/wpush/v2/test"),true);
+  assert.equal(safePushEndpoint("https://attacker.com/.push.apple.com"),false);
+  assert.equal(validatePushSubscription({endpoint:"http://localhost",keys:{auth:"test",p256dh:"test"}}),null);
+});
+
+test("encrypted Web Push payload decrypts with the receiver key per RFC 8291", () => {
+  const receiver=createECDH("prime256v1"),publicKey=receiver.generateKeys();
+  const auth=randomBytes(16);
+  const data={endpoint:"https://fcm.googleapis.com/fcm/send/test",keys:{p256dh:publicKey.toString("base64url"),auth:auth.toString("base64url")}};
+  assert.ok(validatePushSubscription(data));
+  const message=JSON.stringify({title:"Тест",body:"Привет!",url:"/my"});
+  const record=encryptPushPayload(data,message);
+  const salt=record.subarray(0,16);
+  const rs=record.readUInt32BE(16);
+  const keyLength=record[20];
+  assert.equal(keyLength,65);
+  assert.ok(rs>=4096);
+  const senderPublic=record.subarray(21,21+keyLength);
+  const shared=receiver.computeSecret(senderPublic);
+  const info=Buffer.concat([Buffer.from("WebPush: info\0"),publicKey,senderPublic]);
+  const ikm=Buffer.from(hkdfSync("sha256",shared,auth,info,32));
+  const cek=Buffer.from(hkdfSync("sha256",ikm,salt,Buffer.from("Content-Encoding: aes128gcm\0"),16));
+  const nonce=Buffer.from(hkdfSync("sha256",ikm,salt,Buffer.from("Content-Encoding: nonce\0"),12));
+  const payload=record.subarray(21+keyLength);
+  const cipher=createDecipheriv("aes-128-gcm",cek,nonce);
+  cipher.setAuthTag(payload.subarray(-16));
+  const clear=Buffer.concat([cipher.update(payload.subarray(0,-16)),cipher.final()]);
+  assert.equal(clear.at(-1),2);
+  assert.equal(clear.subarray(0,-1).toString("utf8"),message);
+});
+
+test("VAPID JWT signs correct push origin, expiry and subject", () => {
+  const privateEcdh=createECDH("prime256v1");
+  const pub=privateEcdh.generateKeys().toString("base64url");
+  const priv=privateEcdh.getPrivateKey().toString("base64url");
+  const header=vapidAuthorization("https://fcm.googleapis.com/path",pub,priv,"mailto:test@example.com",Date.UTC(2026,10,19));
+  assert.match(header,/^vapid t=/);
+  const token=header.split("t=")[1].split(", k=")[0];
+  const [h,p,s]=token.split(".");
+  const claims=JSON.parse(Buffer.from(p,"base64url").toString());
+  assert.equal(claims.aud,"https://fcm.googleapis.com");
+  assert.equal(claims.sub,"mailto:test@example.com");
+  assert.ok(claims.exp<=Date.UTC(2026,10,20)/1000);
+  assert.equal(JSON.parse(Buffer.from(h,"base64url").toString()).alg,"ES256");
+  const raw=Buffer.from(pub,"base64url");
+  const key=createPublicKey({key:{kty:"EC",crv:"P-256",x:raw.subarray(1,33).toString("base64url"),y:raw.subarray(33,65).toString("base64url")},format:"jwk"});
+  assert.equal(verify("sha256",Buffer.from(h+"."+p),{key,dsaEncoding:"ieee-p1363"},Buffer.from(s,"base64url")),true);
 });

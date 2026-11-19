@@ -45,6 +45,7 @@ model Client {
   bannedAt    DateTime?
   bookings    Booking[]
   waitlist    WaitlistEntry[]
+  pushSubscriptions PushSubscription[]
 
   @@index([status])
   @@index([phone])
@@ -151,4 +152,18 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique @db.VarChar(1000)
+  p256dh    String
+  auth      String
+  isAdmin   Boolean  @default(false)
+  clientId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@index([clientId])
+  @@index([isAdmin])
 }

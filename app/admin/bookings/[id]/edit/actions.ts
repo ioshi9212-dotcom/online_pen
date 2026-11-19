@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { saveAdminBooking, BookingError } from "@/lib/bookings";
 import { safeDuration } from "@/lib/durations";
 import { prisma } from "@/lib/prisma";
+import { notifyClient } from "@/lib/pushNotifications";
 import { businessDateTimeFromKeyAndTime } from "@/lib/timezone";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -65,8 +66,9 @@ export async function updateBooking(_state: { error: string }, formData: FormDat
   const durationMinutes = safeDuration(formData.get("durationMinutes"), service.durationMinutes || 150);
 
   try {
-    await saveAdminBooking({ id, clientId, serviceId, startAt, durationMinutes, status,
+    const booking = await saveAdminBooking({ id, clientId, serviceId, startAt, durationMinutes, status,
       clientComment: s(formData, "clientComment"), adminComment: s(formData, "adminComment"), finalPrice: nullablePrice(formData) });
+    await notifyClient(booking.clientId,{title:"Мастер изменил запись",body:"Проверьте обновлённую запись в кабинете.",url:"/my#bookings",tag:"edited-"+booking.id});
   } catch (error) {
     if (error instanceof BookingError) return { error: error.message };
     throw error;

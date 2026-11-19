@@ -2,11 +2,12 @@
   "name": "Онлайн-запись",
   "short_name": "Запись",
   "description": "Онлайн-запись к мастеру",
+  "id": "/",
   "start_url": "/login",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F6EAF0",
-  "theme_color": "#F3A9BE",
+  "background_color": "#F1F2F4",
+  "theme_color": "#A35B79",
   "icons": [
     {
       "src": "/icon-512.png",

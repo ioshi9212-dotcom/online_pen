@@ -3,6 +3,7 @@ import { fitsWindow } from "@/lib/availability";
 import SubmitButton from "@/app/SubmitButton";
 import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist, rememberClientBooking } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
+import PushNotifications from "@/app/PushNotifications";
 import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel, timeUntilBookingLabel } from "@/lib/bookingRemember";
 import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
@@ -223,6 +224,8 @@ export default async function MyPage({ searchParams: searchParamsPromise }: { se
           </section>
         ) : null}
       </section>
+
+      <PushNotifications role="client" />
 
       <section className="client-note-stack" aria-label="Дополнительные услуги">
         <details className="notice combo-service-note">

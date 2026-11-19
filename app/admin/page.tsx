@@ -3,6 +3,7 @@ import { canRememberBooking, hasBookingMark, MASTER_REMEMBER_MARK, rememberOpens
 import { isAdmin } from "@/lib/admin";
 import { isClientCancelSeen } from "@/lib/cancellationNotice";
 import { prisma } from "@/lib/prisma";
+import PushNotifications from "@/app/PushNotifications";
 import { addBusinessDays, businessDateFromKey, businessDateKey, businessMonthKey, formatInBusinessTime, todayBusinessDateKey } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 
@@ -364,6 +365,7 @@ export default async function AdminPage() {
 
         <header className="master-mobile-topbar"><div><b>Главная</b><span>{fmtTopDate(today)}</span></div></header>
         <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Расписание, ближайшие записи и заявки клиентов.</p></div></header>
+        <PushNotifications role="admin" />
 
         {(!serviceCount || !activeClients || !masterContact?.value || !openWindowCount) ? <section className="card audit-setup"><h2>Подготовить онлайн-запись</h2><ol>{!serviceCount ? <li><a href="/admin/services?add=1">Добавьте услуги, длительность и цены</a></li> : null}{!masterContact?.value ? <li><a href="/admin/profile">Заполните профиль и контакт мастера</a></li> : null}{!activeClients ? <li><a href="/admin/manage?add=1">Добавьте первого клиента или подтвердите регистрацию</a></li> : null}{!openWindowCount ? <li><a href="/admin/schedule">Отметьте рабочие дни и откройте время</a></li> : null}</ol></section> : null}
         <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{upcomingCount}</b><span>впереди</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlistCount}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>

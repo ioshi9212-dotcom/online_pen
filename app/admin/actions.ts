@@ -5,6 +5,7 @@ import { changeBookingStatus, BookingError } from "@/lib/bookings";
 import { scheduleTransaction } from "@/lib/scheduleTransaction";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { notifyClient } from "@/lib/pushNotifications";
 import { markClientCancelSeen } from "@/lib/cancellationNotice";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -26,7 +27,8 @@ function redirectTarget(formData: FormData, fallback: string) {
 
 export async function approveClient(formData: FormData) {
   await guard();
-  await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
+  const client = await prisma.client.update({ where: { id: getId(formData) }, data: { status: "APPROVED", approvedAt: new Date(), bannedAt: null } });
+  await notifyClient(client.id,{title:"Аккаунт одобрен",body:"Теперь можно выбрать время и записаться.",url:"/login",tag:"approval-"+client.id});
   redirect(redirectTarget(formData, "/admin"));
 }
 
@@ -55,7 +57,13 @@ export async function setBookingStatus(formData: FormData) {
   const redirectTo = redirectTarget(formData, "/admin/bookings");
   if (!BOOKING_STATUSES.has(status)) redirect(redirectTo);
 
-  try { await changeBookingStatus(id, status); }
+  try {
+    const booking = await changeBookingStatus(id, status);
+    if (status === "CONFIRMED" || status === "REJECTED" || status === "CANCELLED_BY_ADMIN") {
+      const wording = status === "CONFIRMED" ? "Мастер подтвердил запись." : status === "REJECTED" ? "Мастер отклонил запись." : "Мастер отменил запись.";
+      await notifyClient(booking.clientId,{title:"Статус записи изменился",body:wording,url:"/my#bookings",tag:"booking-status-"+id});
+    }
+  }
   catch (error) {
     if (error instanceof BookingError) {
       const url = new URL(redirectTo, "https://local.invalid");

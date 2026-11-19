@@ -8,6 +8,7 @@ import { upsertManualClient } from "@/lib/clientSync";
 import { safeDuration } from "@/lib/durations";
 import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { notifyClient } from "@/lib/pushNotifications";
 import { businessDateTimeFromKeyAndTime } from "@/lib/timezone";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -77,8 +78,9 @@ export async function createManualBooking(_state: { error: string }, formData: F
   const status = s(formData, "status") || "CONFIRMED";
 
   try {
-    await saveAdminBooking({ clientId, serviceId, startAt, durationMinutes, status,
+    const booking = await saveAdminBooking({ clientId, serviceId, startAt, durationMinutes, status,
       clientComment: s(formData, "clientComment"), adminComment: s(formData, "adminComment"), finalPrice: nullablePrice(formData) });
+    await notifyClient(clientId,{title:"Мастер добавил запись",body:"Проверьте детали записи в кабинете.",url:"/my#bookings",tag:"manual-"+booking.id});
   } catch (error) {
     if (error instanceof BookingError) return { error: error.message };
     throw error;
