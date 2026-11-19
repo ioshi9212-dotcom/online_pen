@@ -447,3 +447,57 @@ html body .app-shell :is(button, .button, .btn, .primary-link, input[type="submi
     }
   }
 }
+
+
+/* Shared Online Pen brand image. Personal photos and action icons are not changed. */
+html body .app-shell .online-pen-logo {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: 12px;
+}
+html body .app-shell .top-menu .brand-icon.beauty-brand-icon {
+  padding: 0 !important;
+  overflow: hidden;
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+html body .app-shell .top-menu .brand-icon.beauty-brand-icon .online-pen-logo {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: inherit;
+}
+html body .app-shell .audit-admin-header .audit-admin-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+html body .app-shell .audit-admin-header .audit-admin-brand .online-pen-logo {
+  width: 38px;
+  height: 38px;
+}
+html body main.public-landing-refresh .hero img.public-hero-brand-mark {
+  display: block;
+  width: 76px !important;
+  height: 76px !important;
+  margin: 0 0 16px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+html body .app-shell .auth-card img.auth-brand-mark {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 14px;
+}
+@media (max-width: 760px) {
+  html body .app-shell .audit-admin-header .audit-admin-brand .online-pen-logo {
+    width: 34px;
+    height: 34px;
+  }
+  html body main.public-landing-refresh .hero img.public-hero-brand-mark {
+    width: 60px !important;
+    height: 60px !important;
+  }
+}
