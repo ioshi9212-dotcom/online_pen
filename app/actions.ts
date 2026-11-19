@@ -5,7 +5,8 @@ import { addBookingMark, canRememberBooking, CLIENT_REMEMBER_MARK } from "@/lib/
 import { prisma } from "@/lib/prisma";
 import { formatPhone } from "@/lib/format";
 import { syncPublicRegistration } from "@/lib/clientSync";
-import { requireClient, setClientCookie } from "@/lib/clientSession";
+import { requireClient, setClientCookie, setPendingCookie } from "@/lib/clientSession";
+import { notifyMaster } from "@/lib/pushNotifications";
 import { allowAuthAttempt } from "@/lib/authRateLimit";
 import { parseBirthDate, validDateKey } from "@/lib/validation";
 import { bookOnline, BookingError, cancelOnlineBooking } from "@/lib/bookings";
@@ -23,6 +24,8 @@ export async function registerClient(form: FormData) {
   const result = await syncPublicRegistration({ firstName: text(form, "firstName"), lastName: text(form, "lastName"), phone, birthDate, notes: text(form, "comment") });
   // Registration never authenticates or updates an existing client's birth date.
   if (result.mode === "existing") redirect("/login?known=1");
+  await setPendingCookie(result.client.publicToken);
+  await notifyMaster({title:"Новая заявка клиента",body:"Клиент ожидает одобрения.",url:"/admin/requests",tag:"register-"+result.client.id});
   redirect("/pending");
 }
 
@@ -34,7 +37,10 @@ export async function loginClient(form: FormData) {
   const client = await prisma.client.findUnique({ where: { phone } });
   if (!client || client.birthDate.toISOString().slice(0, 10) !== birthDate.toISOString().slice(0, 10)) redirect("/login?error=credentials");
   if (client.status === "BANNED" || client.status === "REJECTED") redirect("/unavailable");
-  if (client.status !== "APPROVED") redirect("/pending?already=1");
+  if (client.status !== "APPROVED") {
+    await setPendingCookie(client.publicToken);
+    redirect("/pending?already=1");
+  }
   await setClientCookie(client.publicToken);
   redirect("/my?login=1");
 }
@@ -64,6 +70,7 @@ export async function createBooking(_state: { error: string }, form: FormData) {
   const client = await requireClient();
   try {
     const booking = await bookOnline({ clientId: client.id, serviceId: text(form, "serviceId"), startAt: new Date(text(form, "startAt")), comment: text(form, "comment"), rescheduleId: text(form, "rescheduleId") || undefined });
+    await notifyMaster({title:"Новая заявка на запись",body:"Клиент выбрал время. Подтвердите запись.",url:"/admin",tag:"booking-"+booking.id});
     revalidatePath("/admin");
     revalidatePath("/admin/schedule");
     revalidatePath("/my");
@@ -92,6 +99,7 @@ export async function joinWaitlist(form: FormData) {
   const existing = await prisma.waitlistEntry.findFirst({ where: { clientId: client.id, status: "ACTIVE" }, orderBy: { createdAt: "desc" } });
   if (existing) await prisma.waitlistEntry.update({ where: { id: existing.id }, data });
   else await prisma.waitlistEntry.create({ data: { clientId: client.id, ...data } });
+  await notifyMaster({title:"Новый лист ожидания",body:"Клиент ждёт свободное окно.",url:"/admin/waitlist",tag:"waitlist-"+client.id});
   redirect(`/my?waitlist=${mode === "DATES" ? "dates" : "nearest"}#waitlist`);
 }
 
@@ -105,6 +113,7 @@ export async function cancelClientBooking(form: FormData) {
   const client = await requireClient();
   const cancelled = await cancelOnlineBooking(client.id, text(form, "bookingId"));
   if (!cancelled) redirect("/my?cancelError=unavailable#bookings");
+  await notifyMaster({title:"Клиент отменил запись",body:"Проверьте календарь и освободившееся время.",url:"/admin",tag:"cancel-"+text(form,"bookingId")});
   revalidatePath("/my");
   revalidatePath("/admin");
   revalidatePath("/admin/schedule");

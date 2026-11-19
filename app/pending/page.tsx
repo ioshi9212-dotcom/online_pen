@@ -1,4 +1,6 @@
 import { getMasterProfile } from "@/lib/masterProfile";
+import { getPendingCookie } from "@/lib/clientSession";
+import PushNotifications from "@/app/PushNotifications";
 type SearchParams = {
   phone?: string;
   already?: string;
@@ -10,6 +12,7 @@ export default async function PendingPage({ searchParams: searchParamsPromise }:
 
   const master = await getMasterProfile();
   const already = searchParams.already === "1";
+  const maySubscribe = Boolean(await getPendingCookie());
   const phone = "";
 
   return (
@@ -35,6 +38,7 @@ export default async function PendingPage({ searchParams: searchParamsPromise }:
           <a className="button" href="/login">Проверить статус заявки</a>
         </div>
       </section>
+      {maySubscribe ? <PushNotifications role="client" /> : null}
     </main>
   );
 }

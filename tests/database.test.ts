@@ -31,7 +31,7 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
     await prisma.$connect();
   });
   beforeEach(async () => {
-    await prisma.$transaction([prisma.booking.deleteMany(), prisma.waitlistEntry.deleteMany(), prisma.client.deleteMany(), prisma.service.deleteMany(), prisma.onlineWindow.deleteMany(), prisma.blockedSlot.deleteMany(), prisma.dayOverride.deleteMany(), prisma.scheduleRule.deleteMany(), prisma.setting.deleteMany()]);
+    await prisma.$transaction([prisma.booking.deleteMany(), prisma.waitlistEntry.deleteMany(), prisma.pushSubscription.deleteMany(), prisma.client.deleteMany(), prisma.service.deleteMany(), prisma.onlineWindow.deleteMany(), prisma.blockedSlot.deleteMany(), prisma.dayOverride.deleteMany(), prisma.scheduleRule.deleteMany(), prisma.setting.deleteMany()]);
     await prisma.scheduleRule.createMany({data:Array.from({length:7},(_,weekday)=>({weekday,startTime:"09:00",endTime:"20:00",isWorkingDay:true}))});
     client = await prisma.client.create({data:{firstName:"Test",lastName:"Client",phone:"79990000001",birthDate:new Date("1990-01-01"),status:"APPROVED"}});
     service = await prisma.service.create({data:{title:"Test service",price:2000,durationMinutes:60}});
@@ -182,6 +182,11 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
         if (saved.status !== "APPROVED") throw new Error("Not approved");
         return saved;
       },
+      setPendingCookie: async (token: string) => {
+        const cookie = signedSession.signSession(token,"pending",14*24*60*60);
+        assert.equal(signedSession.readSession(cookie,"pending"),token);
+        assert.equal(signedSession.readSession(cookie,"client"),"");
+      },
       setClientCookie: async (token: string) => {
         issuedCookie = signedSession.signSession(token,"client",30*24*60*60);
       }
@@ -194,6 +199,7 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
       "@/lib/clientSync":clients,
       "@/lib/clientSession":auth,
       "@/lib/authRateLimit":{allowAuthAttempt:async()=>true},
+      "@/lib/pushNotifications":{notifyMaster:async()=>0},
       "@/lib/validation":await import("../lib/validation"),
       "@/lib/bookings":bookings,
       "next/cache":{revalidatePath:()=>{}},
@@ -206,6 +212,7 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
       "@/lib/admin":{isAdmin:async()=>true},
       "@/lib/prisma":{prisma},
       "@/lib/cancellationNotice":{},
+      "@/lib/pushNotifications":{notifyClient:async()=>0},
       "next/cache":{revalidatePath:()=>{}},
       "next/navigation":redirects
     });
@@ -310,6 +317,19 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
     assert.equal(saved.birthDate.toISOString().slice(0,10),"1994-12-17");
     assert.equal(saved.publicToken,token);
     assert.equal(signedSession.readSession(cookie,"client"),token);
+  });
+
+  test("push subscription persists across reconnect and is deleted with the client", async () => {
+    const first=await prisma.pushSubscription.create({data:{
+      endpoint:"https://fcm.googleapis.com/fcm/send/fake-opaque-test-token",
+      p256dh:"test-key",auth:"test-auth",clientId:client.id,isAdmin:false
+    }});
+    await prisma.$disconnect(); await prisma.$connect();
+    const reread=await prisma.pushSubscription.findUniqueOrThrow({where:{endpoint:first.endpoint}});
+    assert.equal(reread.clientId,client.id);
+    assert.equal(reread.isAdmin,false);
+    await prisma.client.delete({where:{id:client.id}});
+    assert.equal(await prisma.pushSubscription.count({where:{id:first.id}}),0);
   });
 
   test("registration never overwrites an approved person's identity", async () => {

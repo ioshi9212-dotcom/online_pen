@@ -28,3 +28,17 @@ export async function setClientCookie(token: string) {
 export async function clearClientCookie() {
   (await cookies()).delete(COOKIE_NAME);
 }
+
+const PENDING_COOKIE_NAME = "online_pen_pending";
+const PENDING_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
+
+// Restricted proof of a pending signup; never permits booking actions.
+export async function getPendingCookie() {
+  return readSession((await cookies()).get(PENDING_COOKIE_NAME)?.value, "pending");
+}
+export async function setPendingCookie(token: string) {
+  (await cookies()).set(PENDING_COOKIE_NAME, signSession(token, "pending", PENDING_MAX_AGE_SECONDS), {
+    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
+    path: "/", maxAge: PENDING_MAX_AGE_SECONDS
+  });
+}

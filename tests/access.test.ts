@@ -10,12 +10,12 @@ import { NextResponse } from "next/server";
 class Redirect extends Error { constructor(public target: string) { super(target); } }
 const navigation = { redirect: (target: string) => { throw new Redirect(target); } };
 function actionMocks(extra: Record<string, unknown> = {}) {
-  return { "@/lib/avatarUpload": {}, "@/lib/bookingRemember": {}, "@/lib/prisma": {}, "@/lib/format": { formatPhone: (value: string) => value }, "@/lib/clientSync": {}, "@/lib/clientSession": {}, "@/lib/authRateLimit": { allowAuthAttempt: async () => true }, "@/lib/validation": validation, "@/lib/bookings": {BookingError}, "next/cache": { revalidatePath: () => {} }, "next/navigation": navigation, ...extra };
+  return { "@/lib/avatarUpload": {}, "@/lib/bookingRemember": {}, "@/lib/prisma": {}, "@/lib/format": { formatPhone: (value: string) => value }, "@/lib/clientSync": {}, "@/lib/clientSession": {}, "@/lib/authRateLimit": { allowAuthAttempt: async () => true }, "@/lib/pushNotifications":{notifyMaster:async()=>0}, "@/lib/validation": validation, "@/lib/bookings": {BookingError}, "next/cache": { revalidatePath: () => {} }, "next/navigation": navigation, ...extra };
 }
 
 test("registration of an approved phone never issues a session", async () => {
   let sessions = 0;
-  const action = loadModule("app/actions.ts", actionMocks({ "@/lib/clientSync": { syncPublicRegistration: async () => ({ mode: "existing", client: { status: "APPROVED", publicToken: "never-publish-this-token" } }) }, "@/lib/clientSession": { setClientCookie: async () => { sessions++; } } }));
+  const action = loadModule("app/actions.ts", actionMocks({ "@/lib/clientSync": { syncPublicRegistration: async () => ({ mode: "existing", client: { status: "APPROVED", publicToken: "never-publish-this-token" } }) }, "@/lib/clientSession": { setClientCookie: async () => { sessions++; }, setPendingCookie: async () => { sessions++; } } }));
   const form = new FormData();
   for (const [key,value] of Object.entries({firstName:"Test",lastName:"Client",phone:"79990000001",birthDate:"2000-01-01"})) form.set(key,value);
   await assert.rejects(action.registerClient(form), (error: unknown) => error instanceof Redirect && error.target === "/login?known=1");
@@ -32,7 +32,7 @@ test("a booking action uses the cookie client rather than a submitted token", as
 
 test("a bare legacy cabinet URL cannot authenticate without a cookie", async () => {
   const module = loadModule("app/my/page.tsx", {
-    "@/lib/schedule": {}, "@/lib/availability": {}, "@/app/SubmitButton": {}, "@/app/actions": {}, "@/app/ClientBookingPicker": {}, "@/lib/bookingRemember": {}, "@/lib/onlineBookingCutoff": {}, "@/lib/prisma": { prisma: { client: { findUnique: () => { throw new Error("Must not query using URL token"); } } } }, "@/lib/format": {}, "@/lib/clientSession": { getClientCookie: async () => "" }, "@/lib/timezone": timezone, "next/navigation": navigation, "./my-page-compact.module.css": {}
+    "@/lib/schedule": {}, "@/lib/availability": {}, "@/app/SubmitButton": {}, "@/app/actions": {}, "@/app/ClientBookingPicker": {}, "@/lib/bookingRemember": {}, "@/lib/onlineBookingCutoff": {}, "@/lib/prisma": { prisma: { client: { findUnique: () => { throw new Error("Must not query using URL token"); } } } }, "@/lib/format": {}, "@/lib/clientSession": { getClientCookie: async () => "" }, "@/app/PushNotifications":{}, "@/lib/timezone": timezone, "next/navigation": navigation, "./my-page-compact.module.css": {}
   });
   await assert.rejects(module.default({searchParams:Promise.resolve({client:"known-legacy-token"})}), (error: unknown) => error instanceof Redirect && error.target === "/login");
 });
