@@ -397,7 +397,7 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
     assert.equal(again.alreadyOpen, 3);
     assert.equal(await prisma.onlineWindow.count(), 3);
     await prisma.dayOverride.create({ data: { date: businessDateFromKey(date), kind: "DAY_OFF" } });
-    await assert.rejects(presets.applyWindowPreset(date, 1), /рабочим/);
+    await assert.rejects(presets.applyWindowPreset(date, 1), /рабоч/);
     assert.equal(await prisma.onlineWindow.count(), 3);
   });
 
