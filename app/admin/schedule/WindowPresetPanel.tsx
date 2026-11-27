@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { WindowPreset } from "@/lib/windowPresets";
 
 type Draft = { name: string; timesText: string };
-type Result = { ok?: boolean; error?: string; preset?: WindowPreset; added?: number; addedTimes?: string[]; alreadyOpen?: number; unavailable?: number };
+type Result = { ok?: boolean; error?: string; preset?: WindowPreset; presets?: WindowPreset[]; added?: number; addedTimes?: string[]; alreadyOpen?: number; unavailable?: number };
 
 const toDraft = (preset: WindowPreset): Draft => ({ name: preset.name, timesText: preset.times.join(", ") });
 const same = (draft: Draft, saved: WindowPreset) =>
@@ -25,7 +25,10 @@ export default function WindowPresetPanel({
 }: Props) {
   const [saved, setSaved] = useState<WindowPreset[]>(initialPresets);
   const [drafts, setDrafts] = useState<Draft[]>(initialPresets.map(toDraft));
-  const [busyIndex, setBusyIndex] = useState<number | null>(null);
+  const [busyIndex, setBusyIndex] = useState<number | "all" | null>(null);
+  const [overallMessage, setOverallMessage] = useState("");
+  const [overallError, setOverallError] = useState(false);
+  const savedCount = saved.filter((item) => item.times.length > 0).length;
   const [feedback, setFeedback] = useState<Record<number, { text: string; isError: boolean }>>({});
 
   function edit(index: number, patch: Partial<Draft>) {
@@ -51,15 +54,35 @@ export default function WindowPresetPanel({
 
   async function save(index: number) {
     if (busyIndex !== null) return;
-    setBusyIndex(index); report(index, "");
+    setBusyIndex(index); report(index, ""); setOverallMessage("");
     try {
       const result = await send({ action: "save", index, name: drafts[index].name, times: drafts[index].timesText });
-      if (!result.preset) throw new Error("Шаблон не сохранился.");
-      setSaved((current) => current.map((item, i) => i === index ? result.preset! : item));
-      setDrafts((current) => current.map((item, i) => i === index ? toDraft(result.preset!) : item));
-      report(index, "Сохранено. Этот набор останется доступен в другие дни.");
+      if (!result.presets || result.presets.length !== 3 || !result.presets[index]?.times.length)
+        throw new Error("Не удалось проверить сохранение. Обнови страницу.");
+      const fromDatabase = result.presets;
+      setSaved(fromDatabase);
+      setDrafts((current) => current.map((item, i) => i === index ? toDraft(fromDatabase[index]) : item));
+      report(index, "✓ Сохранено в базе. Остальные шаблоны не изменены.");
     } catch (error) {
       report(index, error instanceof Error ? error.message : "Не удалось сохранить шаблон.", true);
+    } finally { setBusyIndex(null); }
+  }
+
+  async function saveAll() {
+    if (busyIndex !== null) return;
+    setBusyIndex("all"); setOverallMessage("");
+    try {
+      const result = await send({ action: "save-all", presets: drafts.map((draft) => ({ name: draft.name, times: draft.timesText })) });
+      if (!result.presets || result.presets.length !== 3 || result.presets.some((item) => !item.times.length))
+        throw new Error("Не удалось проверить все три сохранённых шаблона.");
+      setSaved(result.presets);
+      setDrafts(result.presets.map(toDraft));
+      setFeedback({});
+      setOverallError(false);
+      setOverallMessage("✓ Все три шаблона сохранены в базе. Можно менять дату — они останутся.");
+    } catch (error) {
+      setOverallError(true);
+      setOverallMessage(error instanceof Error ? error.message : "Не удалось сохранить все шаблоны.");
     } finally { setBusyIndex(null); }
   }
 
@@ -99,6 +122,13 @@ export default function WindowPresetPanel({
       <div className="window-presets-content">
         <p className="muted">Один раз сохрани привычные часы, потом выбирай день и нажимай «Добавить на этот день». Старые окна и записи не удаляются.</p>
         <p className="muted">Выбранный день: <b>{dayTitle}</b>{!isWorkingDay ? " · выходной" : ""}</p>
+        <div className="window-presets-save-all">
+          <p role="status">Сохранено шаблонов: <b>{savedCount} из 3</b>. Они хранятся отдельно и не заменяют друг друга.</p>
+          <button type="button" disabled={busyIndex !== null} onClick={saveAll}>
+            {busyIndex === "all" ? "Сохраняю все три…" : "Сохранить все 3 шаблона"}
+          </button>
+          {overallMessage ? <p className={overallError ? "notice danger-notice" : "notice ok-notice"} role="status">{overallMessage}</p> : null}
+        </div>
         <div className="window-presets-grid">
           {saved.map((item, index) => {
             const draft = drafts[index];
@@ -106,7 +136,7 @@ export default function WindowPresetPanel({
             const waiting = busyIndex !== null;
             return (
               <div className="window-preset-card" key={index}>
-                <b className="window-preset-number">Вариант {index + 1}</b>
+                <b className="window-preset-number">Вариант {index + 1} · {item.times.length ? "✓ сохранён" : "не сохранён"}</b>
                 <label>Название набора
                   <input maxLength={40} value={draft.name} onChange={(event) => edit(index, { name: event.target.value })} placeholder="Например: Короткий день" />
                 </label>
