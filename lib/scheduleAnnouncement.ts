@@ -8,8 +8,8 @@ export function parseScheduleMessage(input: unknown): { title: string; body: str
   if (!input || typeof input !== "object") return null;
   const value = input as { title?: unknown; body?: unknown };
   if (typeof value.title !== "string" || typeof value.body !== "string") return null;
-  const title = value.title.replace(/\\s+/g, " ").trim();
-  const body = value.body.replace(/\\s+/g, " ").trim();
+  const title = value.title.replace(/\s+/g, " ").trim();
+  const body = value.body.replace(/\s+/g, " ").trim();
   if (!title || title.length > 80 || body.length < 5 || body.length > 240) return null;
   return { title, body };
 }
