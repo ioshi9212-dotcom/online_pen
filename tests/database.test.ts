@@ -375,6 +375,29 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
   });
 
 
+  test("save-all commits all three named presets and preserves them after reconnect", async () => {
+    const names = ["Утренний", "Обычный", "Вечерний"];
+    const initial = await presets.saveAllWindowPresets([
+      {name: names[0], times: "09:00, 11:00"},
+      {name: names[1], times: "12:00, 14:30"},
+      {name: names[2], times: "17:00, 19:00"}
+    ]);
+    assert.deepEqual(initial.map((item) => item.name), names);
+    await prisma.$disconnect();
+    await prisma.$connect();
+    assert.deepEqual((await presets.listWindowPresets()).map((item) => item.name), names);
+    await assert.rejects(presets.saveAllWindowPresets([
+      {name:"Сломанный", times:"10:00"},
+      {name:"Пустой", times:""},
+      {name:"Ещё", times:"18:00"}
+    ]));
+    assert.deepEqual((await presets.listWindowPresets()).map((item) => item.name), names);
+    await presets.saveWindowPreset(1,"Другой день","10:30, 15:00");
+    assert.deepEqual((await presets.listWindowPresets()).map((item) => item.name), ["Утренний","Другой день","Вечерний"]);
+    await assert.rejects(presets.saveWindowPreset(2,"Не сохранять",""));
+    assert.deepEqual((await presets.listWindowPresets()).map((item) => item.name), ["Утренний","Другой день","Вечерний"]);
+  });
+
   test("three reusable window presets survive reconnect and only append non-busy times", async () => {
     const first = await presets.saveWindowPreset(0, "Обычный день", "10:00, 11:00, 12:00, 14:00, 15:30, 21:00");
     await presets.saveWindowPreset(1, "Короткий", "09:30; 13:30");

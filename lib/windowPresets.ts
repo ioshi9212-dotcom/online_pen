@@ -50,12 +50,37 @@ export function readWindowPresets(settings: Array<{ key: string; value: string }
 export async function saveWindowPreset(index: number, name: unknown, times: unknown) {
   const key = presetKey(index);
   const preset = normalizeWindowPreset(name, times);
+  if (!preset.times.length) throw new WindowPresetError("Добавьте хотя бы одно время в шаблон.");
   await prisma.setting.upsert({
     where: { key },
     create: { key, value: JSON.stringify(preset) },
     update: { value: JSON.stringify(preset) }
   });
   return preset;
+}
+
+/** Confirm what is actually persisted in PostgreSQL; not just browser state. */
+export async function listWindowPresets(): Promise<WindowPreset[]> {
+  const saved = await prisma.setting.findMany({ where: { key: { in: [...WINDOW_PRESET_KEYS] } } });
+  return readWindowPresets(saved);
+}
+
+/** Save all three independently in one PostgreSQL transaction. */
+export async function saveAllWindowPresets(input: unknown): Promise<WindowPreset[]> {
+  if (!Array.isArray(input) || input.length !== 3)
+    throw new WindowPresetError("Для общего сохранения заполните все три варианта.");
+  const presets = input.map((value) => {
+    const obj = value && typeof value === "object" ? value as Record<string, unknown> : {};
+    const preset = normalizeWindowPreset(obj.name, obj.times);
+    if (!preset.times.length) throw new WindowPresetError("Заполните время в каждом из трёх шаблонов.");
+    return preset;
+  });
+  await prisma.$transaction(presets.map((preset, index) => prisma.setting.upsert({
+    where: { key: WINDOW_PRESET_KEYS[index] },
+    create: { key: WINDOW_PRESET_KEYS[index], value: JSON.stringify(preset) },
+    update: { value: JSON.stringify(preset) }
+  })));
+  return listWindowPresets();
 }
 
 /** Add missing windows only. Never replace existing online windows or bookings. */

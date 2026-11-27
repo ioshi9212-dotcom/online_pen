@@ -1,10 +1,17 @@
 import { isAdmin } from "@/lib/admin";
-import { applyWindowPreset, saveWindowPreset, WindowPresetError } from "@/lib/windowPresets";
+import { applyWindowPreset, listWindowPresets, saveAllWindowPresets, saveWindowPreset, WindowPresetError } from "@/lib/windowPresets";
 import { sameOriginRequest } from "@/lib/sameOrigin";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+
+export async function GET() {
+  if (!(await isAdmin()))
+    return NextResponse.json({ ok: false, error: "Войдите в кабинет мастера." }, { status: 401 });
+  const presets = await listWindowPresets();
+  return NextResponse.json({ ok: true, presets }, { headers: { "Cache-Control": "no-store" } });
+}
 
 export async function POST(request: Request) {
   if (!sameOriginRequest(request))
@@ -16,7 +23,13 @@ export async function POST(request: Request) {
     if (data?.action === "save") {
       const preset = await saveWindowPreset(data.index, data.name, data.times);
       revalidatePath("/admin/schedule");
-      return NextResponse.json({ ok: true, preset });
+      const presets = await listWindowPresets();
+      return NextResponse.json({ ok: true, preset, presets }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (data?.action === "save-all") {
+      const presets = await saveAllWindowPresets(data.presets);
+      revalidatePath("/admin/schedule");
+      return NextResponse.json({ ok: true, presets }, { headers: { "Cache-Control": "no-store" } });
     }
     if (data?.action === "apply") {
       if (typeof data.date !== "string") throw new WindowPresetError("Проверьте дату.");
