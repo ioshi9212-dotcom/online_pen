@@ -39,7 +39,7 @@ export default async function PendingPage({ searchParams: searchParamsPromise }:
           <a className="button" href="/login">Проверить статус заявки</a>
         </div>
       </section>
-      {maySubscribe ? <><ScheduleAnnouncement /><PushNotifications role="client" /></> : null}
+      {maySubscribe ? <><ScheduleAnnouncement canBook={false} /><PushNotifications role="client" /></> : null}
     </main>
   );
 }
