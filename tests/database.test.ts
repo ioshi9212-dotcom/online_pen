@@ -19,6 +19,7 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
   let bookings: typeof import("../lib/bookings");
   let clients: typeof import("../lib/clientSync");
   let windows: typeof import("../lib/onlineWindows");
+  let presets: typeof import("../lib/windowPresets");
   let passwords: typeof import("../lib/adminPassword");
   const date = addBusinessDays(todayBusinessDateKey(), 7);
   const at = (time: string) => businessDateTimeFromKeyAndTime(date, time);
@@ -27,7 +28,7 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
   before(async () => {
     process.env.ADMIN_SECRET = "database-test-secret-not-production";
     ({ prisma } = await import("../lib/prisma"));
-    bookings = await import("../lib/bookings"); clients = await import("../lib/clientSync"); windows = await import("../lib/onlineWindows"); passwords = await import("../lib/adminPassword");
+    bookings = await import("../lib/bookings"); clients = await import("../lib/clientSync"); windows = await import("../lib/onlineWindows"); presets = await import("../lib/windowPresets"); passwords = await import("../lib/adminPassword");
     await prisma.$connect();
   });
   beforeEach(async () => {
@@ -371,6 +372,33 @@ describe("real PostgreSQL transactions", { skip: !testUrl, concurrency: false },
     assert.equal(await admin.isAdmin(),false);
     assert.equal(await passwords.verifyAdminPassword("old-test-password"),false);
     assert.ok(await passwords.verifyAdminPassword("new-test-password"));
+  });
+
+
+  test("three reusable window presets survive reconnect and only append non-busy times", async () => {
+    const first = await presets.saveWindowPreset(0, "Обычный день", "10:00, 11:00, 12:00, 14:00, 15:30, 21:00");
+    await presets.saveWindowPreset(1, "Короткий", "09:30; 13:30");
+    await presets.saveWindowPreset(2, "Длинный", "09:00, 18:00");
+    assert.deepEqual(first.times, ["10:00", "11:00", "12:00", "14:00", "15:30", "21:00"]);
+    await prisma.$disconnect();
+    await prisma.$connect();
+    const saved = await prisma.setting.findMany({ where: { key: { in: [...presets.WINDOW_PRESET_KEYS] } } });
+    assert.deepEqual(presets.readWindowPresets(saved).map((x) => x.name), ["Обычный день", "Короткий", "Длинный"]);
+
+    await prisma.onlineWindow.create({ data: { startAt: at("10:00") } });
+    await manual(at("12:00"));
+    await prisma.blockedSlot.create({ data: { startAt: at("14:00"), endAt: at("15:00"), reason: "Перерыв" } });
+    const applied = await presets.applyWindowPreset(date, 0);
+    assert.deepEqual(applied, { added: 2, addedTimes: ["11:00", "15:30"], alreadyOpen: 1, unavailable: 3 });
+    assert.deepEqual((await prisma.onlineWindow.findMany({ orderBy: { startAt: "asc" } })).map(x => x.startAt.toISOString()), [at("10:00"), at("11:00"), at("15:30")].map(x => x.toISOString()));
+
+    const again = await presets.applyWindowPreset(date, 0);
+    assert.equal(again.added, 0);
+    assert.equal(again.alreadyOpen, 3);
+    assert.equal(await prisma.onlineWindow.count(), 3);
+    await prisma.dayOverride.create({ data: { date: businessDateFromKey(date), kind: "DAY_OFF" } });
+    await assert.rejects(presets.applyWindowPreset(date, 1), /рабоч/);
+    assert.equal(await prisma.onlineWindow.count(), 3);
   });
 
   test("closed days and invalid times cannot replace published windows", async () => {
