@@ -36,6 +36,10 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <aside className="price-change-notice" aria-label="Изменение прайса">
+        <strong>Прайс изменился.</strong> <a href="#price">Актуальные цены — ниже ↓</a>
+      </aside>
+
       <section className="public-text-steps">
         <h2>Как записаться</h2>
         <div className="public-text-step-list">

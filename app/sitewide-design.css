@@ -501,3 +501,46 @@ html body .app-shell .auth-card img.auth-brand-mark {
     height: 60px !important;
   }
 }
+
+
+/* Clear, compact price update in the public home and client cabinet. */
+html body .app-shell .price-change-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid #d9b4c3 !important;
+  border-radius: 12px !important;
+  background: #f7ebef !important;
+  color: #422e38 !important;
+  box-shadow: none !important;
+}
+html body .app-shell .price-change-notice strong { color: #422e38 !important; }
+html body .app-shell .price-change-notice a { color: #813955 !important; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+html body .app-shell .schedule-announcement {
+  display: grid; gap: 8px;
+  padding: 16px 20px;
+  border: 1px solid #d9b4c3 !important;
+  border-radius: 12px !important;
+  background: #f7ebef !important;
+}
+html body .app-shell .schedule-announcement strong { font-size: 18px; color: #422e38 !important; }
+html body .app-shell .schedule-announcement p { margin: 0; color: #584650 !important; white-space: pre-wrap; overflow-wrap: anywhere; }
+html body .app-shell .schedule-announcement a { color: #813955 !important; font-weight: 700; }
+html body .app-shell .schedule-broadcast-panel { display: grid; gap: 12px; }
+html body .app-shell .schedule-broadcast-panel h2 { margin: 0; font-size: 21px; }
+html body .app-shell .schedule-broadcast-panel p { margin: 0; }
+html body .app-shell .schedule-broadcast-counts b { color: #542c41; }
+html body .app-shell .schedule-broadcast-form { display: grid; gap: 12px; max-width: 700px; }
+html body .app-shell .schedule-broadcast-form label { display: grid; gap: 7px; font-weight: 650; }
+html body .app-shell .schedule-broadcast-form input,
+html body .app-shell .schedule-broadcast-form textarea {
+  width: 100%; box-sizing: border-box; min-width: 0;
+  border: 1px solid #bfaab2; border-radius: 8px; padding: 12px;
+  background: #fff; color: #30262c; font: inherit;
+}
+html body .app-shell .schedule-broadcast-form textarea { resize: vertical; }
+html body .app-shell .schedule-broadcast-form button { justify-self: start; min-height: 44px; }
+html body .app-shell .schedule-broadcast-panel small { line-height: 1.45; }

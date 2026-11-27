@@ -32,7 +32,7 @@ test("a booking action uses the cookie client rather than a submitted token", as
 
 test("a bare legacy cabinet URL cannot authenticate without a cookie", async () => {
   const module = loadModule("app/my/page.tsx", {
-    "@/lib/schedule": {}, "@/lib/availability": {}, "@/app/SubmitButton": {}, "@/app/actions": {}, "@/app/ClientBookingPicker": {}, "@/lib/bookingRemember": {}, "@/lib/onlineBookingCutoff": {}, "@/lib/prisma": { prisma: { client: { findUnique: () => { throw new Error("Must not query using URL token"); } } } }, "@/lib/format": {}, "@/lib/clientSession": { getClientCookie: async () => "" }, "@/app/PushNotifications":{}, "@/lib/timezone": timezone, "next/navigation": navigation, "./my-page-compact.module.css": {}
+    "@/lib/schedule": {}, "@/lib/availability": {}, "@/app/SubmitButton": {}, "@/app/actions": {}, "@/app/ClientBookingPicker": {}, "@/lib/bookingRemember": {}, "@/lib/onlineBookingCutoff": {}, "@/lib/prisma": { prisma: { client: { findUnique: () => { throw new Error("Must not query using URL token"); } } } }, "@/lib/format": {}, "@/lib/clientSession": { getClientCookie: async () => "" }, "@/app/PushNotifications":{}, "@/app/ScheduleAnnouncement":{}, "@/lib/timezone": timezone, "next/navigation": navigation, "./my-page-compact.module.css": {}
   });
   await assert.rejects(module.default({searchParams:Promise.resolve({client:"known-legacy-token"})}), (error: unknown) => error instanceof Redirect && error.target === "/login");
 });
