@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, published: true, pushEnabled: enabled, devices, accepted: 0, failed: 0 });
 
   let accepted = 0, failed = 0;
+  const expiredIds: string[] = [];
   let cursor: string | undefined;
   do {
     const rows = await prisma.pushSubscription.findMany({
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
             { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
             { ...message, url: "/login", tag: "schedule-open" }
           );
-          if (result.expired) await prisma.pushSubscription.deleteMany({ where: { id: row.id } });
+          if (result.expired) expiredIds.push(row.id);
           if (result.delivered) accepted++;
           else failed++;
         } catch (cause) {
@@ -78,5 +79,7 @@ export async function POST(request: Request) {
     }
     if (rows.length < 50) break;
   } while (true);
+  // Delete only after paging; removing the page cursor mid-send breaks pagination.
+  if (expiredIds.length) await prisma.pushSubscription.deleteMany({ where: { id: { in: expiredIds } } });
   return NextResponse.json({ ok: true, published: true, pushEnabled: enabled, devices, accepted, failed });
 }
