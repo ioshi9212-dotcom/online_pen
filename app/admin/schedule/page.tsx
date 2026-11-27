@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { todayBusinessDateKey, addBusinessDays, businessMonthBounds } from "@/lib/timezone";
 import { saveScheduleMode } from "./actions";
 import ScheduleClient from "./ScheduleClient";
+import { readWindowPresets } from "@/lib/windowPresets";
 
 export const dynamic = "force-dynamic";
 
@@ -296,6 +297,7 @@ export default async function SchedulePage({ searchParams: searchParamsPromise }
           ].sort((a,b) => a.time.localeCompare(b.time))}
           selectedTimes={selectedTimes.filter((item) => item.isBusy || (selectedDay && combineDateAndTime(selectedDay, item.time) > now))}
           currentOnlineTimes={selectedOnlineWindows.filter((item) => item.startAt > now).map((item) => formatTimeOnly(item.startAt))}
+          initialPresets={readWindowPresets(settings)}
           openOnlineGroups={openOnlineGroups}
           clients={clients.map((client) => ({ id: client.id, name: `${client.firstName} ${client.lastName}`, phone: client.phone }))}
           services={services.map((service) => ({ id: service.id, title: service.title, price: service.price, durationMinutes: service.durationMinutes }))}

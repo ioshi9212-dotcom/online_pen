@@ -544,3 +544,56 @@ html body .app-shell .schedule-broadcast-form textarea {
 html body .app-shell .schedule-broadcast-form textarea { resize: vertical; }
 html body .app-shell .schedule-broadcast-form button { justify-self: start; min-height: 44px; }
 html body .app-shell .schedule-broadcast-panel small { line-height: 1.45; }
+
+
+/* Expandable, saved online-window presets in the master calendar. */
+html body .app-shell .window-presets {
+  margin: 14px 0 18px;
+  padding: 0;
+  border: 1px solid #d9c5ce;
+  border-radius: 12px;
+  background: #fbf9fa;
+  overflow: hidden;
+}
+html body .app-shell .window-presets > summary {
+  cursor: pointer;
+  padding: 14px 18px;
+  color: #523446;
+  font-size: 15px;
+  font-weight: 700;
+  list-style-position: inside;
+}
+html body .app-shell .window-presets[open] > summary {
+  border-bottom: 1px solid #eadce2;
+  background: #f5edf1;
+}
+html body .app-shell .window-presets-content { padding: 16px; display: grid; gap: 12px; }
+html body .app-shell .window-presets-content > p { margin: 0; }
+html body .app-shell .window-presets-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+html body .app-shell .window-preset-card {
+  min-width: 0;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e0d0d8;
+  border-radius: 10px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+html body .app-shell .window-preset-number { font-size: 14px; color: #713f57; }
+html body .app-shell .window-preset-card label { display: grid; gap: 6px; font-size: 13px; font-weight: 650; }
+html body .app-shell .window-preset-card input,
+html body .app-shell .window-preset-card textarea {
+  display: block; width: 100%; min-width: 0; box-sizing: border-box;
+  padding: 10px; background: #fff; color: #2f2830;
+  border: 1px solid #cdb6c0; border-radius: 8px; font: inherit; font-weight: 400;
+}
+html body .app-shell .window-preset-card textarea { resize: vertical; }
+html body .app-shell .window-preset-actions { display: grid; gap: 7px; }
+html body .app-shell .window-preset-actions button { width: 100%; min-height: 40px; white-space: normal; }
+html body .app-shell .window-preset-card .notice { margin: 0; padding: 10px; font-size: 12px; }
+html body .app-shell .window-presets-content small { line-height: 1.45; }
+@media (max-width: 840px) {
+  html body .app-shell .window-presets-grid { grid-template-columns: 1fr; }
+  html body .app-shell .window-presets-content { padding: 12px; }
+}

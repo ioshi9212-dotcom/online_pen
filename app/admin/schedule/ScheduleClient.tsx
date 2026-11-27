@@ -5,6 +5,8 @@ import { useUnsavedChanges } from "@/app/useUnsavedChanges";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { saveBulkDayOverridesInline } from "./actions";
+import WindowPresetPanel from "./WindowPresetPanel";
+import type { WindowPreset } from "@/lib/windowPresets";
 
 type DayItem = {
   key: string;
@@ -56,6 +58,7 @@ type Props = {
   selectedTimes: TimeItem[];
   agenda: { id: string; time: string; label: string; href: string }[];
   currentOnlineTimes: string[];
+  initialPresets: WindowPreset[];
   openOnlineGroups: OnlineWindowGroup[];
   clients: ClientItem[];
   services: ServiceItem[];
@@ -200,6 +203,13 @@ export default function ScheduleClient(props: Props) {
       setOnlineSaveState("error");
       setOnlineSaveText(error instanceof Error ? error.message : "Не удалось сохранить окна. Выбор сохранён на экране.");
     }
+  }
+
+  function afterPresetApplied(times: string[]) {
+    setOnlineTimes((current) => [...new Set([...current, ...times])].sort());
+    setOnlineSaveState("saved");
+    setOnlineSaveText("");
+    router.refresh();
   }
 
   const freeTimes = useMemo(() => props.selectedTimes.filter((item) => !item.isBusy), [props.selectedTimes]);
@@ -398,6 +408,15 @@ export default function ScheduleClient(props: Props) {
           </div>
           {!props.selectedIsWorkingDay ? <p className="notice">Выходной. Для онлайн-записи сначала отметьте этот день как рабочий в календаре.</p> : null}
           {dirty ? <p className="notice" role="status">Есть несохранённые изменения.</p> : null}
+          <WindowPresetPanel
+            initialPresets={props.initialPresets}
+            date={props.selectedDateKey}
+            dayTitle={props.selectedDateTitle}
+            isWorkingDay={props.selectedIsWorkingDay}
+            selectedTimes={onlineTimes}
+            hasUnsavedCalendarChanges={dirty || onlineSaveState === "saving" || isPaintPending}
+            onApplied={afterPresetApplied}
+          />
           <div className="grid-2 schedule-day-grid">
             <div className="time-control-panel">
               <h3 className="schedule-section-title">Выберите свободное время</h3>
