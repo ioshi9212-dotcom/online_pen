@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/admin";
 import { isClientCancelSeen } from "@/lib/cancellationNotice";
 import { prisma } from "@/lib/prisma";
 import PushNotifications from "@/app/PushNotifications";
+import ScheduleBroadcastForm from "./ScheduleBroadcastForm";
 import { addBusinessDays, businessDateFromKey, businessDateKey, businessMonthKey, formatInBusinessTime, todayBusinessDateKey } from "@/lib/timezone";
 import { redirect } from "next/navigation";
 
@@ -302,14 +303,17 @@ export default async function AdminPage() {
     prisma.booking.findMany({ where: { startAt: { gte: now, lt: horizon }, status: { in: ["PENDING", "CONFIRMED"] } }, select: { startAt: true } })
   ]);
 
-  const [pendingClientCount, pendingBookingCount, waitlistCount, upcomingCount, serviceCount, masterContact, openWindowCount] = await Promise.all([
+  const [pendingClientCount, pendingBookingCount, waitlistCount, upcomingCount, serviceCount, masterContact, openWindowCount, registeredClientCount, pushSubscribedClientCount, pushSubscribedDevices] = await Promise.all([
     prisma.client.count({ where: { status: "PENDING" } }),
     prisma.booking.count({ where: { status: "PENDING", endAt: { gt: now } } }),
     prisma.waitlistEntry.count({ where: { status: "ACTIVE" } }),
     prisma.booking.count({ where: { status: { in: ["PENDING", "CONFIRMED"] }, endAt: { gt: now } } }),
     prisma.service.count({ where: { isActive: true, showInBooking: true } }),
     prisma.setting.findUnique({ where: { key: "master_phone" } }),
-    prisma.onlineWindow.count({ where: { startAt: { gt: now } } })
+    prisma.onlineWindow.count({ where: { startAt: { gt: now } } }),
+    prisma.client.count({ where: { status: { in: ["PENDING", "APPROVED"] } } }),
+    prisma.client.count({ where: { status: { in: ["PENDING", "APPROVED"] }, pushSubscriptions: { some: { isAdmin: false } } } }),
+    prisma.pushSubscription.count({ where: { isAdmin: false, client: { status: { in: ["PENDING", "APPROVED"] } } } })
   ]);
 
   const todayBookings = rawTodayBookings.filter(shouldShowDayBooking);
@@ -366,6 +370,7 @@ export default async function AdminPage() {
         <header className="master-mobile-topbar"><div><b>Главная</b><span>{fmtTopDate(today)}</span></div></header>
         <header className="admin-home-header master-desktop-header"><div><p className="eyebrow">Кабинет мастера</p><h1>Главная</h1><p>Расписание, ближайшие записи и заявки клиентов.</p></div></header>
         <PushNotifications role="admin" />
+        <ScheduleBroadcastForm clientCount={registeredClientCount} subscribedClients={pushSubscribedClientCount} subscribedDevices={pushSubscribedDevices} />
 
         {(!serviceCount || !activeClients || !masterContact?.value || !openWindowCount) ? <section className="card audit-setup"><h2>Подготовить онлайн-запись</h2><ol>{!serviceCount ? <li><a href="/admin/services?add=1">Добавьте услуги, длительность и цены</a></li> : null}{!masterContact?.value ? <li><a href="/admin/profile">Заполните профиль и контакт мастера</a></li> : null}{!activeClients ? <li><a href="/admin/manage?add=1">Добавьте первого клиента или подтвердите регистрацию</a></li> : null}{!openWindowCount ? <li><a href="/admin/schedule">Отметьте рабочие дни и откройте время</a></li> : null}</ol></section> : null}
         <section className="admin-summary-grid master-desktop-summary" id="analytics"><div className="admin-summary-card"><b>{todayBookings.length}</b><span>сегодня</span></div><div className="admin-summary-card"><b>{tomorrowBookings.length}</b><span>завтра</span></div><div className="admin-summary-card"><b>{upcomingCount}</b><span>впереди</span></div><div className="admin-summary-card"><b>{requestCount}</b><span>заявки</span></div><div className="admin-summary-card"><b>{waitlistCount}</b><span>ждуны</span></div><div className="admin-summary-card"><b>{activeClients}</b><span>клиенты</span></div></section>

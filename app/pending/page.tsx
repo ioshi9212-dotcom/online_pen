@@ -1,6 +1,7 @@
 import { getMasterProfile } from "@/lib/masterProfile";
 import { getPendingCookie } from "@/lib/clientSession";
 import PushNotifications from "@/app/PushNotifications";
+import ScheduleAnnouncement from "@/app/ScheduleAnnouncement";
 type SearchParams = {
   phone?: string;
   already?: string;
@@ -38,7 +39,7 @@ export default async function PendingPage({ searchParams: searchParamsPromise }:
           <a className="button" href="/login">Проверить статус заявки</a>
         </div>
       </section>
-      {maySubscribe ? <PushNotifications role="client" /> : null}
+      {maySubscribe ? <><ScheduleAnnouncement canBook={false} /><PushNotifications role="client" /></> : null}
     </main>
   );
 }

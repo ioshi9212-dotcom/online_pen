@@ -4,6 +4,7 @@ import SubmitButton from "@/app/SubmitButton";
 import { cancelClientBooking, cancelWaitlistEntry, joinWaitlist, rememberClientBooking } from "@/app/actions";
 import ClientBookingPicker from "@/app/ClientBookingPicker";
 import PushNotifications from "@/app/PushNotifications";
+import ScheduleAnnouncement from "@/app/ScheduleAnnouncement";
 import { canRememberBooking, CLIENT_REMEMBER_MARK, hasBookingMark, rememberOpensLabel, timeUntilBookingLabel } from "@/lib/bookingRemember";
 import { getOnlineBookingMinStart } from "@/lib/onlineBookingCutoff";
 import { prisma } from "@/lib/prisma";
@@ -181,6 +182,8 @@ export default async function MyPage({ searchParams: searchParamsPromise }: { se
       </section>
 
       <section className="client-top-stack" aria-label="Важная информация">
+        <ScheduleAnnouncement />
+        <aside className="notice price-change-notice" aria-label="Изменение прайса"><strong>Прайс обновлён.</strong> <a href="/price">Посмотреть актуальные цены →</a></aside>
         <div className="notice client-start-warning">
           <b>Онлайн-запись работает в тестовом режиме</b>
           <p>После отправки заявки напишите мне. Я проверю и подтвержу запись.</p>
