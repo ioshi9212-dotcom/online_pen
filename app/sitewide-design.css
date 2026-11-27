@@ -597,3 +597,17 @@ html body .app-shell .window-presets-content small { line-height: 1.45; }
   html body .app-shell .window-presets-grid { grid-template-columns: 1fr; }
   html body .app-shell .window-presets-content { padding: 12px; }
 }
+
+
+/* Saved-state summary for all three independently persisted window presets. */
+html body .app-shell .window-presets-save-all {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 12px 14px; border: 1px solid #d9b4c3; border-radius: 10px;
+  background: #f7ebef;
+}
+html body .app-shell .window-presets-save-all > p { margin: 0; }
+html body .app-shell .window-presets-save-all > .notice { width: 100%; }
+html body .app-shell .window-presets-save-all button { min-height: 42px; }
+@media (max-width: 760px) {
+  html body .app-shell .window-presets-save-all button { width: 100%; }
+}
